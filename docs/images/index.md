@@ -30,7 +30,7 @@ The North Star image pipeline is:
 flowchart LR
     subgraph BUILD["1. Build"]
         direction TB
-        A["Azure Marketplace image<br/>Windows 11 Enterprise multi-session"] --> B["Azure Image Builder"] --> C["Lean base image"]
+        A["Windows 11 Enterprise<br/>multi-session from<br/>Azure Marketplace"] --> B["Azure Image Builder"] --> C["Lean base image"]
     end
     subgraph PUBLISH["2. Publish"]
         direction TB
@@ -38,9 +38,7 @@ flowchart LR
     end
     subgraph ROLL["3. Roll out in rings"]
         direction TB
-        F["Session host configuration<br/>and session host update"] --> H["Ring 0 host pool"]
-        K["App Attach packages"] --> H
-        H --> I["Ring 1 host pool"] --> J["Production host pools"]
+        F["Session host configuration<br/>and session host update"] --> H["Ring 0 host pool"] --> I["Ring 1 host pool"] --> J["Production host pools"]
     end
     BUILD --> PUBLISH --> ROLL
 ```
