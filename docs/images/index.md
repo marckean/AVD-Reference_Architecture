@@ -28,18 +28,21 @@ The North Star image pipeline is:
 
 ```mermaid
 flowchart LR
-    A["Azure Marketplace Windows 11 Enterprise multi-session"] --> B["Azure Image Builder"]
-    B --> C["Lean base image"]
-    C --> D["Azure Compute Gallery image definition"]
-    D --> E["Image version"]
-    E --> F["Session host configuration"]
-    F --> G["Session host update"]
-    G --> H["Ring 0 host pool"]
-    G --> I["Ring 1 host pool"]
-    G --> J["Production host pools"]
-    K["App Attach packages"] --> H
-    K --> I
-    K --> J
+    subgraph BUILD["1. Build"]
+        direction TB
+        A["Azure Marketplace image<br/>Windows 11 Enterprise multi-session"] --> B["Azure Image Builder"] --> C["Lean base image"]
+    end
+    subgraph PUBLISH["2. Publish"]
+        direction TB
+        D["Azure Compute Gallery<br/>image definition"] --> E["Image version"]
+    end
+    subgraph ROLL["3. Roll out in rings"]
+        direction TB
+        F["Session host configuration<br/>and session host update"] --> H["Ring 0 host pool"]
+        K["App Attach packages"] --> H
+        H --> I["Ring 1 host pool"] --> J["Production host pools"]
+    end
+    BUILD --> PUBLISH --> ROLL
 ```
 
 Images provide the operating system and baseline. App Attach provides applications at sign-in. Intune provides policy, certificates, scripts, and device management after enrolment.

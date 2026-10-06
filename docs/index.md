@@ -25,33 +25,19 @@ It does two jobs at once. It's a **reference architecture** that says what to bu
 
 ## The big picture
 
-```mermaid
-flowchart TB
-    U["Users<br/>Windows App or web client"]
-    subgraph MS["Microsoft-managed services"]
-        direction LR
-        ID["Microsoft Entra ID<br/>sign-in, Conditional Access, single sign-on"]
-        AVD["Azure Virtual Desktop service<br/>feed, gateway and broker"]
-        AUTO["Session host configuration<br/>session host update and autoscale"]
-    end
-    subgraph SUB["Your Azure subscription"]
-        direction LR
-        GAL["Azure Compute Gallery<br/>image built by Azure Image Builder"]
-        HP["Pooled host pool<br/>Entra joined hosts on ephemeral OS disks"]
-        FILES["Azure Files over private endpoints<br/>FSLogix profiles and App Attach packages"]
-    end
-    OPS["Intune policies, Azure Monitor and AVD Insights"]
+![The North Star architecture. Users sign in with Microsoft Entra ID and connect through Azure Virtual Desktop to a pooled host pool of Microsoft Entra joined session hosts on ephemeral OS disks. Profiles and App Attach packages come from Azure Files over a private endpoint, images from Azure Compute Gallery, policy from Microsoft Intune, and telemetry goes to Azure Monitor.](assets/images/north-star-architecture-light.svg#only-light)
+![The North Star architecture. Users sign in with Microsoft Entra ID and connect through Azure Virtual Desktop to a pooled host pool of Microsoft Entra joined session hosts on ephemeral OS disks. Profiles and App Attach packages come from Azure Files over a private endpoint, images from Azure Compute Gallery, policy from Microsoft Intune, and telemetry goes to Azure Monitor.](assets/images/north-star-architecture-dark.svg#only-dark)
 
-    U --> ID
-    U --> AVD
-    HP -- "reverse connect, TCP 443" --> AVD
-    AUTO -- "create, update, delete" --> HP
-    GAL -- "image version" --> HP
-    HP -- "profiles and applications" --> FILES
-    OPS -- "configure and observe" --> HP
-```
+1. **Sign in.** Users sign in with Microsoft Entra ID, which applies Conditional Access and provides single sign-on to the session host.
+2. **Connect.** Windows App or the web client gets the user's feed and connects through the Azure Virtual Desktop gateway. RDP Shortpath then tries to move the session to UDP, with TCP as the fallback ([RDP Shortpath](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)).
+3. **Reverse connect.** Session hosts connect out to the service over TCP 443, so "no inbound network ports are required to be open" ([Security recommendations](https://learn.microsoft.com/azure/virtual-desktop/security-recommendations)).
+4. **Profiles and applications.** At sign-in, FSLogix attaches the user's profile container, using Microsoft Entra Kerberos for access, and App Attach mounts the applications assigned to them. Both come from Azure Files over a private endpoint.
+5. **Session host lifecycle.** The session host configuration defines every host. Session host update and autoscale create, update and delete hosts to match the configuration and demand ([Host pool management approaches](https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches)).
+6. **Image.** New hosts use an image version from Azure Compute Gallery, built by Azure Image Builder.
+7. **Policy.** Intune configures every host with settings catalog policies.
+8. **Observe.** Diagnostics and performance data go to Azure Monitor and Log Analytics, where AVD Insights presents them.
 
-A user signs in with Microsoft Entra ID and connects through the Azure Virtual Desktop service. The session host on the other side was created from the session host configuration, using an image version from Azure Compute Gallery, and it's configured by Intune. When the user signs in, FSLogix attaches their profile from Azure Files and App Attach mounts the applications assigned to them. Autoscale adds and removes session hosts as demand changes, and everything reports to Azure Monitor. [How it fits together](overview/how-it-fits-together.md) walks through each step, including the connection sequence and the life of a session host.
+[How it fits together](overview/how-it-fits-together.md) walks through each step in detail, including the connection sequence and the life of a session host.
 
 ## Why build it this way
 

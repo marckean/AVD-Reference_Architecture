@@ -6,7 +6,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 # Microsoft Learn index
 
 !!! abstract "At a glance"
-    - Every Microsoft Learn article cited on this site: 106 articles in all.
+    - Every Microsoft Learn article cited on this site: 108 articles in all.
     - Grouped by product, with the pages that cite each article.
     - Article titles come from Microsoft Learn itself, checked when this version was published.
 
@@ -53,7 +53,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 | [Regional Host Pools - Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/regional-host-pools) | [Business continuity](../bcdr/index.md), [Glossary](glossary.md) |
 | [Required FQDNs and endpoints for Azure Virtual Desktop - Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint) | [Networking](../networking/index.md), [Networking: Required flows and endpoints](../networking/required-flows.md), [Dependency checklist](../getting-there/dependencies.md) |
 | [Screen capture protection in Azure Virtual Desktop - Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/screen-capture-protection) | [What good looks like](../overview/what-good-looks-like.md), [Security](../security/index.md), [Security: Session controls](../security/session-controls.md), [Glossary](glossary.md) |
-| [Security recommendations for Azure Virtual Desktop - Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/security-recommendations) | [Home](../index.md), [Security](../security/index.md), [Security: Session host hardening](../security/host-hardening.md) |
+| [Security recommendations for Azure Virtual Desktop - Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/security-recommendations) | [Home](../index.md), [How it fits together](../overview/how-it-fits-together.md), [Security](../security/index.md), [Security: Session host hardening](../security/host-hardening.md) |
 | [Session host update - Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/session-host-update) | [Home](../index.md), [What good looks like](../overview/what-good-looks-like.md), [How it fits together](../overview/how-it-fits-together.md), [Host pools](../host-pools/index.md), [Host pools: Session host update](../host-pools/session-host-update.md), [Images](../images/index.md), [Images: Rollout and cadence](../images/rollout-and-cadence.md), [Glossary](glossary.md) |
 | [Set up diagnostics for Autoscale in Azure Virtual Desktop - Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/autoscale-diagnostics) | [Scaling](../scaling/index.md), [Scaling: Monitoring and checklist](../scaling/monitoring-and-checklist.md) |
 | [Storage FSLogix profile container Azure Virtual Desktop - Azure - Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/store-fslogix-profile) | [User profiles with FSLogix](../profiles/index.md), [Business continuity](../bcdr/index.md), [Cost optimisation](../cost/index.md), [Cost optimisation: Licensing and storage](../cost/licensing-and-storage.md), [Glossary](glossary.md) |
@@ -82,6 +82,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 | --- | --- |
 | [How SSO to on-premises resources works on Microsoft Entra joined devices - Microsoft Entra ID](https://learn.microsoft.com/entra/identity/devices/device-sso-to-on-premises-resources) | [Identity and access: Legacy application authentication](../identity/legacy-applications.md), [Stepping stones](../getting-there/stepping-stones.md) |
 | [How to manage local administrators on Microsoft Entra joined devices - Microsoft Entra ID](https://learn.microsoft.com/entra/identity/devices/assign-local-admin) | [Identity and access](../identity/index.md), [Identity and access: Identities and roles](../identity/identities-and-roles.md) |
+| [Microsoft Entra architecture icons - Microsoft Entra](https://learn.microsoft.com/entra/architecture/architecture-icons) | [About this site](about.md) |
 | [Plan your Microsoft Entra join deployment - Microsoft Entra ID](https://learn.microsoft.com/entra/identity/devices/device-join-plan) | [Identity and access](../identity/index.md), [Identity and access: Legacy application authentication](../identity/legacy-applications.md), [Dependency checklist](../getting-there/dependencies.md), [Stepping stones](../getting-there/stepping-stones.md) |
 
 ## Microsoft Intune
@@ -155,6 +156,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 
 | Article | Cited on |
 | --- | --- |
+| [Azure Icons - Azure Architecture Center](https://learn.microsoft.com/azure/architecture/icons) | [About this site](about.md) |
 | [Business continuity and disaster recovery for Azure Virtual Desktop - Cloud Adoption Framework](https://learn.microsoft.com/azure/cloud-adoption-framework/scenarios/azure-virtual-desktop/eslz-business-continuity-and-disaster-recovery) | [Business continuity](../bcdr/index.md), [Business continuity: Regional design](../bcdr/regional-design.md), [Business continuity: Profiles and data](../bcdr/profiles-and-data.md) |
 | [Enterprise-scale support for Azure Virtual Desktop - Cloud Adoption Framework](https://learn.microsoft.com/azure/cloud-adoption-framework/scenarios/azure-virtual-desktop/enterprise-scale-landing-zone) | [What good looks like](../overview/what-good-looks-like.md), [Getting there](../getting-there/index.md), [Dependency checklist](../getting-there/dependencies.md) |
 | [Multiregion BCDR for Azure Virtual Desktop - Azure Architecture Center](https://learn.microsoft.com/azure/architecture/example-scenario/azure-virtual-desktop/azure-virtual-desktop-multi-region-bcdr) | [Business continuity](../bcdr/index.md) |

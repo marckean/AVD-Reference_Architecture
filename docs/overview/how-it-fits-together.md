@@ -14,47 +14,19 @@ description: The components of the North Star, how a user connection flows throu
 
 ## The big picture
 
-```mermaid
-flowchart LR
-    subgraph Clients["Users"]
-        WA["Windows App or web client"]
-    end
-    subgraph Identity["Microsoft Entra ID and Intune"]
-        EID["Sign-in, Conditional Access and single sign-on"]
-        EK["Microsoft Entra Kerberos"]
-        INT["Intune policies"]
-    end
-    subgraph AVD["Azure Virtual Desktop service"]
-        FEED["Workspace feed"]
-        GW["Gateway and broker"]
-        CTRL["Session host configuration, session host update and autoscale"]
-    end
-    subgraph Spoke["Spoke virtual network"]
-        HP["Pooled host pool: Entra joined session hosts on ephemeral OS disks"]
-    end
-    subgraph Storage["Azure Files over private endpoints"]
-        PROF["FSLogix profile containers"]
-        APPS["App Attach packages"]
-    end
-    subgraph Build["Image pipeline"]
-        AIB["Azure Image Builder"] --> ACG["Azure Compute Gallery"]
-    end
-    MON["Azure Monitor and AVD Insights"]
+![The North Star architecture. Users sign in with Microsoft Entra ID and connect through Azure Virtual Desktop to a pooled host pool of Microsoft Entra joined session hosts on ephemeral OS disks. Profiles and App Attach packages come from Azure Files over a private endpoint, images from Azure Compute Gallery, policy from Microsoft Intune, and telemetry goes to Azure Monitor.](../assets/images/north-star-architecture-light.svg#only-light)
+![The North Star architecture. Users sign in with Microsoft Entra ID and connect through Azure Virtual Desktop to a pooled host pool of Microsoft Entra joined session hosts on ephemeral OS disks. Profiles and App Attach packages come from Azure Files over a private endpoint, images from Azure Compute Gallery, policy from Microsoft Intune, and telemetry goes to Azure Monitor.](../assets/images/north-star-architecture-dark.svg#only-dark)
 
-    WA --> EID
-    WA --> FEED
-    WA --> GW
-    HP -- "reverse connect, TCP 443" --> GW
-    CTRL -- "create, update, delete" --> HP
-    ACG -- "image version" --> HP
-    INT -- "device and user policy" --> HP
-    HP -- "SMB with Kerberos ticket" --> PROF
-    HP -- "mount at sign-in" --> APPS
-    EK -.-> PROF
-    HP -- "logs and metrics" --> MON
-```
+1. **Sign in.** Users sign in with Microsoft Entra ID, which applies Conditional Access and provides single sign-on to the session host ([Configure single sign-on](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on)).
+2. **Connect.** Windows App or the web client gets the user's feed and connects through the Azure Virtual Desktop gateway. RDP Shortpath then tries to move the session to UDP, with TCP as the fallback ([RDP Shortpath](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)).
+3. **Reverse connect.** Session hosts connect out to the service over TCP 443, so "no inbound network ports are required to be open" ([Security recommendations](https://learn.microsoft.com/azure/virtual-desktop/security-recommendations)).
+4. **Profiles and applications.** At sign-in, FSLogix attaches the user's profile container, using Microsoft Entra Kerberos for access, and App Attach mounts the applications assigned to them. Both come from Azure Files over a private endpoint ([FSLogix with Microsoft Entra ID](https://learn.microsoft.com/fslogix/how-to-configure-profile-container-entra-id-hybrid), [App Attach](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)).
+5. **Session host lifecycle.** The session host configuration defines every host. Session host update and autoscale create, update and delete hosts to match the configuration and demand ([Host pool management approaches](https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches)).
+6. **Image.** New hosts use an image version from Azure Compute Gallery, built by Azure Image Builder ([Azure Image Builder](https://learn.microsoft.com/azure/virtual-machines/image-builder-overview)).
+7. **Policy.** Intune configures every host with settings catalog policies ([Intune and multi-session](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session)).
+8. **Observe.** Diagnostics and performance data go to Azure Monitor and Log Analytics, where AVD Insights presents them ([AVD Insights](https://learn.microsoft.com/azure/virtual-desktop/insights)).
 
-Read it from left to right. A user signs in with Microsoft Entra ID, gets their feed of desktops and applications, and connects through the gateway. The session host behind that connection was created from the session host configuration, using an image version from Azure Compute Gallery and configured by Intune. When the user signs in to the session host, FSLogix attaches their profile from Azure Files and App Attach mounts the applications assigned to them.
+The numbers on the diagram match the steps above. The rest of this page takes each part in turn.
 
 ## The components and what they do
 
@@ -76,28 +48,50 @@ Read it from left to right. A user signs in with Microsoft Entra ID, gets their 
 Azure Virtual Desktop uses reverse connect. The session host never listens for incoming RDP connections. It keeps an outbound, TLS-protected channel open to the service, and both the client and the session host connect out to the same gateway, which relays traffic between them ([Understanding AVD network connectivity](https://learn.microsoft.com/azure/virtual-desktop/network-connectivity)).
 
 ```mermaid
+---
+config:
+  sequence:
+    width: 100
+    actorMargin: 24
+    messageMargin: 30
+---
 sequenceDiagram
     autonumber
-    participant C as Windows App
-    participant E as Microsoft Entra ID
-    participant F as AVD feed
-    participant G as AVD gateway
-    participant B as AVD broker
+    participant C as Client
+    participant E as Entra ID
+    participant F as Feed
+    participant G as Gateway
+    participant B as Broker
     participant H as Session host
     participant S as Azure Files
-    C->>E: Sign in, Conditional Access applies
+    C->>E: Sign in
     E-->>C: Token
-    C->>F: Subscribe to the workspace with the token
-    F-->>C: Signed connection configuration for each resource
-    C->>G: TLS connection to the nearest gateway
-    G->>B: Validate the request and orchestrate
-    B->>H: Start the connection over the persistent channel
-    H->>G: Reverse connect over TLS to the same gateway
-    G-->>C: Gateway relays traffic and the RDP handshake starts
-    C->>H: Windows sign-in with Microsoft Entra authentication
-    H->>S: FSLogix attaches the profile container
-    H->>S: App Attach registers the assigned applications
+    C->>F: Subscribe
+    F-->>C: Connection details
+    C->>G: Connect over TLS
+    G->>B: Orchestrate
+    B->>H: Start connection
+    H->>G: Reverse connect
+    G-->>C: Relay, RDP handshake
+    C->>H: Windows sign-in
+    H->>S: Attach profile
+    H->>S: Register applications
 ```
+
+| Step | What happens |
+| --- | --- |
+| 1 | Windows App signs the user in to Microsoft Entra ID, and Conditional Access applies |
+| 2 | Microsoft Entra ID returns a token |
+| 3 | The client subscribes to the workspace feed with the token |
+| 4 | The feed returns a signed connection configuration for each resource |
+| 5 | The client opens a TLS connection to the nearest gateway |
+| 6 | The gateway validates the request and the broker orchestrates the connection |
+| 7 | The broker tells the session host to start the connection, over the persistent channel the host keeps open |
+| 8 | The session host reverse connects over TLS to the same gateway |
+| 9 | The gateway relays traffic between the client and the session host, and the RDP handshake starts |
+| 10 | The user signs in to Windows with Microsoft Entra authentication, which gives single sign-on |
+| 11 | FSLogix attaches the user's profile container from Azure Files |
+| 12 | App Attach registers the user's assigned applications from Azure Files |
 
 Steps 1 to 9 summarise the [client connection sequence on Microsoft Learn](https://learn.microsoft.com/azure/virtual-desktop/network-connectivity#client-connection-sequence). Step 10 is [single sign-on with Microsoft Entra authentication](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on). In step 11, FSLogix reaches Azure Files with a Kerberos ticket from Microsoft Entra Kerberos, because an Entra joined host has no domain to ask ([FSLogix profile containers with Microsoft Entra ID](https://learn.microsoft.com/fslogix/how-to-configure-profile-container-entra-id-hybrid)). In step 12, App Attach reads its packages from Azure Files. For Entra joined hosts, that access is granted to the Azure Virtual Desktop service principals rather than to each user ([Add and manage App Attach applications](https://learn.microsoft.com/azure/virtual-desktop/app-attach-setup)). Once the session is up, RDP Shortpath can move the transport to UDP for lower latency ([RDP Shortpath](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)).
 

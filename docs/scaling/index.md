@@ -29,16 +29,9 @@ There are two scaling methods:
 ## How it fits
 
 ```mermaid
-flowchart TD
-    A["Scaling plan"] --> B["Power management autoscaling"]
-    A --> C["Dynamic autoscaling"]
-    B --> D["Start existing host"]
-    B --> E["Deallocate existing host"]
-    C --> F["Start existing host"]
-    C --> G["Create new host from session host configuration"]
-    C --> H["Delete host during scale-down"]
-    I["Ephemeral OS disk host"] --> C
-    I -. "cannot stop-deallocate" .-> B
+flowchart TB
+    PLAN["Scaling plan"] --> PM["<b>Power management autoscaling</b><br/>Starts and deallocates<br/>existing hosts"]
+    PLAN --> DYN["<b>Dynamic autoscaling</b><br/>Starts and deallocates hosts,<br/>creates them from the session<br/>host configuration, and<br/>deletes them on scale-down"]
 ```
 
 Power management is about the power state of existing VMs. Dynamic Autoscaling is about the size of the host pool as well as power state. That distinction matters because ephemeral OS disk hosts cannot be stop-deallocated, and Microsoft recommends Dynamic Autoscaling for host pools that include session hosts with ephemeral OS disks in [Ephemeral OS disks on Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/deploy/session-hosts/ephemeral-os-disks#dynamic-autoscaling-recommendations).

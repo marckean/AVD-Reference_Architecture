@@ -15,14 +15,19 @@ description: A phased route from an existing virtual desktop platform to the Nor
 
 ```mermaid
 flowchart LR
-    P0["0. Decide"] --> P1["1. Foundations"]
-    P1 --> P2["2. Identity and management"]
-    P2 --> P3["3. Storage"]
-    P3 --> P4["4. Image pipeline"]
-    P4 --> P5["5. Automated host pool"]
-    P5 --> P6["6. Applications"]
-    P6 --> P7["7. Scale and operate"]
-    P7 --> P8["8. Pilot and migrate"]
+    subgraph PREP["Prepare"]
+        direction TB
+        P0["0. Decide"] --> P1["1. Foundations"]
+    end
+    subgraph BUILD["Build the platform"]
+        direction TB
+        P2["2. Identity and management"] --> P3["3. Storage"] --> P4["4. Image pipeline"] --> P5["5. Automated host pool"]
+    end
+    subgraph DELIVER["Deliver"]
+        direction TB
+        P6["6. Applications"] --> P7["7. Scale and operate"] --> P8["8. Pilot and migrate"]
+    end
+    PREP --> BUILD --> DELIVER
 ```
 
 | Phase | What happens | Done when | Read |

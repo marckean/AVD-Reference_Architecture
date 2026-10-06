@@ -36,6 +36,12 @@ mkdocs serve
 
 Then open `http://127.0.0.1:8000`.
 
+The architecture diagram is an SVG generated from code. After changing `scripts/diagrams/build_north_star.py`, regenerate both theme variants with:
+
+```bash
+python scripts/diagrams/build_north_star.py
+```
+
 House rules for contributions:
 
 - Ground every Microsoft or Azure technical claim in Microsoft Learn, and link it inline.
