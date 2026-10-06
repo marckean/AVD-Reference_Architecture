@@ -12,8 +12,9 @@ hide:
 A reference architecture for a modern Azure Virtual Desktop platform: what good looks like, how the pieces fit together, and how to get there from where you are today. Every recommendation links back to Microsoft Learn.
 
 [What good looks like](overview/what-good-looks-like.md){ .md-button .md-button--primary }
-[How it fits together](overview/how-it-fits-together.md){ .md-button }
-[Dependency checklist](getting-there/dependencies.md){ .md-button }
+[Reference architectures](overview/reference-architectures.md){ .md-button }
+[Dependency map](overview/dependency-map.md){ .md-button }
+[Accelerators](accelerators/index.md){ .md-button }
 
 </div>
 
@@ -37,7 +38,7 @@ It does two jobs at once. It's a **reference architecture** that says what to bu
 7. **Policy.** Intune configures every host with settings catalog policies.
 8. **Observe.** Diagnostics and performance data go to Azure Monitor and Log Analytics, where AVD Insights presents them.
 
-[How it fits together](overview/how-it-fits-together.md) walks through each step in detail, including the connection sequence and the life of a session host.
+[How it fits together](overview/how-it-fits-together.md) walks through each step in detail, including the connection sequence and the life of a session host. [Reference architectures](overview/reference-architectures.md) shows the patterns you combine with the North Star, such as a second host pool for applications that need Active Directory, and the [dependency map](overview/dependency-map.md) shows which decisions you can't change once a host pool exists.
 
 ## Why build it this way
 
@@ -236,6 +237,50 @@ The site is organised into twelve areas in three groups. Each area has an overvi
 </div>
 
 The [Glossary](reference/glossary.md) explains every term the site uses, and the [Microsoft Learn index](reference/learn-links.md) lists every article it cites.
+
+## Accelerators
+
+Tools that take you from zero to a working pilot faster. The questionnaire runs on this site. Everything else lives in the [GitHub repository](https://github.com/marckean/AVD-Reference_Architecture).
+
+<div class="grid cards" markdown>
+
+-   :material-clipboard-list-outline:{ .lg .middle } __[Discovery questionnaire](accelerators/discovery-questionnaire.md)__
+
+    ---
+
+    Run discovery with the customer. It recommends patterns, flags the decisions you can't change later and writes a parameters file for the pilot.
+
+-   :material-rocket-launch-outline:{ .lg .middle } __[Deploy to Azure](accelerators/deploy-to-azure.md)__
+
+    ---
+
+    A guided portal wizard that explains each component, then deploys a North Star pilot host pool.
+
+-   :material-package-variant-closed:{ .lg .middle } __[App Attach fast track](accelerators/app-attach-fast-track.md)__
+
+    ---
+
+    Inventory, triage and onboard applications, including existing App-V packages, with scripts that support `-WhatIf`.
+
+-   :material-tune-vertical:{ .lg .middle } __[Intune policy examples](intune/policy-examples.md)__
+
+    ---
+
+    Settings catalog examples for session hosts, and a script that checks every setting against your tenant before it deploys.
+
+-   :material-robot-outline:{ .lg .middle } __[Working with AI](accelerators/working-with-ai.md)__
+
+    ---
+
+    Repository instructions, agent skills and the Microsoft Learn MCP Server, so GitHub Copilot knows the architecture and the rules.
+
+-   :material-map-marker-path:{ .lg .middle } __[Worked example](getting-there/worked-example.md)__
+
+    ---
+
+    How a large organisation could adopt the North Star in phases, with the stepping stones it needs along the way.
+
+</div>
 
 ## Who this is for
 

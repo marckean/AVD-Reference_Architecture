@@ -1,0 +1,104 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workloadPrefix": {
+      "value": "contoso-avd"
+    },
+    "location": {
+      "value": "australiaeast"
+    },
+    "pilotUsersGroupObjectId": {
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    "localAdminUsername": {
+      "value": "contosoadmin"
+    },
+    "localAdminPassword": {
+      "value": "REPLACE-WITH-A-SECURE-PASSWORD"
+    },
+    "networkMode": {
+      "value": "new"
+    },
+    "existingSubnetResourceId": {
+      "value": ""
+    },
+    "vnetAddressPrefix": {
+      "value": "10.60.0.0/16"
+    },
+    "sessionHostSubnetPrefix": {
+      "value": "10.60.1.0/24"
+    },
+    "enableFilesPrivateEndpoint": {
+      "value": true
+    },
+    "assignAutoscaleRolesToHostPoolIdentity": {
+      "value": true
+    },
+    "assignAutoscaleRolesToAvdServicePrincipal": {
+      "value": false
+    },
+    "azureVirtualDesktopServicePrincipalObjectId": {
+      "value": ""
+    },
+    "azureVirtualDesktopArmProviderServicePrincipalObjectId": {
+      "value": ""
+    },
+    "hostPoolDeploymentScope": {
+      "value": "Geographical"
+    },
+    "sessionHostVmSize": {
+      "value": "Standard_D8ads_v5"
+    },
+    "sessionHostNamePrefix": {
+      "value": "ctavd"
+    },
+    "maxSessionLimit": {
+      "value": 12
+    },
+    "marketplaceImageSku": {
+      "value": "win11-26h2-avd-m365"
+    },
+    "marketplaceImageOffer": {
+      "value": "office-365"
+    },
+    "marketplaceImagePublisher": {
+      "value": "MicrosoftWindowsDesktop"
+    },
+    "marketplaceImageVersion": {
+      "value": "26300.9457.260914"
+    },
+    "enrollSessionHostsInIntune": {
+      "value": true
+    },
+    "availabilityZones": {
+      "value": [
+        1,
+        2,
+        3
+      ]
+    },
+    "scalingTimeZone": {
+      "value": "AUS Eastern Standard Time"
+    },
+    "rampUpMinimumHostPoolSize": {
+      "value": 2
+    },
+    "rampUpMaximumHostPoolSize": {
+      "value": 4
+    },
+    "rampDownMinimumHostPoolSize": {
+      "value": 0
+    },
+    "rampDownMaximumHostPoolSize": {
+      "value": 2
+    },
+    "tags": {
+      "value": {
+        "workload": "avd-north-star",
+        "environment": "pilot",
+        "owner": "contoso"
+      }
+    }
+  }
+}

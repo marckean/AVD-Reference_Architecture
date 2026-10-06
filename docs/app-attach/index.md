@@ -22,6 +22,19 @@ The important distinction is operational. In a traditional image model, every br
 
 ## How it fits
 
+![App Attach package, storage and assignment flow from package image to host pool assignment and user session mount.](../assets/images/app-attach-flow-light.svg#only-light)
+![App Attach package, storage and assignment flow from package image to host pool assignment and user session mount.](../assets/images/app-attach-flow-dark.svg#only-dark)
+
+1. **Package** the application as MSIX or Appx in a disk image, or use an existing App-V package. Learn recommends CimFS images when session hosts run Windows 11.
+2. **Store it on an SMB share**, usually Azure Files, that the session hosts can read.
+3. **Add the package to Azure.** Azure Virtual Desktop imports the package details from the image on the share.
+4. **Assign it to host pools.** The same package can be used across multiple host pools.
+5. **Assign it to users or groups.** Permissions apply per application, per user.
+6. **Add it to a RemoteApp application group** when users need it as a published application rather than inside a desktop.
+7. **Mount at sign-in.** App Attach mounts the image to the user's session during sign-in, then registers the application ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)).
+
+The base image and the applications stay separate, and only meet on the session host:
+
 ```mermaid
 flowchart LR
     A["Azure Image Builder"] --> B["Lean base image"]

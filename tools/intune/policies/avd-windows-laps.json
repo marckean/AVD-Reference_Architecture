@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "1.0",
+  "name": "Contoso AVD - Windows LAPS to Microsoft Entra ID",
+  "description": "Settings Catalog policy for Windows LAPS on Microsoft Entra joined session hosts.",
+  "platforms": "windows10",
+  "technologies": "mdm",
+  "assignmentDefault": "unassigned",
+  "settings": [
+    {
+      "key": "lapsBackupDirectory",
+      "settingPickerPath": "Local Administrator Password Solution (LAPS) > Backup Directory",
+      "scope": "device",
+      "settingType": "choice",
+      "value": {
+        "optionDisplayName": "Backup the password to Azure AD only",
+        "fallbackOptionDisplayNames": [
+          "Backup the password to Microsoft Entra ID only",
+          "Azure AD only",
+          "Microsoft Entra ID only"
+        ],
+        "expectedNumericValue": 1
+      },
+      "resolver": {
+        "displayNames": [
+          "Backup Directory",
+          "BackupDirectory"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/LAPS/Policies/BackupDirectory"
+      },
+      "why": "Backs up the local administrator password to Microsoft Entra ID for Microsoft Entra joined session hosts.",
+      "learnLinks": [
+        "https://learn.microsoft.com/windows/client-management/mdm/laps-csp#policiesbackupdirectory",
+        "https://learn.microsoft.com/windows-server/identity/laps/laps-scenarios-azure-active-directory"
+      ]
+    },
+    {
+      "key": "lapsPasswordAgeDays",
+      "settingPickerPath": "Local Administrator Password Solution (LAPS) > Password Age Days",
+      "scope": "device",
+      "settingType": "simpleInteger",
+      "value": 30,
+      "resolver": {
+        "displayNames": [
+          "Password Age Days",
+          "PasswordAgeDays"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/LAPS/Policies/PasswordAgeDays"
+      },
+      "why": "Sets the managed local administrator password age to 30 days for the example. Review the value against operational and security requirements.",
+      "learnLinks": [
+        "https://learn.microsoft.com/windows/client-management/mdm/laps-csp#policiespasswordagedays"
+      ]
+    },
+    {
+      "key": "lapsPasswordComplexity",
+      "settingPickerPath": "Local Administrator Password Solution (LAPS) > Password Complexity",
+      "scope": "device",
+      "settingType": "choice",
+      "value": {
+        "optionDisplayName": "Large letters + small letters + numbers + special characters",
+        "fallbackOptionDisplayNames": [
+          "Large letters + small letters + numbers + special characters",
+          "Large letters, small letters, numbers, and special characters"
+        ],
+        "expectedNumericValue": 4
+      },
+      "resolver": {
+        "displayNames": [
+          "Password Complexity",
+          "PasswordComplexity"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/LAPS/Policies/PasswordComplexity"
+      },
+      "why": "Sets password complexity for the managed local administrator password to value 4, large letters, small letters, numbers and special characters. Learn says Microsoft recommends that this setting always be configured to 4. Option names can vary by tenant settings catalog version, so the deploy script resolves and verifies the option at deployment time.",
+      "learnLinks": [
+        "https://learn.microsoft.com/windows/client-management/mdm/laps-csp#policiespasswordcomplexity"
+      ]
+    },
+    {
+      "key": "lapsPasswordLength",
+      "settingPickerPath": "Local Administrator Password Solution (LAPS) > Password Length",
+      "scope": "device",
+      "settingType": "simpleInteger",
+      "value": 16,
+      "resolver": {
+        "displayNames": [
+          "Password Length",
+          "PasswordLength"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/LAPS/Policies/PasswordLength"
+      },
+      "why": "Sets the managed local administrator password length for the example. Increase if required by the organisation's password standard.",
+      "learnLinks": [
+        "https://learn.microsoft.com/windows/client-management/mdm/laps-csp#policiespasswordlength"
+      ]
+    },
+    {
+      "key": "lapsPostAuthenticationActions",
+      "settingPickerPath": "Local Administrator Password Solution (LAPS) > Post Authentication Actions",
+      "scope": "device",
+      "settingType": "choice",
+      "value": {
+        "optionDisplayName": "Reset password",
+        "fallbackOptionDisplayNames": [
+          "Reset password and logoff the managed account"
+        ],
+        "expectedNumericValue": 1
+      },
+      "resolver": {
+        "displayNames": [
+          "Post Authentication Actions",
+          "PostAuthenticationActions"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/LAPS/Policies/PostAuthenticationActions"
+      },
+      "why": "Requests password rotation after the managed local administrator account is used. Review the action with operations before production.",
+      "learnLinks": [
+        "https://learn.microsoft.com/windows/client-management/mdm/laps-csp#policiespostauthenticationactions"
+      ]
+    }
+  ]
+}

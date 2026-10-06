@@ -32,30 +32,12 @@ The recovery objective is therefore:
 
 ## How it fits
 
-```mermaid
-flowchart LR
-    subgraph Primary["Primary region"]
-        HP1["Host pool"]
-        SH1["Disposable session hosts"]
-        AF1["Azure Files profiles"]
-        AA1["App Attach packages"]
-        SIG1["Compute Gallery image"]
-    end
-    subgraph Secondary["Secondary region"]
-        HP2["Passive host pool"]
-        SH2["Rebuilt session hosts"]
-        AF2["Profile replica or restore"]
-        AA2["Package replica"]
-        SIG2["Replicated image"]
-    end
-    IaC["Infrastructure as code"] --> HP1
-    IaC --> HP2
-    SIG1 --> SIG2
-    AF1 --> AF2
-    AA1 --> AA2
-    HP1 --> Users["Users"]
-    HP2 --> Users
-```
+![An active-passive regional resilience pattern that protects profiles, packages, images and infrastructure as code, while rebuilding disposable session hosts.](../assets/images/multi-region-resilience-light.svg#only-light)
+![An active-passive regional resilience pattern that protects profiles, packages, images and infrastructure as code, while rebuilding disposable session hosts.](../assets/images/multi-region-resilience-dark.svg#only-dark)
+
+1. **Protect profile and package state.** Replicate or restore the profile shares, and replicate the App Attach package shares.
+2. **Replicate image versions** to the secondary region with Azure Compute Gallery.
+3. **Rebuild from infrastructure as code.** Session hosts are disposable, so the passive host pool in the secondary region is rebuilt from code, not replicated.
 
 Use Regional host pools for new regional designs. Microsoft Learn states that Regional host pools store host pool metadata in the selected Azure region instead of a geographical database shared across regions, improving resiliency by reducing cross-region dependency [What's new in Azure Virtual Desktop?](https://learn.microsoft.com/azure/virtual-desktop/whats-new). The Regional Host Pools article also states that regional and geographical host pools use different backend infrastructure and coexist [Regional Host Pools](https://learn.microsoft.com/azure/virtual-desktop/regional-host-pools).
 

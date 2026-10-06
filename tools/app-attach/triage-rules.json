@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "category": "KeepInBaseImage",
+      "reason": "Base platform, runtime, redistributable, security or management component that is usually better kept in the image.",
+      "name": "(?i)(runtime|redistributable|visual c\\+\\+|microsoft 365 apps|microsoft office|defender|monitoring|management agent|endpoint|security)"
+    },
+    {
+      "category": "AppAttachAppV",
+      "reason": "An App-V source package exists and Microsoft Learn documents App-V as an App Attach package type.",
+      "sourceType": "(?i)^AppV$"
+    },
+    {
+      "category": "ReviewDriversOrServices",
+      "reason": "Drivers, services or elevated components need review before MSIX packaging.",
+      "name": "(?i)(driver|vpn|filter|credential|print|agent|service)"
+    },
+    {
+      "category": "ReviewDriversOrServices",
+      "reason": "Driver paths need review before MSIX packaging.",
+      "path": "(?i)(\\\\drivers\\\\|\\\\system32\\\\drivers\\\\)"
+    },
+    {
+      "category": "AppAttachMsix",
+      "reason": "Default candidate for repackaging from source into MSIX or Appx image and delivering with App Attach.",
+      "name": ".*"
+    }
+  ]
+}

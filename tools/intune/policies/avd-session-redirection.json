@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "name": "Contoso AVD - Session redirection controls",
+  "description": "Settings Catalog policy for Azure Virtual Desktop clipboard transfer direction on pooled session hosts.",
+  "platforms": "windows10",
+  "technologies": "mdm",
+  "assignmentDefault": "unassigned",
+  "settings": [
+    {
+      "key": "restrictClipboardServerToClient",
+      "settingPickerPath": "Administrative templates > Windows Components > Remote Desktop Services > Remote Desktop Session Host > Device and Resource Redirection > Restrict clipboard transfer from server to client",
+      "scope": "device",
+      "settingType": "choice",
+      "value": {
+        "optionDisplayName": "Allow plain text",
+        "fallbackOptionDisplayNames": [
+          "Allow plain text only"
+        ]
+      },
+      "resolver": {
+        "displayNames": [
+          "Restrict clipboard transfer from server to client"
+        ]
+      },
+      "why": "Limits copy from the remote session to the client to plain text. This reduces data exfiltration risk while keeping basic text copy available for users who need it.",
+      "learnLinks": [
+        "https://learn.microsoft.com/azure/virtual-desktop/clipboard-transfer-direction-data-types"
+      ]
+    },
+    {
+      "key": "restrictClipboardClientToServer",
+      "settingPickerPath": "Administrative templates > Windows Components > Remote Desktop Services > Remote Desktop Session Host > Device and Resource Redirection > Restrict clipboard transfer from client to server",
+      "scope": "device",
+      "settingType": "choice",
+      "value": {
+        "optionDisplayName": "Allow plain text",
+        "fallbackOptionDisplayNames": [
+          "Allow plain text only"
+        ]
+      },
+      "resolver": {
+        "displayNames": [
+          "Restrict clipboard transfer from client to server"
+        ]
+      },
+      "why": "Limits copy from the client to the remote session to plain text. The host pool RDP property must still allow clipboard redirection, otherwise clipboard is completely blocked.",
+      "learnLinks": [
+        "https://learn.microsoft.com/azure/virtual-desktop/clipboard-transfer-direction-data-types",
+        "https://learn.microsoft.com/azure/virtual-desktop/redirection-configure-clipboard"
+      ]
+    },
+    {
+      "key": "doNotAllowClipboardRedirection",
+      "settingPickerPath": "Administrative templates > Windows Components > Remote Desktop Services > Remote Desktop Session Host > Device and Resource Redirection > Do not allow Clipboard redirection",
+      "scope": "device",
+      "settingType": "choice",
+      "value": {
+        "optionDisplayName": "Disabled",
+        "fallbackOptionDisplayNames": [
+          "Disable"
+        ]
+      },
+      "resolver": {
+        "displayNames": [
+          "Do not allow Clipboard redirection"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/Policy/Config/ADMX_TerminalServer/TS_CLIENT_CLIPBOARD"
+      },
+      "why": "Leaves clipboard redirection available so the transfer-direction settings can apply. Set this to enabled only for personas where all clipboard redirection should be blocked.",
+      "learnLinks": [
+        "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-admx-terminalserver#ts_client_clipboard",
+        "https://learn.microsoft.com/azure/virtual-desktop/redirection-configure-clipboard"
+      ]
+    }
+  ]
+}

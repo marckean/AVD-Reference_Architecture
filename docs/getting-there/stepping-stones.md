@@ -36,6 +36,9 @@ flowchart TB
 
 ## Hybrid joined pool for legacy applications
 
+![A North Star pool and a separate hybrid joined pool published from one workspace, with AD DS, synchronisation and separate storage and image paths.](../assets/images/two-host-pools-light.svg#only-light)
+![A North Star pool and a separate hybrid joined pool published from one workspace, with AD DS, synchronisation and separate storage and image paths.](../assets/images/two-host-pools-dark.svg#only-dark)
+
 **When to use it.** Some applications need what only a domain-joined device can give them. Learn is explicit that Microsoft Entra joined devices don't support on-premises applications that rely on machine authentication ([Plan your Microsoft Entra join deployment](https://learn.microsoft.com/entra/identity/devices/device-join-plan#understand-considerations-for-applications-and-resources)). Applications that authenticate *as the user* usually still work from an Entra joined host, through Kerberos or NTLM, as long as the host has line of sight to a domain controller ([How SSO to on-premises resources works on Microsoft Entra joined devices](https://learn.microsoft.com/entra/identity/devices/device-sso-to-on-premises-resources)). Configure a [Kerberos server object](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on#create-a-kerberos-server-object) when single sign-on is in use. See [Identity and access](../identity/index.md) for the detail.
 
 **How.** A separate, small host pool of Microsoft Entra hybrid joined session hosts, containing only the applications that need it. Publish those applications as RemoteApp so users reach them from their North Star desktop or device.
@@ -86,6 +89,9 @@ flowchart TB
 **Exit when** each package is converted to MSIX or the application is retired.
 
 ## Personal host pool or Windows 365 for dedicated desktops
+
+![Dedicated desktop options: a personal host pool with standard management or Windows 365 Cloud PCs as an alternative to pooled desktops.](../assets/images/personal-desktops-light.svg#only-light)
+![Dedicated desktop options: a personal host pool with standard management or Windows 365 Cloud PCs as an alternative to pooled desktops.](../assets/images/personal-desktops-dark.svg#only-dark)
 
 **When to use it.** A user genuinely needs a dedicated, persistent desktop, for example to install their own tools. The North Star is pooled, and a session host configuration can be used with pooled host pools only ([Host pool management approaches](https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches)).
 

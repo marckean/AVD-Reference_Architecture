@@ -58,6 +58,10 @@ plugins:
 
 extra_css:
   - assets/stylesheets/extra.css
+  - assets/stylesheets/discovery.css
+
+extra_javascript:
+  - assets/javascripts/discovery.js
 
 extra:
   generator: false
@@ -109,6 +113,8 @@ nav:
   - Overview:
       - index.md
       - What good looks like: overview/what-good-looks-like.md
+      - Reference architectures: overview/reference-architectures.md
+      - Dependency map: overview/dependency-map.md
       - How it fits together: overview/how-it-fits-together.md
   - Platform:
       - Identity and access:
@@ -161,6 +167,7 @@ nav:
           - Required policies: intune/policies.md
           - Updates: intune/updates.md
           - Starting from zero: intune/starting-from-zero.md
+          - Policy examples: intune/policy-examples.md
       - Monitoring:
           - monitoring/index.md
           - Diagnostics and AVD Insights: monitoring/diagnostics.md
@@ -180,6 +187,13 @@ nav:
       - getting-there/index.md
       - Dependency checklist: getting-there/dependencies.md
       - Stepping stones: getting-there/stepping-stones.md
+      - Worked example: getting-there/worked-example.md
+  - Accelerators:
+      - accelerators/index.md
+      - Discovery questionnaire: accelerators/discovery-questionnaire.md
+      - Deploy to Azure: accelerators/deploy-to-azure.md
+      - App Attach fast track: accelerators/app-attach-fast-track.md
+      - Working with AI: accelerators/working-with-ai.md
   - Reference:
       - Glossary: reference/glossary.md
       - Microsoft Learn index: reference/learn-links.md

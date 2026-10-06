@@ -13,6 +13,9 @@ description: What an organisation must have in place, layer by layer, before the
 
 ## How to use this checklist
 
+!!! tip "See the map first"
+    The [dependency map](../overview/dependency-map.md) shows these dependencies as one picture, including the decisions that are fixed when a host pool is created.
+
 Work through it as a group with the owners named in each section. For each item, record one of three answers: **in place**, **needed for the North Star**, or **covered by the existing platform**. The third answer matters when you run an existing image in parallel with the North Star, as described in [Stepping stones](stepping-stones.md). It shows which dependencies only the North Star needs, so they can start early.
 
 ```mermaid

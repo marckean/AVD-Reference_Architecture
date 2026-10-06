@@ -24,6 +24,18 @@ This does not mean AD DS disappears from every environment. If the user needs to
 
 ## How it fits
 
+![Identity flow for sign-in, Conditional Access, single sign-on and Microsoft Entra Kerberos access to Azure Files.](../assets/images/identity-flow-light.svg#only-light)
+![Identity flow for sign-in, Conditional Access, single sign-on and Microsoft Entra Kerberos access to Azure Files.](../assets/images/identity-flow-dark.svg#only-dark)
+
+1. **Authenticate.** The user signs in to Windows App or the web client with Microsoft Entra ID.
+2. **Evaluate Conditional Access.** Policies that target **Azure Virtual Desktop**, and **Windows Cloud Login** when single sign-on is on, decide what the user must prove.
+3. **Get the feed and broker the session.** The service returns the desktops and applications the user is assigned, and the broker chooses a session host.
+4. **Sign in with single sign-on.** The session host accepts a Microsoft Entra token, so the user isn't asked for a password again.
+5. **Retrieve a Kerberos ticket.** The session host gets a Kerberos ticket for the storage account from Microsoft Entra Kerberos.
+6. **Open the profile share.** FSLogix uses the ticket to open the user's profile container on Azure Files.
+
+The same sign-in as a sequence:
+
 ```mermaid
 sequenceDiagram
     participant User as User

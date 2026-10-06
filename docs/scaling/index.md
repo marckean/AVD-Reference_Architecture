@@ -28,6 +28,18 @@ There are two scaling methods:
 
 ## How it fits
 
+![Dynamic autoscaling lifecycle for ephemeral OS disk pooled hosts, showing create, use, drain and delete.](../assets/images/scaling-lifecycle-light.svg#only-light)
+![Dynamic autoscaling lifecycle for ephemeral OS disk pooled hosts, showing create, use, drain and delete.](../assets/images/scaling-lifecycle-dark.svg#only-dark)
+
+1. **The scaling plan** sets the schedule, and the minimum and maximum host pool size for each phase.
+2. **Autoscale reads the session host configuration** to know what a new host should look like.
+3. **Create hosts** when demand passes the capacity threshold.
+4. **Serve users** once the new hosts register with the host pool.
+5. **Drain and delete** hosts when demand falls and their users have signed out.
+6. **Observe** each scaling decision in the autoscale diagnostic logs.
+
+There are two kinds of autoscale, and the North Star needs the second:
+
 ```mermaid
 flowchart TB
     PLAN["Scaling plan"] --> PM["<b>Power management autoscaling</b><br/>Starts and deallocates<br/>existing hosts"]

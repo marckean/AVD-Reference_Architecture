@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "1.0",
+  "name": "Contoso AVD - Identity and FSLogix profile containers",
+  "description": "Settings Catalog policy for Microsoft Entra Kerberos ticket retrieval and the FSLogix profile container defaults used by the AVD North Star.",
+  "platforms": "windows10",
+  "technologies": "mdm",
+  "assignmentDefault": "unassigned",
+  "settings": [
+    {
+      "key": "cloudKerberosTicketRetrievalEnabled",
+      "settingPickerPath": "Kerberos > Cloud Kerberos Ticket Retrieval Enabled",
+      "scope": "device",
+      "settingType": "choice",
+      "value": {
+        "optionDisplayName": "Enabled",
+        "expectedNumericValue": 1
+      },
+      "resolver": {
+        "displayNames": [
+          "Cloud Kerberos Ticket Retrieval Enabled",
+          "CloudKerberosTicketRetrievalEnabled"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/Policy/Config/Kerberos/CloudKerberosTicketRetrievalEnabled",
+        "registryPath": "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa\\Kerberos\\Parameters\\CloudKerberosTicketRetrievalEnabled"
+      },
+      "why": "Allows Microsoft Entra joined session hosts to retrieve Microsoft Entra Kerberos tickets for Azure Files profile shares. Microsoft Learn says to use Settings Catalog for Azure Virtual Desktop multi-session because the OMA-URI method does not work on Azure Virtual Desktop multisession devices.",
+      "learnLinks": [
+        "https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable"
+      ]
+    },
+    {
+      "key": "fslogixProfilesEnabled",
+      "settingPickerPath": "FSLogix > Profiles > Enabled",
+      "scope": "device",
+      "settingType": "simpleInteger",
+      "value": 1,
+      "resolver": {
+        "displayNames": [
+          "Enabled"
+        ],
+        "registryPath": "HKLM\\SOFTWARE\\FSLogix\\Profiles\\Enabled"
+      },
+      "why": "Enables FSLogix profile containers on pooled session hosts.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/reference-configuration-settings#enabled"
+      ]
+    },
+    {
+      "key": "fslogixVhdLocations",
+      "settingPickerPath": "FSLogix > Profiles > VHDLocations",
+      "scope": "device",
+      "settingType": "simpleString",
+      "value": "\\\\stcontosofslogix01.file.core.windows.net\\profiles",
+      "resolver": {
+        "displayNames": [
+          "VHDLocations",
+          "VHD Locations"
+        ],
+        "registryPath": "HKLM\\SOFTWARE\\FSLogix\\Profiles\\VHDLocations"
+      },
+      "why": "Points FSLogix at the Azure Files share that stores profile containers. Replace the Contoso share with the organisation's sharded Azure Files profile share.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/reference-configuration-settings#vhdlocations"
+      ]
+    },
+    {
+      "key": "fslogixProfileType",
+      "settingPickerPath": "FSLogix > Profiles > ProfileType",
+      "scope": "device",
+      "settingType": "simpleInteger",
+      "value": 0,
+      "resolver": {
+        "displayNames": [
+          "ProfileType",
+          "Profile Type"
+        ],
+        "registryPath": "HKLM\\SOFTWARE\\FSLogix\\Profiles\\ProfileType"
+      },
+      "why": "Uses normal profile container behaviour. The site recommends ProfileType 0 when the VHD is not accessed concurrently.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/reference-configuration-settings#profiletype"
+      ]
+    },
+    {
+      "key": "fslogixSizeInMBs",
+      "settingPickerPath": "FSLogix > Profiles > SizeInMBs",
+      "scope": "device",
+      "settingType": "simpleInteger",
+      "value": 30000,
+      "resolver": {
+        "displayNames": [
+          "SizeInMBs",
+          "Size In MBs"
+        ],
+        "registryPath": "HKLM\\SOFTWARE\\FSLogix\\Profiles\\SizeInMBs"
+      },
+      "why": "Starts from the Learn default of 30000 MB. Increase for a persona before production if required because existing containers cannot be shrunk by lowering this setting.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/reference-configuration-settings#sizeinmbs"
+      ]
+    },
+    {
+      "key": "fslogixIsDynamic",
+      "settingPickerPath": "FSLogix > Profiles > IsDynamic",
+      "scope": "device",
+      "settingType": "simpleInteger",
+      "value": 1,
+      "resolver": {
+        "displayNames": [
+          "IsDynamic",
+          "Is Dynamic"
+        ],
+        "registryPath": "HKLM\\SOFTWARE\\FSLogix\\Profiles\\IsDynamic"
+      },
+      "why": "Uses dynamic VHD or VHDX growth up to SizeInMBs.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/reference-configuration-settings#isdynamic"
+      ]
+    },
+    {
+      "key": "fslogixVolumeType",
+      "settingPickerPath": "FSLogix > Profiles > VolumeType",
+      "scope": "device",
+      "settingType": "simpleString",
+      "value": "vhdx",
+      "resolver": {
+        "displayNames": [
+          "VolumeType",
+          "Volume Type"
+        ],
+        "registryPath": "HKLM\\SOFTWARE\\FSLogix\\Profiles\\VolumeType"
+      },
+      "why": "Creates VHDX files for current deployments.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/reference-configuration-settings#volumetype"
+      ]
+    },
+    {
+      "key": "fslogixFlipFlopProfileDirectoryName",
+      "settingPickerPath": "FSLogix > Profiles > FlipFlopProfileDirectoryName",
+      "scope": "device",
+      "settingType": "simpleInteger",
+      "value": 1,
+      "resolver": {
+        "displayNames": [
+          "FlipFlopProfileDirectoryName",
+          "Flip Flop Profile Directory Name"
+        ],
+        "registryPath": "HKLM\\SOFTWARE\\FSLogix\\Profiles\\FlipFlopProfileDirectoryName"
+      },
+      "why": "Creates readable profile folders in username_sid format. Set before production because changing it later changes the folder naming convention FSLogix looks for.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/reference-configuration-settings#flipflopprofiledirectoryname"
+      ]
+    },
+    {
+      "key": "fslogixDeleteLocalProfileWhenVHDShouldApply",
+      "settingPickerPath": "FSLogix > Profiles > DeleteLocalProfileWhenVHDShouldApply",
+      "scope": "device",
+      "settingType": "simpleInteger",
+      "value": 0,
+      "resolver": {
+        "displayNames": [
+          "DeleteLocalProfileWhenVHDShouldApply",
+          "Delete Local Profile When VHD Should Apply"
+        ],
+        "registryPath": "HKLM\\SOFTWARE\\FSLogix\\Profiles\\DeleteLocalProfileWhenVHDShouldApply"
+      },
+      "why": "Keeps local profiles during first deployment. The site recommends enabling deletion only after migration testing because Learn warns that it permanently deletes the local profile.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/reference-configuration-settings#deletelocalprofilewhenvhdshouldapply"
+      ]
+    },
+    {
+      "key": "fslogixRoamIdentity",
+      "settingPickerPath": "FSLogix > Profiles > RoamIdentity",
+      "scope": "device",
+      "settingType": "simpleInteger",
+      "value": 0,
+      "resolver": {
+        "displayNames": [
+          "RoamIdentity",
+          "Roam Identity"
+        ],
+        "registryPath": "HKLM\\SOFTWARE\\FSLogix\\Profiles\\RoamIdentity"
+      },
+      "why": "Keeps identity roaming disabled. Learn recommends the default and says not to enable it when using Intune or Microsoft Entra joined devices.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/reference-configuration-settings#roamidentity"
+      ]
+    }
+  ]
+}

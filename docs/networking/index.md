@@ -22,6 +22,17 @@ The connection starts with Azure Virtual Desktop reverse connect. The RDP Shortp
 
 ## How it fits
 
+![Client, service and host paths for Private Link, RDP Shortpath over managed networks, and public STUN or TURN paths.](../assets/images/private-connectivity-light.svg#only-light)
+![Client, service and host paths for Private Link, RDP Shortpath over managed networks, and public STUN or TURN paths.](../assets/images/private-connectivity-dark.svg#only-dark)
+
+1. **Private service access.** Clients on managed networks can reach the Azure Virtual Desktop service through Private Link.
+2. **Public service path.** Clients on the internet use the service's public endpoints.
+3. **Reverse connect.** Session hosts connect outbound to the service, so no inbound ports are opened to them.
+4. **RDP Shortpath.** Clients on managed networks can connect to session hosts directly over UDP. Clients on the internet use STUN or TURN.
+5. **Storage private endpoint.** Session hosts reach Azure Files through a private endpoint.
+
+From the session host's side, these are the flows it needs:
+
 ```mermaid
 flowchart LR
     C["Windows App client"] --> AVD["Azure Virtual Desktop service"]

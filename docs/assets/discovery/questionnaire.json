@@ -1,0 +1,1642 @@
+{
+  "version": "2026-10-06",
+  "storageKey": "avdNorthStarDiscoveryAnswers.v1",
+  "title": "AVD North Star discovery questionnaire",
+  "learnSources": {
+    "hostPoolManagement": "https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches",
+    "autoscale": "https://learn.microsoft.com/azure/virtual-desktop/autoscale-scenarios",
+    "entraJoinedHosts": "https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts",
+    "entraDeviceJoinPlan": "https://learn.microsoft.com/entra/identity/devices/device-join-plan#understand-considerations-for-applications-and-resources",
+    "ephemeralOsDisks": "https://learn.microsoft.com/azure/virtual-desktop/deploy/session-hosts/ephemeral-os-disks",
+    "regionalHostPools": "https://learn.microsoft.com/azure/virtual-desktop/regional-host-pools",
+    "fslogixStorage": "https://learn.microsoft.com/fslogix/concepts-container-storage-options",
+    "azureFilesScale": "https://learn.microsoft.com/azure/storage/files/storage-files-scale-targets",
+    "azureFilesBilling": "https://learn.microsoft.com/azure/storage/files/understanding-billing#provisioned-v2-provisioning",
+    "appAttach": "https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview",
+    "deployCli": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-cli#deploy-remote-template",
+    "deployPowerShell": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-powershell#deploy-remote-template",
+    "deployPortal": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-portal#deploy-resources-from-custom-template"
+  },
+  "sizingAssumptions": {
+    "fslogixSteadyIopsPerUser": 10,
+    "fslogixSignInIopsPerUser": 50,
+    "azureFilesSsdProvisionedV2MaxIops": 102400,
+    "azureFilesHddProvisionedV2MaxIops": 50000,
+    "appAttachSteadyIopsPerUser": 1,
+    "appAttachBootSignInIopsPerUser": 10
+  },
+  "parameterMap": {
+    "note": "Current mapping for deploy/main.bicep and deploy/azuredeploy.json as read on 2026-10-06. Keep this section in sync when the template parameter list changes.",
+    "templateUri": "https://raw.githubusercontent.com/marckean/AVD-Reference_Architecture/main/deploy/azuredeploy.json",
+    "omitParameters": [
+      "localAdminPassword"
+    ],
+    "parameters": {
+      "workloadPrefix": {
+        "type": "answer",
+        "answerId": "orgShortCode",
+        "fallback": "contoso-avd"
+      },
+      "location": {
+        "type": "answer",
+        "answerId": "primaryRegion",
+        "fallback": "australiaeast"
+      },
+      "pilotUsersGroupObjectId": {
+        "type": "answer",
+        "answerId": "pilotUsersGroupObjectId",
+        "fallback": "00000000-0000-0000-0000-000000000000"
+      },
+      "localAdminUsername": {
+        "type": "answer",
+        "answerId": "localAdminUsername",
+        "fallback": "contosoadmin"
+      },
+      "networkMode": {
+        "type": "conditional",
+        "answerId": "useExistingHub",
+        "equals": "yes",
+        "trueValue": "existing",
+        "falseValue": "new"
+      },
+      "existingSubnetResourceId": {
+        "type": "answer",
+        "answerId": "existingSubnetResourceId",
+        "fallback": ""
+      },
+      "vnetAddressPrefix": {
+        "type": "answer",
+        "answerId": "vnetAddressPrefix",
+        "fallback": "10.60.0.0/16"
+      },
+      "sessionHostSubnetPrefix": {
+        "type": "answer",
+        "answerId": "sessionHostSubnetPrefix",
+        "fallback": "10.60.1.0/24"
+      },
+      "enableFilesPrivateEndpoint": {
+        "type": "conditional",
+        "answerId": "privateEndpointsReady",
+        "equals": "yes",
+        "trueValue": true,
+        "falseValue": false
+      },
+      "assignAutoscaleRolesToHostPoolIdentity": {
+        "type": "conditional",
+        "answerId": "assignAutoscaleRolesToHostPoolIdentity",
+        "equals": "yes",
+        "trueValue": true,
+        "falseValue": false
+      },
+      "assignAutoscaleRolesToAvdServicePrincipal": {
+        "type": "conditional",
+        "answerId": "avdServicePrincipalAutoscaleRoles",
+        "equals": "no",
+        "trueValue": true,
+        "falseValue": false
+      },
+      "azureVirtualDesktopServicePrincipalObjectId": {
+        "type": "answer",
+        "answerId": "avdServicePrincipalObjectId",
+        "fallback": ""
+      },
+      "azureVirtualDesktopArmProviderServicePrincipalObjectId": {
+        "type": "answer",
+        "answerId": "avdArmProviderServicePrincipalObjectId",
+        "fallback": ""
+      },
+      "hostPoolDeploymentScope": {
+        "type": "answer",
+        "answerId": "hostPoolDeploymentScope",
+        "fallback": "Geographical",
+        "allowedValues": [
+          "Geographical",
+          "Regional"
+        ]
+      },
+      "sessionHostVmSize": {
+        "type": "answer",
+        "answerId": "sessionHostVmSize",
+        "fallback": "Standard_D8ads_v5",
+        "allowedValues": [
+          "Standard_D4ads_v5",
+          "Standard_D8ads_v5",
+          "Standard_D16ads_v5",
+          "Standard_D4ds_v5",
+          "Standard_D8ds_v5",
+          "Standard_D16ds_v5",
+          "Standard_E8ads_v5"
+        ]
+      },
+      "sessionHostNamePrefix": {
+        "type": "answer",
+        "answerId": "sessionHostNamePrefix",
+        "fallback": "ctavd"
+      },
+      "maxSessionLimit": {
+        "type": "answer",
+        "answerId": "sessionsPerHost",
+        "fallback": 12
+      },
+      "marketplaceImageSku": {
+        "type": "conditional",
+        "answerId": "includeM365Apps",
+        "equals": "yes",
+        "trueValue": "win11-26h2-avd-m365",
+        "falseValue": "win11-26h2-avd"
+      },
+      "marketplaceImageOffer": {
+        "type": "conditional",
+        "answerId": "includeM365Apps",
+        "equals": "yes",
+        "trueValue": "office-365",
+        "falseValue": "Windows-11"
+      },
+      "marketplaceImagePublisher": {
+        "type": "constant",
+        "value": "MicrosoftWindowsDesktop"
+      },
+      "marketplaceImageVersion": {
+        "type": "answer",
+        "answerId": "marketplaceImageVersion",
+        "omitWhenBlank": true,
+        "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      },
+      "availabilityZones": {
+        "type": "conditional",
+        "answerId": "useAvailabilityZones",
+        "equals": "yes",
+        "trueValue": [
+          1,
+          2,
+          3
+        ],
+        "falseValue": []
+      },
+      "scalingTimeZone": {
+        "type": "answer",
+        "answerId": "scalingTimeZone",
+        "fallback": "AUS Eastern Standard Time"
+      },
+      "rampUpMinimumHostPoolSize": {
+        "type": "answer",
+        "answerId": "minHosts",
+        "fallback": 2
+      },
+      "rampUpMaximumHostPoolSize": {
+        "type": "answer",
+        "answerId": "maxHosts",
+        "fallback": 4
+      },
+      "rampDownMinimumHostPoolSize": {
+        "type": "answer",
+        "answerId": "offPeakMinHosts",
+        "fallback": 0
+      },
+      "rampDownMaximumHostPoolSize": {
+        "type": "answer",
+        "answerId": "offPeakMaxHosts",
+        "fallback": 2
+      },
+      "tags": {
+        "type": "tags",
+        "values": {
+          "workload": "avd-north-star",
+          "environment": "pilot",
+          "owner": {
+            "answerId": "orgName",
+            "fallback": "contoso"
+          }
+        }
+      }
+    }
+  },
+  "patterns": [
+    {
+      "id": "northStar",
+      "label": "North Star pooled host pool",
+      "siteHref": "../overview/what-good-looks-like/",
+      "triggers": [
+        {
+          "answerId": "desktopDelivery",
+          "operator": "notEquals",
+          "value": "remoteapp-only"
+        }
+      ],
+      "reason": "Use the North Star when the workload can run on pooled Windows 11 Enterprise multi-session hosts with Microsoft Entra join, Intune, App Attach and FSLogix."
+    },
+    {
+      "id": "twoHostPools",
+      "label": "Two host pools with a hybrid-joined legacy pool",
+      "siteHref": "../getting-there/stepping-stones/#hybrid-joined-pool-for-legacy-applications",
+      "triggers": [
+        {
+          "answerId": "legacyMachineAuth",
+          "operator": "equals",
+          "value": "yes"
+        },
+        {
+          "answerId": "ntlmDependency",
+          "operator": "notEquals",
+          "value": "none"
+        }
+      ],
+      "reason": "Use a separate hybrid-joined stepping-stone pool when applications need AD DS machine authentication or other domain-joined behaviour."
+    },
+    {
+      "id": "personalDesktops",
+      "label": "Personal desktops or Windows 365 for dedicated users",
+      "siteHref": "../getting-there/stepping-stones/#personal-host-pool-or-windows-365-for-dedicated-desktops",
+      "triggers": [
+        {
+          "answerId": "persistentDesktops",
+          "operator": "equals",
+          "value": "yes"
+        },
+        {
+          "answerId": "developerDesktops",
+          "operator": "equals",
+          "value": "yes"
+        }
+      ],
+      "reason": "Use dedicated desktops only for personas that genuinely need persistence, local tools or stronger separation."
+    },
+    {
+      "id": "remoteApp",
+      "label": "RemoteApp for application-only access",
+      "siteHref": "../host-pools/",
+      "triggers": [
+        {
+          "answerId": "desktopDelivery",
+          "operator": "in",
+          "value": [
+            "mixed",
+            "remoteapp-only"
+          ]
+        }
+      ],
+      "reason": "Use RemoteApp when users need published applications without a full desktop."
+    },
+    {
+      "id": "multiRegion",
+      "label": "Multi-region recovery pattern",
+      "siteHref": "../bcdr/",
+      "triggers": [
+        {
+          "answerId": "secondaryRegion",
+          "operator": "equals",
+          "value": "yes"
+        },
+        {
+          "answerId": "rtoHours",
+          "operator": "lessThanOrEqual",
+          "value": 4
+        }
+      ],
+      "reason": "Use a secondary region when recovery objectives require a regional failover path for profiles, applications, images and host pool configuration."
+    },
+    {
+      "id": "privateConnectivity",
+      "label": "Private connectivity pattern",
+      "siteHref": "../networking/private-connectivity/",
+      "triggers": [
+        {
+          "answerId": "privateEndpointsReady",
+          "operator": "equals",
+          "value": "yes"
+        },
+        {
+          "answerId": "usersOnUncontrolledNetworks",
+          "operator": "equals",
+          "value": "yes"
+        }
+      ],
+      "reason": "Use private endpoints and controlled outbound connectivity where the network design requires private access to profile and application shares."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "hostPoolType",
+      "label": "Host pool type",
+      "source": "https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches",
+      "rule": "Pooled for shared desktops and RemoteApp. Personal host pools are a separate pattern for dedicated desktops."
+    },
+    {
+      "id": "managementApproach",
+      "label": "Management approach",
+      "source": "https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches",
+      "rule": "Session host configuration is fixed at host pool creation and cannot be added later."
+    },
+    {
+      "id": "joinType",
+      "label": "Join type per pool",
+      "source": "https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts",
+      "rule": "Host pools should contain only VMs of the same domain join type."
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "licensing",
+      "label": "AVD access and Intune licensing",
+      "siteHref": "../getting-there/dependencies/#1-licences-subscription-and-quota",
+      "answerId": "licensingReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "conditionalAccess",
+      "label": "Conditional Access licensing and policies",
+      "siteHref": "../getting-there/dependencies/#1-licences-subscription-and-quota",
+      "answerId": "conditionalAccessReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "landingZone",
+      "label": "Subscription, landing zone and quota",
+      "siteHref": "../getting-there/dependencies/#1-licences-subscription-and-quota",
+      "answerId": "landingZoneReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "identity",
+      "label": "Microsoft Entra identity model",
+      "siteHref": "../getting-there/dependencies/#2-identity",
+      "answerId": "identityModel",
+      "readyValues": [
+        "cloud",
+        "hybrid"
+      ]
+    },
+    {
+      "id": "sso",
+      "label": "Microsoft Entra authentication for RDP and single sign-on",
+      "siteHref": "../getting-there/dependencies/#2-identity",
+      "answerId": "ssoReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "machineAuth",
+      "label": "Legacy machine authentication inventory",
+      "siteHref": "../getting-there/dependencies/#2-identity",
+      "answerId": "legacyMachineAuth",
+      "readyValues": [
+        "no"
+      ]
+    },
+    {
+      "id": "ntlm",
+      "label": "NTLMv1 dependency removed",
+      "siteHref": "../getting-there/dependencies/#2-identity",
+      "answerId": "ntlmDependency",
+      "readyValues": [
+        "none",
+        "ntlmv2"
+      ]
+    },
+    {
+      "id": "intune",
+      "label": "Intune tenant, policies and multi-session targeting",
+      "siteHref": "../getting-there/dependencies/#3-device-management-with-intune",
+      "answerId": "intuneReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "network",
+      "label": "Required FQDNs, endpoints and outbound path",
+      "siteHref": "../getting-there/dependencies/#4-network",
+      "answerId": "networkEndpointsReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "rdpShortpath",
+      "label": "UDP path for RDP Shortpath",
+      "siteHref": "../getting-there/dependencies/#4-network",
+      "answerId": "rdpShortpathReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "storage",
+      "label": "Azure Files identity, private endpoints and DNS",
+      "siteHref": "../getting-there/dependencies/#5-storage-for-profiles-and-applications",
+      "answerId": "storageIdentityReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "imagePipeline",
+      "label": "Azure Image Builder and Azure Compute Gallery pipeline",
+      "siteHref": "../getting-there/dependencies/#6-image-pipeline",
+      "answerId": "imagePipelineReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "hostPool",
+      "label": "Session host configuration and dynamic autoscaling",
+      "siteHref": "../getting-there/dependencies/#7-host-pool-and-scaling",
+      "answerId": "sessionHostConfigReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "applications",
+      "label": "Application inventory and App Attach candidates",
+      "siteHref": "../getting-there/dependencies/#8-applications",
+      "answerId": "applicationInventoryReady",
+      "readyValues": [
+        "yes"
+      ]
+    },
+    {
+      "id": "operations",
+      "label": "Diagnostics, Insights and operating model",
+      "siteHref": "../getting-there/dependencies/#9-operations",
+      "answerId": "monitoringReady",
+      "readyValues": [
+        "yes"
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "organisation",
+      "title": "Organisation and scope",
+      "questions": [
+        {
+          "id": "orgName",
+          "section": "organisation",
+          "label": "Organisation name",
+          "type": "text",
+          "default": "Contoso",
+          "required": true,
+          "why": "Used only to label the workshop report and tags in the generated pilot parameters.",
+          "whyHref": "../cost/"
+        },
+        {
+          "id": "orgShortCode",
+          "section": "organisation",
+          "label": "Short workload prefix",
+          "type": "text",
+          "default": "contoso-avd",
+          "required": true,
+          "why": "This feeds resource names in the Deploy to Azure template.",
+          "whyHref": "../overview/how-it-fits-together/"
+        },
+        {
+          "id": "primaryRegion",
+          "section": "organisation",
+          "label": "Primary Azure region for the pilot",
+          "type": "text",
+          "default": "australiaeast",
+          "required": true,
+          "why": "Region choice affects latency, quota, storage locality and availability zones.",
+          "whyHref": "../networking/"
+        },
+        {
+          "id": "pilotUsersGroupObjectId",
+          "section": "organisation",
+          "label": "Pilot users group object ID",
+          "type": "text",
+          "default": "00000000-0000-0000-0000-000000000000",
+          "required": true,
+          "why": "The template assigns pilot users through a Microsoft Entra group rather than individual users.",
+          "whyHref": "../identity/identities-and-roles/"
+        }
+      ]
+    },
+    {
+      "id": "users",
+      "title": "Users and personas",
+      "questions": [
+        {
+          "id": "namedUsers",
+          "section": "users",
+          "label": "Named users in scope",
+          "type": "number",
+          "default": 500,
+          "required": true,
+          "why": "Named users set licence and migration scope, but sizing uses peak concurrent users.",
+          "whyHref": "../cost/"
+        },
+        {
+          "id": "peakConcurrentUsers",
+          "section": "users",
+          "label": "Peak concurrent users for the pilot or first wave",
+          "type": "number",
+          "default": 120,
+          "required": true,
+          "why": "Session host estimates use peak concurrency divided by tested sessions per host.",
+          "whyHref": "../host-pools/sizing-and-load-balancing/"
+        },
+        {
+          "id": "userLocations",
+          "section": "users",
+          "label": "Where do users work from?",
+          "type": "multiple",
+          "default": [
+            "corporate"
+          ],
+          "required": true,
+          "options": [
+            {
+              "value": "corporate",
+              "label": "Corporate network"
+            },
+            {
+              "value": "home",
+              "label": "Home or public internet"
+            },
+            {
+              "value": "partner",
+              "label": "Partner or supplier networks"
+            },
+            {
+              "value": "offshore",
+              "label": "Offshore locations"
+            }
+          ],
+          "why": "Network ownership and distance drive RDP Shortpath, proxy and latency testing.",
+          "whyHref": "../networking/connection-paths/"
+        },
+        {
+          "id": "arrivalWaves",
+          "section": "users",
+          "label": "Describe the main arrival waves and time zones",
+          "type": "textarea",
+          "default": "Contoso Australia starts around 08:00, with a smaller support wave at 13:00.",
+          "required": false,
+          "why": "Autoscale schedules work best when host pools are segmented by usage pattern and time zone.",
+          "whyHref": "../scaling/"
+        },
+        {
+          "id": "desktopDelivery",
+          "section": "users",
+          "label": "Primary delivery model",
+          "type": "single",
+          "default": "full-desktop",
+          "required": true,
+          "options": [
+            {
+              "value": "full-desktop",
+              "label": "Full desktop"
+            },
+            {
+              "value": "remoteapp-only",
+              "label": "RemoteApp only"
+            },
+            {
+              "value": "mixed",
+              "label": "Mixed full desktop and RemoteApp"
+            }
+          ],
+          "why": "Application groups decide whether users see desktops, RemoteApp applications or both.",
+          "whyHref": "../host-pools/"
+        },
+        {
+          "id": "persistentDesktops",
+          "section": "users",
+          "label": "Do any users need dedicated persistent desktops?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Dedicated desktops are a stepping stone or separate pattern, not the pooled North Star.",
+          "whyHref": "../getting-there/stepping-stones/#personal-host-pool-or-windows-365-for-dedicated-desktops"
+        },
+        {
+          "id": "developerDesktops",
+          "section": "users",
+          "label": "Do developers need persistent desktops, local tools or elevated rights?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Developer desktops can change the choice between pooled AVD, personal host pools and Windows 365.",
+          "whyHref": "../getting-there/stepping-stones/#personal-host-pool-or-windows-365-for-dedicated-desktops"
+        }
+      ]
+    },
+    {
+      "id": "applications",
+      "title": "Applications",
+      "questions": [
+        {
+          "id": "applicationInventoryReady",
+          "section": "applications",
+          "label": "Is there an application inventory with owners and validation groups?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Application ownership and validation evidence decide what can move to App Attach or a stepping stone.",
+          "whyHref": "../app-attach/"
+        },
+        {
+          "id": "appVPackages",
+          "section": "applications",
+          "label": "Number of App-V packages",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "why": "App Attach can use App-V packages as a bridge while MSIX packaging matures.",
+          "whyHref": "../app-attach/from-app-v/"
+        },
+        {
+          "id": "msixPackages",
+          "section": "applications",
+          "label": "Number of MSIX or Appx packages already available",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "why": "MSIX and Appx packages are the preferred App Attach format for Windows 11.",
+          "whyHref": "../app-attach/packages/"
+        },
+        {
+          "id": "installedApps",
+          "section": "applications",
+          "label": "Number of installed applications in the current image",
+          "type": "number",
+          "default": 30,
+          "required": false,
+          "why": "A high installed-app count usually means the image needs a parallel simplification stream.",
+          "whyHref": "../images/"
+        },
+        {
+          "id": "legacyMachineAuth",
+          "section": "applications",
+          "label": "Do any applications need AD DS machine authentication?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Microsoft Entra joined devices do not support on-premises applications that rely on machine authentication.",
+          "whyHref": "https://learn.microsoft.com/entra/identity/devices/device-join-plan#understand-considerations-for-applications-and-resources"
+        },
+        {
+          "id": "ntlmDependency",
+          "section": "applications",
+          "label": "Known NTLM dependency",
+          "type": "single",
+          "default": "unknown",
+          "required": true,
+          "options": [
+            {
+              "value": "none",
+              "label": "None known"
+            },
+            {
+              "value": "ntlmv2",
+              "label": "NTLMv2 only"
+            },
+            {
+              "value": "ntlmv1",
+              "label": "NTLMv1"
+            },
+            {
+              "value": "unknown",
+              "label": "Unknown"
+            }
+          ],
+          "why": "NTLMv1 dependencies need early remediation before modern Windows images are adopted.",
+          "whyHref": "../identity/legacy-applications/"
+        },
+        {
+          "id": "legacyAppTraits",
+          "section": "applications",
+          "label": "Which legacy traits are present?",
+          "type": "multiple",
+          "default": [],
+          "required": false,
+          "options": [
+            {
+              "value": "32bit",
+              "label": "32-bit application"
+            },
+            {
+              "value": "office-addin",
+              "label": "Office add-in"
+            },
+            {
+              "value": "gpu",
+              "label": "GPU required"
+            },
+            {
+              "value": "browser-heavy",
+              "label": "Browser-heavy work"
+            },
+            {
+              "value": "teams-heavy",
+              "label": "Teams-heavy work"
+            }
+          ],
+          "why": "Application traits affect pool segmentation, image content, App Attach suitability and media testing.",
+          "whyHref": "../app-attach/"
+        }
+      ]
+    },
+    {
+      "id": "identity",
+      "title": "Identity",
+      "questions": [
+        {
+          "id": "identityModel",
+          "section": "identity",
+          "label": "User identity model",
+          "type": "single",
+          "default": "hybrid",
+          "required": true,
+          "options": [
+            {
+              "value": "cloud",
+              "label": "Cloud-only Microsoft Entra identities"
+            },
+            {
+              "value": "hybrid",
+              "label": "Hybrid identities synchronised from AD DS"
+            },
+            {
+              "value": "external",
+              "label": "External identities"
+            }
+          ],
+          "why": "The identity model affects sign-in, FSLogix, Kerberos and external user requirements.",
+          "whyHref": "../identity/"
+        },
+        {
+          "id": "adLineOfSight",
+          "section": "identity",
+          "label": "Do session hosts need line of sight to AD DS for applications or resources?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Entra joined hosts can be deployed without a domain controller, but on-premises resources may still require AD DS reachability.",
+          "whyHref": "https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts#accessing-on-premises-resources"
+        },
+        {
+          "id": "ssoReady",
+          "section": "identity",
+          "label": "Is Microsoft Entra authentication for RDP and AVD single sign-on ready?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Single sign-on removes the session host credential prompt and changes Conditional Access scope.",
+          "whyHref": "../identity/single-sign-on/"
+        },
+        {
+          "id": "conditionalAccessReady",
+          "section": "identity",
+          "label": "Are Conditional Access licences and policies ready for AVD and Windows Cloud Login?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Conditional Access is the entry-control layer for feed access and session host sign-in.",
+          "whyHref": "../identity/conditional-access/"
+        },
+        {
+          "id": "licensingReady",
+          "section": "identity",
+          "label": "Do in-scope users have AVD, Intune and required Entra licences?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Licensing needs to be confirmed before the pilot is treated as deployable.",
+          "whyHref": "../cost/licensing-and-storage/"
+        }
+      ]
+    },
+    {
+      "id": "management",
+      "title": "Device management",
+      "questions": [
+        {
+          "id": "intuneReady",
+          "section": "management",
+          "label": "Is Intune ready to manage Windows 11 Enterprise multi-session hosts?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "The North Star enrols Entra joined session hosts in Intune during provisioning.",
+          "whyHref": "../intune/"
+        },
+        {
+          "id": "existingVirtualDesktopPolicies",
+          "section": "management",
+          "label": "Do existing virtual desktop policies need to be reviewed or reset?",
+          "type": "single",
+          "default": "review",
+          "required": true,
+          "options": [
+            {
+              "value": "none",
+              "label": "No existing policies"
+            },
+            {
+              "value": "review",
+              "label": "Review and selectively rebuild"
+            },
+            {
+              "value": "lift",
+              "label": "Lift current policy baseline"
+            }
+          ],
+          "why": "Inherited Group Policy or legacy platform policy can hide North Star dependency gaps.",
+          "whyHref": "../intune/starting-from-zero/"
+        },
+        {
+          "id": "configMgrUsed",
+          "section": "management",
+          "label": "Is Configuration Manager used for images, applications or updates today?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Existing management tooling may require a temporary image or standard-management stepping stone.",
+          "whyHref": "../getting-there/stepping-stones/#standard-management-host-pool"
+        }
+      ]
+    },
+    {
+      "id": "images",
+      "title": "Images",
+      "questions": [
+        {
+          "id": "imageStartingPoint",
+          "section": "images",
+          "label": "Image starting point for the pilot",
+          "type": "single",
+          "default": "clean",
+          "required": true,
+          "options": [
+            {
+              "value": "clean",
+              "label": "Clean Marketplace image"
+            },
+            {
+              "value": "existing",
+              "label": "Existing custom image"
+            },
+            {
+              "value": "parallel",
+              "label": "Parallel clean and existing image tracks"
+            }
+          ],
+          "why": "Microsoft's image guidance recommends starting from a new source VM, while an existing image can be a time-bound stepping stone.",
+          "whyHref": "../getting-there/stepping-stones/#existing-image-alongside-the-clean-image"
+        },
+        {
+          "id": "imagePipelineReady",
+          "section": "images",
+          "label": "Is an Azure Image Builder and Azure Compute Gallery pipeline ready?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "The North Star treats the image pipeline as the source of truth for disposable hosts.",
+          "whyHref": "../images/"
+        },
+        {
+          "id": "includeM365Apps",
+          "section": "images",
+          "label": "Should the Marketplace image include Microsoft 365 Apps?",
+          "type": "yesno",
+          "default": "yes",
+          "required": true,
+          "why": "The Deploy to Azure template chooses between Windows 11 Enterprise multi-session image families.",
+          "whyHref": "../images/"
+        },
+        {
+          "id": "marketplaceImageVersion",
+          "section": "images",
+          "label": "Marketplace image version",
+          "type": "text",
+          "default": "",
+          "required": false,
+          "validation": {
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "invalidMessage": "Enter an exact Marketplace image version such as 26300.9457.260914, or leave this blank so the generated commands look up the newest version. Do not enter latest."
+          },
+          "why": "The template needs an exact version, not latest. Find it with Azure CLI: az vm image list -l <region> -p MicrosoftWindowsDesktop -f <offer> -s <sku> --all --query \"[-1].version\" -o tsv. Or use PowerShell: Get-AzVMImage -Location <region> -PublisherName MicrosoftWindowsDesktop -Offer <offer> -Skus <sku>.",
+          "whyHref": "../images/building-images/"
+        }
+      ]
+    },
+    {
+      "id": "hostPools",
+      "title": "Host pools, sizing and scaling",
+      "questions": [
+        {
+          "id": "sessionHostConfigReady",
+          "section": "hostPools",
+          "label": "Will the pilot host pool be created with session host configuration?",
+          "type": "yesno",
+          "default": "yes",
+          "required": true,
+          "why": "The host pool management approach is fixed at creation and cannot be changed later.",
+          "whyHref": "https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches"
+        },
+        {
+          "id": "sessionHostVmSize",
+          "section": "hostPools",
+          "label": "Session host VM size",
+          "type": "single",
+          "default": "Standard_D8ads_v5",
+          "required": true,
+          "options": [
+            {
+              "value": "Standard_D4ads_v5",
+              "label": "Standard_D4ads_v5"
+            },
+            {
+              "value": "Standard_D8ads_v5",
+              "label": "Standard_D8ads_v5"
+            },
+            {
+              "value": "Standard_D16ads_v5",
+              "label": "Standard_D16ads_v5"
+            },
+            {
+              "value": "Standard_D4ds_v5",
+              "label": "Standard_D4ds_v5"
+            },
+            {
+              "value": "Standard_D8ds_v5",
+              "label": "Standard_D8ds_v5"
+            },
+            {
+              "value": "Standard_D16ds_v5",
+              "label": "Standard_D16ds_v5"
+            },
+            {
+              "value": "Standard_E8ads_v5",
+              "label": "Standard_E8ads_v5"
+            }
+          ],
+          "why": "The deployment template only allows these v5 sizes because their temporary disk can hold the 127 GiB Windows 11 image as an ephemeral OS disk.",
+          "whyHref": "../host-pools/ephemeral-os-disks/"
+        },
+        {
+          "id": "hostPoolDeploymentScope",
+          "section": "hostPools",
+          "label": "Host pool metadata deployment scope",
+          "type": "single",
+          "default": "Geographical",
+          "required": true,
+          "options": [
+            {
+              "value": "Geographical",
+              "label": "Geographical"
+            },
+            {
+              "value": "Regional",
+              "label": "Regional, only in supported regions"
+            }
+          ],
+          "why": "Regional host pools use separate backend infrastructure and are only available in supported regions, so use Geographical unless Regional is explicitly selected.",
+          "whyHref": "https://learn.microsoft.com/azure/virtual-desktop/regional-host-pools"
+        },
+        {
+          "id": "sessionHostNamePrefix",
+          "section": "hostPools",
+          "label": "Session host name prefix",
+          "type": "text",
+          "default": "ctavd",
+          "required": true,
+          "why": "The current deployment template maps this to the session host computer name prefix.",
+          "whyHref": "../host-pools/"
+        },
+        {
+          "id": "sessionsPerHost",
+          "section": "hostPools",
+          "label": "Tested or target sessions per host",
+          "type": "number",
+          "default": 12,
+          "required": true,
+          "why": "This drives the host estimate and must be validated with real workloads.",
+          "whyHref": "../host-pools/sizing-and-load-balancing/"
+        },
+        {
+          "id": "headroomPercent",
+          "section": "hostPools",
+          "label": "Capacity headroom percentage",
+          "type": "number",
+          "default": 20,
+          "required": true,
+          "why": "Headroom absorbs logon storms, uneven placement and host maintenance.",
+          "whyHref": "../scaling/dynamic-autoscaling/"
+        },
+        {
+          "id": "minHosts",
+          "section": "hostPools",
+          "label": "Ramp-up minimum host pool size",
+          "type": "number",
+          "default": 2,
+          "required": true,
+          "why": "The pilot scaling plan needs a minimum floor for user experience and testing.",
+          "whyHref": "../scaling/scaling-plans/"
+        },
+        {
+          "id": "maxHosts",
+          "section": "hostPools",
+          "label": "Ramp-up maximum host pool size",
+          "type": "number",
+          "default": 4,
+          "required": true,
+          "why": "The maximum host pool size caps dynamic scale-out during the pilot.",
+          "whyHref": "../scaling/scaling-plans/"
+        },
+        {
+          "id": "offPeakMinHosts",
+          "section": "hostPools",
+          "label": "Ramp-down minimum host pool size",
+          "type": "number",
+          "default": 0,
+          "required": true,
+          "why": "A zero off-peak floor is a cost choice that must be balanced against first-user wait time.",
+          "whyHref": "../scaling/scaling-plans/"
+        },
+        {
+          "id": "offPeakMaxHosts",
+          "section": "hostPools",
+          "label": "Ramp-down maximum host pool size",
+          "type": "number",
+          "default": 2,
+          "required": true,
+          "why": "This caps off-peak capacity during the pilot scaling schedule.",
+          "whyHref": "../scaling/scaling-plans/"
+        },
+        {
+          "id": "scalingTimeZone",
+          "section": "hostPools",
+          "label": "Scaling plan time zone",
+          "type": "text",
+          "default": "AUS Eastern Standard Time",
+          "required": true,
+          "why": "Scaling plans use a configured time zone, so multiple arrival waves may need separate pools.",
+          "whyHref": "../scaling/"
+        },
+        {
+          "id": "useAvailabilityZones",
+          "section": "hostPools",
+          "label": "Use availability zones for pilot hosts if the region and SKU support them?",
+          "type": "yesno",
+          "default": "yes",
+          "required": true,
+          "why": "Availability zones improve in-region resiliency when supported by the region and VM SKU.",
+          "whyHref": "../bcdr/"
+        }
+      ]
+    },
+    {
+      "id": "profiles",
+      "title": "Profiles",
+      "questions": [
+        {
+          "id": "fslogixToday",
+          "section": "profiles",
+          "label": "Is FSLogix used today?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Existing FSLogix use can accelerate profile migration but storage identity and sizing still need validation.",
+          "whyHref": "../profiles/"
+        },
+        {
+          "id": "averageProfileGb",
+          "section": "profiles",
+          "label": "Average profile size in GB",
+          "type": "number",
+          "default": 10,
+          "required": true,
+          "why": "Capacity matters, but the first sizing pass also needs IOPS at sign-in and steady state.",
+          "whyHref": "../profiles/sizing-and-sharding/"
+        },
+        {
+          "id": "profileStorageTier",
+          "section": "profiles",
+          "label": "Azure Files share model for estimates",
+          "type": "single",
+          "default": "ssd-v2",
+          "required": true,
+          "options": [
+            {
+              "value": "ssd-v2",
+              "label": "SSD provisioned v2"
+            },
+            {
+              "value": "hdd-v2",
+              "label": "HDD provisioned v2"
+            }
+          ],
+          "why": "Azure Files IOPS limits differ by share model and media tier.",
+          "whyHref": "https://learn.microsoft.com/azure/storage/files/storage-files-scale-targets"
+        },
+        {
+          "id": "storageIdentityReady",
+          "section": "profiles",
+          "label": "Is Azure Files identity for FSLogix ready?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "The North Star uses Azure Files SMB with Microsoft Entra Kerberos for FSLogix access.",
+          "whyHref": "../profiles/access-and-permissions/"
+        }
+      ]
+    },
+    {
+      "id": "networking",
+      "title": "Networking",
+      "questions": [
+        {
+          "id": "landingZoneReady",
+          "section": "networking",
+          "label": "Is the subscription, landing zone and quota ready?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "The platform needs subscription placement, quota, network and governance before session hosts scale.",
+          "whyHref": "../getting-there/dependencies/#1-licences-subscription-and-quota"
+        },
+        {
+          "id": "useExistingHub",
+          "section": "networking",
+          "label": "Use an existing hub, spoke and session host subnet?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "The Deploy to Azure template can create a new network or use an existing subnet.",
+          "whyHref": "../networking/private-connectivity/"
+        },
+        {
+          "id": "existingSubnetResourceId",
+          "section": "networking",
+          "label": "Existing session host subnet resource ID",
+          "type": "text",
+          "default": "",
+          "required": false,
+          "showIf": {
+            "answerId": "useExistingHub",
+            "equals": "yes"
+          },
+          "why": "Needed only when the pilot deploys into an existing subnet.",
+          "whyHref": "../networking/private-connectivity/"
+        },
+        {
+          "id": "vnetAddressPrefix",
+          "section": "networking",
+          "label": "New virtual network address prefix",
+          "type": "text",
+          "default": "10.60.0.0/16",
+          "required": true,
+          "showIf": {
+            "answerId": "useExistingHub",
+            "equals": "no"
+          },
+          "why": "Used when the pilot creates a new virtual network.",
+          "whyHref": "../networking/private-connectivity/"
+        },
+        {
+          "id": "sessionHostSubnetPrefix",
+          "section": "networking",
+          "label": "New session host subnet prefix",
+          "type": "text",
+          "default": "10.60.1.0/24",
+          "required": true,
+          "showIf": {
+            "answerId": "useExistingHub",
+            "equals": "no"
+          },
+          "why": "Used when the pilot creates a new session host subnet.",
+          "whyHref": "../networking/private-connectivity/"
+        },
+        {
+          "id": "networkEndpointsReady",
+          "section": "networking",
+          "label": "Can session hosts reach required AVD, Entra, Intune and Azure endpoints?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "AVD depends on outbound access to required FQDNs and service endpoints.",
+          "whyHref": "../networking/required-flows/"
+        },
+        {
+          "id": "outboundMethod",
+          "section": "networking",
+          "label": "Session host outbound method",
+          "type": "single",
+          "default": "nat-gateway",
+          "required": true,
+          "options": [
+            {
+              "value": "nat-gateway",
+              "label": "NAT Gateway"
+            },
+            {
+              "value": "firewall",
+              "label": "Azure Firewall or NVA"
+            },
+            {
+              "value": "default",
+              "label": "Default outbound access"
+            }
+          ],
+          "why": "The North Star prefers explicit outbound connectivity rather than implicit default outbound access.",
+          "whyHref": "../networking/private-connectivity/"
+        },
+        {
+          "id": "privateEndpointsReady",
+          "section": "networking",
+          "label": "Use private endpoints for Azure Files profile and app shares?",
+          "type": "yesno",
+          "default": "yes",
+          "required": true,
+          "why": "Private endpoints keep SMB access to profile and application shares on private IPs.",
+          "whyHref": "../networking/private-connectivity/"
+        },
+        {
+          "id": "rdpShortpathReady",
+          "section": "networking",
+          "label": "Can clients and firewalls support RDP Shortpath UDP where policy allows?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "RDP Shortpath can improve reliability and latency when UDP paths are available.",
+          "whyHref": "../networking/connection-paths/"
+        },
+        {
+          "id": "secureWebGateway",
+          "section": "networking",
+          "label": "Are secure web gateways, proxies or SSL inspection in the path?",
+          "type": "yesno",
+          "default": "yes",
+          "required": true,
+          "why": "Proxy and inspection policy can affect AVD, Teams media optimisation, Intune and storage access.",
+          "whyHref": "../networking/required-flows/"
+        },
+        {
+          "id": "usersOnUncontrolledNetworks",
+          "section": "networking",
+          "label": "Do users connect from networks the organisation does not control?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Uncontrolled networks need explicit testing for RDP Shortpath, proxies and client experience.",
+          "whyHref": "../networking/connection-paths/"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Security",
+      "questions": [
+        {
+          "id": "clipboardPolicy",
+          "section": "security",
+          "label": "Clipboard policy needed",
+          "type": "single",
+          "default": "limited",
+          "required": true,
+          "options": [
+            {
+              "value": "open",
+              "label": "Open clipboard"
+            },
+            {
+              "value": "limited",
+              "label": "Directional or data-type limited"
+            },
+            {
+              "value": "blocked",
+              "label": "Blocked"
+            }
+          ],
+          "why": "Clipboard direction and data-type controls are part of the data protection baseline.",
+          "whyHref": "../security/"
+        },
+        {
+          "id": "redirectionNeeds",
+          "section": "security",
+          "label": "Which redirections are required?",
+          "type": "multiple",
+          "default": [],
+          "required": false,
+          "options": [
+            {
+              "value": "drives",
+              "label": "Drives"
+            },
+            {
+              "value": "printers",
+              "label": "Printers"
+            },
+            {
+              "value": "camera",
+              "label": "Camera"
+            },
+            {
+              "value": "usb",
+              "label": "USB"
+            }
+          ],
+          "why": "Peripheral redirection should be denied by default and allowed by exception.",
+          "whyHref": "../security/"
+        },
+        {
+          "id": "screenCaptureProtection",
+          "section": "security",
+          "label": "Need screen capture protection?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Screen capture protection is useful for sensitive pools and should be tested with client platforms.",
+          "whyHref": "../security/"
+        },
+        {
+          "id": "watermarking",
+          "section": "security",
+          "label": "Need watermarking?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Watermarking helps trace leaked screen content for high-risk personas.",
+          "whyHref": "../security/"
+        },
+        {
+          "id": "localAdminNeeds",
+          "section": "security",
+          "label": "Do any users need local administrator rights in-session?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Local admin needs usually indicate a dedicated-desktop or privilege-management stream.",
+          "whyHref": "../security/"
+        }
+      ]
+    },
+    {
+      "id": "operations",
+      "title": "Monitoring and operations",
+      "questions": [
+        {
+          "id": "monitoringReady",
+          "section": "operations",
+          "label": "Is Log Analytics, AVD diagnostics and AVD Insights ready?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "The North Star turns on diagnostics and Insights from the first pilot host pool.",
+          "whyHref": "../monitoring/"
+        },
+        {
+          "id": "operationsTeamSize",
+          "section": "operations",
+          "label": "Number of people who will operate AVD day to day",
+          "type": "number",
+          "default": 3,
+          "required": true,
+          "why": "Team size and skills determine how much automation, runbook detail and partner support are needed.",
+          "whyHref": "../monitoring/autoscale-and-alerts/"
+        },
+        {
+          "id": "operationsSkills",
+          "section": "operations",
+          "label": "Current operations skills",
+          "type": "multiple",
+          "default": [
+            "azure"
+          ],
+          "required": true,
+          "options": [
+            {
+              "value": "azure",
+              "label": "Azure"
+            },
+            {
+              "value": "intune",
+              "label": "Intune"
+            },
+            {
+              "value": "identity",
+              "label": "Identity"
+            },
+            {
+              "value": "avd",
+              "label": "AVD"
+            },
+            {
+              "value": "packaging",
+              "label": "Application packaging"
+            }
+          ],
+          "why": "Skills shape the migration plan, support model and handover requirements.",
+          "whyHref": "../getting-there/"
+        },
+        {
+          "id": "partnerSupport",
+          "section": "operations",
+          "label": "Will a partner operate or support the platform?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Partner involvement changes access, runbooks, knowledge transfer and accountability.",
+          "whyHref": "../monitoring/"
+        }
+      ]
+    },
+    {
+      "id": "bcdr",
+      "title": "Business continuity",
+      "questions": [
+        {
+          "id": "rtoHours",
+          "section": "bcdr",
+          "label": "Recovery time objective in hours",
+          "type": "number",
+          "default": 24,
+          "required": true,
+          "why": "RTO decides whether active-passive regional recovery is enough or whether a warmer design is needed.",
+          "whyHref": "../bcdr/"
+        },
+        {
+          "id": "rpoHours",
+          "section": "bcdr",
+          "label": "Recovery point objective in hours",
+          "type": "number",
+          "default": 24,
+          "required": true,
+          "why": "RPO drives profile, package and image replication or backup choices.",
+          "whyHref": "../bcdr/"
+        },
+        {
+          "id": "secondaryRegion",
+          "section": "bcdr",
+          "label": "Is a secondary Azure region required?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "Regional recovery is a separate design for profiles, packages, images, identity and application routing.",
+          "whyHref": "../bcdr/"
+        }
+      ]
+    },
+    {
+      "id": "cost",
+      "title": "Cost and licensing",
+      "questions": [
+        {
+          "id": "costModelReady",
+          "section": "cost",
+          "label": "Is there a per-persona cost baseline to compare against?",
+          "type": "yesno",
+          "default": "no",
+          "required": true,
+          "why": "A baseline prevents average cost from hiding expensive personas or peak capacity.",
+          "whyHref": "../cost/"
+        },
+        {
+          "id": "commitmentStrategy",
+          "section": "cost",
+          "label": "Commitment strategy for compute",
+          "type": "single",
+          "default": "none",
+          "required": true,
+          "options": [
+            {
+              "value": "none",
+              "label": "None yet"
+            },
+            {
+              "value": "baseline",
+              "label": "Savings plan or reservation for measured baseline only"
+            },
+            {
+              "value": "broad",
+              "label": "Broad commitment across peak"
+            }
+          ],
+          "why": "Commitments can reduce unit cost but may fight Autoscale if they cover removable peak capacity.",
+          "whyHref": "../cost/logging-and-commitments/"
+        },
+        {
+          "id": "assignAutoscaleRolesToHostPoolIdentity",
+          "section": "cost",
+          "label": "Should the template assign autoscale roles to the host pool managed identity?",
+          "type": "yesno",
+          "default": "yes",
+          "required": true,
+          "why": "Dynamic autoscaling creates session hosts through the host pool managed identity, so it needs subscription-scope Desktop Virtualization autoscale roles.",
+          "whyHref": "../scaling/scaling-plans/"
+        },
+        {
+          "id": "avdServicePrincipalAutoscaleRoles",
+          "section": "cost",
+          "label": "Does the Azure Virtual Desktop service principal already have the autoscale roles at subscription scope?",
+          "type": "single",
+          "default": "unknown",
+          "required": true,
+          "options": [
+            {
+              "value": "yes",
+              "label": "Yes"
+            },
+            {
+              "value": "no",
+              "label": "No"
+            },
+            {
+              "value": "unknown",
+              "label": "Unknown"
+            }
+          ],
+          "why": "Only assign these roles to the service principal when they are absent. Duplicate Azure role assignments can fail the deployment.",
+          "whyHref": "../scaling/scaling-plans/"
+        },
+        {
+          "id": "avdServicePrincipalObjectId",
+          "section": "cost",
+          "label": "Azure Virtual Desktop service principal object ID, if required",
+          "type": "text",
+          "default": "",
+          "required": false,
+          "why": "The current template accepts this for optional autoscale role assignments.",
+          "whyHref": "../scaling/scaling-plans/"
+        },
+        {
+          "id": "avdArmProviderServicePrincipalObjectId",
+          "section": "cost",
+          "label": "Azure Virtual Desktop ARM Provider service principal object ID, if required",
+          "type": "text",
+          "default": "",
+          "required": false,
+          "why": "The current template accepts this for Azure Files App Attach access.",
+          "whyHref": "../app-attach/requirements/"
+        },
+        {
+          "id": "localAdminUsername",
+          "section": "cost",
+          "label": "Pilot local administrator username",
+          "type": "text",
+          "default": "contosoadmin",
+          "required": true,
+          "why": "The parameter file includes the username, but never includes the password.",
+          "whyHref": "../security/"
+        }
+      ]
+    },
+    {
+      "id": "timeline",
+      "title": "Timeline and governance",
+      "questions": [
+        {
+          "id": "pilotStartDate",
+          "section": "timeline",
+          "label": "Target pilot start date",
+          "type": "text",
+          "default": "2026-11-01",
+          "required": false,
+          "why": "Dates help identify which dependencies are on the critical path.",
+          "whyHref": "../getting-there/"
+        },
+        {
+          "id": "governanceGate",
+          "section": "timeline",
+          "label": "Architecture or security governance gate before pilot?",
+          "type": "yesno",
+          "default": "yes",
+          "required": true,
+          "why": "Governance gates decide when the generated pilot parameters become a deployable plan.",
+          "whyHref": "../getting-there/"
+        },
+        {
+          "id": "decisionDate",
+          "section": "timeline",
+          "label": "Decision date for moving from pilot to production design",
+          "type": "text",
+          "default": "2027-02-01",
+          "required": false,
+          "why": "A named decision date keeps stepping stones temporary and evidence-driven.",
+          "whyHref": "../getting-there/stepping-stones/"
+        },
+        {
+          "id": "openRisks",
+          "section": "timeline",
+          "label": "Open risks, blockers or assumptions",
+          "type": "textarea",
+          "default": "Contoso needs to confirm quota, App Attach candidates and the Conditional Access pilot policy.",
+          "required": false,
+          "why": "Capturing assumptions makes the discovery output useful after the workshop.",
+          "whyHref": "../getting-there/dependencies/"
+        }
+      ]
+    }
+  ]
+}

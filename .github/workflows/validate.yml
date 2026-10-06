@@ -1,0 +1,110 @@
+name: Validate toolkit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  powershell:
+    name: PowerShell analysis and tests
+    runs-on: windows-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Install PSScriptAnalyzer and Pester
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -Force
+          Install-Module -Name Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $findings = Invoke-ScriptAnalyzer -Path tools -Recurse -Severity Warning, Error
+          if ($findings) {
+            $findings | Format-Table RuleName, Severity, ScriptName, Line, Message -AutoSize -Wrap | Out-String -Width 220 | Write-Output
+            throw "PSScriptAnalyzer reported $(@($findings).Count) finding(s)."
+          }
+          'PSScriptAnalyzer: no findings.'
+
+      - name: Pester
+        shell: pwsh
+        run: |
+          Import-Module Pester -RequiredVersion 5.7.1
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'tools'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config
+
+  templates:
+    name: Templates, diagrams and style
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: House style
+        run: python3 scripts/check_style.py
+
+      - name: Every JSON file parses
+        run: |
+          python3 - <<'EOF'
+          import json, pathlib, sys
+          skip = {'.git', 'node_modules'}
+          files = [p for p in pathlib.Path('.').rglob('*.json') if not skip.intersection(p.parts)]
+          bad = []
+          for p in files:
+              try:
+                  json.loads(p.read_text(encoding='utf-8-sig'))
+              except Exception as e:
+                  bad.append(f'{p}: {e}')
+          print('\n'.join(bad) if bad else f'All {len(files)} JSON files parse.')
+          sys.exit(1 if bad else 0)
+          EOF
+
+      - name: Bicep builds and lints
+        if: hashFiles('deploy/main.bicep') != ''
+        run: |
+          az bicep install
+          az bicep build --file deploy/main.bicep --outfile "$RUNNER_TEMP/azuredeploy.json"
+          az bicep lint --file deploy/main.bicep
+
+      - name: Committed azuredeploy.json matches the Bicep source
+        if: hashFiles('deploy/main.bicep') != ''
+        run: |
+          python3 - <<'EOF'
+          import json, os, pathlib
+          def strip(node):
+              if isinstance(node, dict):
+                  return {k: strip(v) for k, v in node.items() if k not in ('_generator', 'templateHash')}
+              if isinstance(node, list):
+                  return [strip(v) for v in node]
+              return node
+          built = strip(json.loads(pathlib.Path(os.environ['RUNNER_TEMP'], 'azuredeploy.json').read_text(encoding='utf-8')))
+          committed = strip(json.loads(pathlib.Path('deploy/azuredeploy.json').read_text(encoding='utf-8-sig')))
+          if built == committed:
+              print('deploy/azuredeploy.json matches deploy/main.bicep.')
+          else:
+              print('::warning file=deploy/azuredeploy.json::azuredeploy.json differs from a fresh build of main.bicep. Rebuild it, or check whether the difference only comes from a newer Bicep version.')
+          EOF
+
+      - name: Template and portal wizard agree
+        run: python3 scripts/check_template_wizard.py
+
+      - name: Diagrams rebuild cleanly and match the committed SVGs
+        if: hashFiles('scripts/diagrams/build_all.py') != ''
+        run: |
+          python3 scripts/diagrams/build_all.py
+          git diff --exit-code --stat -- docs/assets/images
+
+      - name: Discovery questionnaire tests
+        if: hashFiles('scripts/tests/discovery/**') != ''
+        run: node --test scripts/tests/discovery/

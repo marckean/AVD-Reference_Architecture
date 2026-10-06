@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "1.0",
+  "name": "Contoso AVD - Defender Antivirus exclusions for FSLogix",
+  "description": "Settings Catalog policy for Microsoft Defender Antivirus exclusions that reduce FSLogix profile container lock and performance issues.",
+  "platforms": "windows10",
+  "technologies": "mdm",
+  "assignmentDefault": "unassigned",
+  "settings": [
+    {
+      "key": "defenderExcludedPaths",
+      "settingPickerPath": "Microsoft Defender Antivirus > Exclusions > Excluded Paths",
+      "scope": "device",
+      "settingType": "multiString",
+      "value": [
+        "C:\\Program Files\\FSLogix\\Apps\\",
+        "C:\\ProgramData\\FSLogix\\",
+        "C:\\Users\\%username%\\AppData\\Local\\FSLogix\\",
+        "%ProgramData%\\FSLogix\\Cache\\*",
+        "%ProgramData%\\FSLogix\\Proxy\\*",
+        "%TEMP%\\*\\*.VHD",
+        "%TEMP%\\*\\*.VHDX",
+        "%WINDIR%\\TEMP\\*\\*.VHD",
+        "%WINDIR%\\TEMP\\*\\*.VHDX",
+        "\\\\stcontosofslogix01.file.core.windows.net\\profiles\\*\\*.VHD",
+        "\\\\stcontosofslogix01.file.core.windows.net\\profiles\\*\\*.VHDX",
+        "\\\\stcontosofslogix01.file.core.windows.net\\profiles\\*\\*.VHD.lock",
+        "\\\\stcontosofslogix01.file.core.windows.net\\profiles\\*\\*.VHDX.lock",
+        "\\\\stcontosofslogix01.file.core.windows.net\\profiles\\*\\*.VHD.meta",
+        "\\\\stcontosofslogix01.file.core.windows.net\\profiles\\*\\*.VHDX.meta",
+        "\\\\stcontosofslogix01.file.core.windows.net\\profiles\\*\\*.VHD.metadata",
+        "\\\\stcontosofslogix01.file.core.windows.net\\profiles\\*\\*.VHDX.metadata"
+      ],
+      "resolver": {
+        "displayNames": [
+          "Excluded Paths",
+          "ExcludedPaths"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/Policy/Config/Defender/ExcludedPaths"
+      },
+      "why": "Excludes FSLogix binaries, cache folders, temporary VHD or VHDX files and Contoso profile containers from Microsoft Defender Antivirus scanning. Replace the Contoso UNC path with the production FSLogix profile share path.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/overview-prerequisites#configure-antivirus-file-and-folder-exclusions",
+        "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#excludedpaths"
+      ]
+    },
+    {
+      "key": "defenderExcludedProcesses",
+      "settingPickerPath": "Microsoft Defender Antivirus > Exclusions > Excluded Processes",
+      "scope": "device",
+      "settingType": "multiString",
+      "value": [
+        "C:\\Program Files\\FSLogix\\Apps\\frxsvc.exe",
+        "C:\\Program Files\\FSLogix\\Apps\\frxccds.exe"
+      ],
+      "resolver": {
+        "displayNames": [
+          "Excluded Processes",
+          "ExcludedProcesses"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/Policy/Config/Defender/ExcludedProcesses"
+      },
+      "why": "Excludes the documented FSLogix service and Cloud Cache process paths from Microsoft Defender Antivirus process-opened file scans.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/overview-prerequisites#configure-antivirus-file-and-folder-exclusions",
+        "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#excludedprocesses"
+      ]
+    },
+    {
+      "key": "defenderExcludedExtensions",
+      "settingPickerPath": "Microsoft Defender Antivirus > Exclusions > Excluded Extensions",
+      "scope": "device",
+      "settingType": "multiString",
+      "value": [
+        "VHD",
+        "VHDX"
+      ],
+      "resolver": {
+        "displayNames": [
+          "Excluded Extensions",
+          "ExcludedExtensions"
+        ],
+        "cspPath": "./Device/Vendor/MSFT/Policy/Config/Defender/ExcludedExtensions"
+      },
+      "why": "Excludes VHD and VHDX file extensions used by FSLogix profile containers. Review with the security team before production.",
+      "learnLinks": [
+        "https://learn.microsoft.com/fslogix/overview-prerequisites#configure-antivirus-file-and-folder-exclusions",
+        "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-defender#excludedextensions"
+      ]
+    }
+  ]
+}

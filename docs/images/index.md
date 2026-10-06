@@ -26,22 +26,14 @@ The North Star image pipeline is:
 
 ## How it fits
 
-```mermaid
-flowchart LR
-    subgraph BUILD["1. Build"]
-        direction TB
-        A["Windows 11 Enterprise<br/>multi-session from<br/>Azure Marketplace"] --> B["Azure Image Builder"] --> C["Lean base image"]
-    end
-    subgraph PUBLISH["2. Publish"]
-        direction TB
-        D["Azure Compute Gallery<br/>image definition"] --> E["Image version"]
-    end
-    subgraph ROLL["3. Roll out in rings"]
-        direction TB
-        F["Session host configuration<br/>and session host update"] --> H["Ring 0 host pool"] --> I["Ring 1 host pool"] --> J["Production host pools"]
-    end
-    BUILD --> PUBLISH --> ROLL
-```
+![Image pipeline from Marketplace source through Azure Image Builder and Azure Compute Gallery to session host configuration and session host update rings.](../assets/images/images-pipeline-light.svg#only-light)
+![Image pipeline from Marketplace source through Azure Image Builder and Azure Compute Gallery to session host configuration and session host update rings.](../assets/images/images-pipeline-dark.svg#only-dark)
+
+1. **Start from the Marketplace.** Windows 11 Enterprise multi-session, with or without Microsoft 365 Apps.
+2. **Build a lean base image** with Azure VM Image Builder: the operating system, the security agents and what every user needs, and nothing that App Attach or Intune can deliver.
+3. **Publish an image version** to Azure Compute Gallery, and replicate it to every region you deploy in.
+4. **Reference the version in the session host configuration**, so every new host is built from it.
+5. **Roll out in rings** with session host update: a ring 0 host pool first, then ring 1, then the production host pools.
 
 Images provide the operating system and baseline. App Attach provides applications at sign-in. Intune provides policy, certificates, scripts, and device management after enrolment.
 

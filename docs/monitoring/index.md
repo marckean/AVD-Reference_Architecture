@@ -25,18 +25,16 @@ The second layer is **session host telemetry**. Session hosts are Windows 11 Ent
 
 ## How it fits
 
-```mermaid
-flowchart LR
-    User["User session"] --> AVD["Azure Virtual Desktop service"]
-    AVD --> Diag["Diagnostic settings"]
-    Host["Session host"] --> AMA["Azure Monitor Agent"]
-    DCR["Data Collection Rule"] --> AMA
-    Diag --> LA["Log Analytics workspace"]
-    AMA --> LA
-    LA --> Insights["Azure Virtual Desktop Insights"]
-    LA --> Alerts["Azure Monitor alerts"]
-    Health["Azure Service Health"] --> Alerts
-```
+![Monitoring data flow from AVD diagnostic settings and Azure Monitor Agent to Log Analytics, AVD Insights and alerts.](../assets/images/monitoring-flow-light.svg#only-light)
+![Monitoring data flow from AVD diagnostic settings and Azure Monitor Agent to Log Analytics, AVD Insights and alerts.](../assets/images/monitoring-flow-dark.svg#only-dark)
+
+1. **Azure Virtual Desktop** records connections, errors, management activity and autoscale decisions.
+2. **Diagnostic settings** send those logs to a Log Analytics workspace.
+3. **Session hosts** produce performance counters and Windows event logs.
+4. **Azure Monitor Agent** collects them from each host, using a data collection rule.
+5. **Log Analytics** stores both, so service and host data can be queried together.
+6. **Azure Virtual Desktop Insights** presents them as a ready-made workbook.
+7. **Alerts** fire on the conditions that affect users. Add Azure Service Health alerts for platform incidents.
 
 In the North Star design, session hosts are disposable because they use [ephemeral OS disks](https://learn.microsoft.com/azure/virtual-machines/ephemeral-os-disks) and are managed through session host configuration and autoscale. Monitoring therefore focuses on the pool, image version, connection path and profile service rather than on repairing an individual host. If a host is unhealthy, drain it, delete it and let the platform recreate capacity.
 

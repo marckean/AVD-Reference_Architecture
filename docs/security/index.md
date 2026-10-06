@@ -47,6 +47,11 @@ Use Conditional Access to decide who can connect. Use RDP properties and Intune 
 
 ## Control map
 
+No single control is the security boundary. Each layer below covers a different way in, and the table maps every control to where it's configured.
+
+![Defence-in-depth layers for identity, session controls, host protection, storage, networking, monitoring and administration.](../assets/images/security-layers-light.svg#only-light)
+![Defence-in-depth layers for identity, session controls, host protection, storage, networking, monitoring and administration.](../assets/images/security-layers-dark.svg#only-dark)
+
 | Control | Where configured | North Star value | Status | Learn |
 | --- | --- | --- | --- | --- |
 | Conditional Access | Microsoft Entra ID | Target **Azure Virtual Desktop** and **Windows Cloud Login** | **Status:** Generally available | [MFA and Conditional Access](https://learn.microsoft.com/azure/virtual-desktop/set-up-mfa) |

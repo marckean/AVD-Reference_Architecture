@@ -1,0 +1,1624 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.46.1.21595",
+      "templateHash": "4217951929397430158"
+    }
+  },
+  "parameters": {
+    "workloadPrefix": {
+      "type": "string",
+      "defaultValue": "contoso-avd",
+      "minLength": 3,
+      "maxLength": 18,
+      "metadata": {
+        "description": "Short prefix used for resource names. Use lower-case letters, numbers and hyphens."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for the pilot environment. The portal Basics step supplies this value."
+      }
+    },
+    "pilotUsersGroupObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Microsoft Entra group object ID for pilot users."
+      }
+    },
+    "localAdminUsername": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Local administrator username stored in Key Vault and referenced by the session host configuration."
+      }
+    },
+    "localAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Local administrator password stored in Key Vault and referenced by the session host configuration."
+      }
+    },
+    "networkMode": {
+      "type": "string",
+      "defaultValue": "new",
+      "allowedValues": [
+        "new",
+        "existing"
+      ],
+      "metadata": {
+        "description": "Create a new virtual network or use an existing session host subnet."
+      }
+    },
+    "existingSubnetResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Resource ID of an existing subnet for session hosts. Required when networkMode is existing."
+      }
+    },
+    "vnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.60.0.0/16",
+      "metadata": {
+        "description": "Address prefix for the new virtual network."
+      }
+    },
+    "sessionHostSubnetPrefix": {
+      "type": "string",
+      "defaultValue": "10.60.1.0/24",
+      "metadata": {
+        "description": "Address prefix for the new session host subnet."
+      }
+    },
+    "enableFilesPrivateEndpoint": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable an Azure Files private endpoint and privatelink.file.core.windows.net private DNS zone."
+      }
+    },
+    "assignAutoscaleRolesToHostPoolIdentity": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Assign subscription-scope autoscale roles to the new host pool managed identity. Leave enabled unless a subscription Owner or User Access Administrator will assign them manually before scaling runs."
+      }
+    },
+    "assignAutoscaleRolesToAvdServicePrincipal": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Assign subscription-scope autoscale roles to the Azure Virtual Desktop service principal when azureVirtualDesktopServicePrincipalObjectId is supplied. Default false because many tenants already have these assignments."
+      }
+    },
+    "azureVirtualDesktopServicePrincipalObjectId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure Virtual Desktop service principal object ID in this tenant. Recommended for dynamic autoscaling subscription-scope role assignments. Find it from application ID 9cdead84-a844-4324-93f2-b2e6bb768d07."
+      }
+    },
+    "azureVirtualDesktopArmProviderServicePrincipalObjectId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure Virtual Desktop ARM Provider service principal object ID in this tenant. Required when assigning Reader and Data Access for App Attach on Azure Files."
+      }
+    },
+    "hostPoolDeploymentScope": {
+      "type": "string",
+      "defaultValue": "Geographical",
+      "allowedValues": [
+        "Geographical",
+        "Regional"
+      ],
+      "metadata": {
+        "description": "Host pool metadata deployment scope. Geographical is the standard behaviour and works in every AVD region. Regional is available only in supported regions."
+      }
+    },
+    "sessionHostVmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D8ads_v5",
+      "allowedValues": [
+        "Standard_D4ads_v5",
+        "Standard_D8ads_v5",
+        "Standard_D16ads_v5",
+        "Standard_D4ds_v5",
+        "Standard_D8ds_v5",
+        "Standard_D16ds_v5",
+        "Standard_E8ads_v5"
+      ],
+      "metadata": {
+        "description": "Virtual machine size for session hosts. Curated to v5 sizes with temp disk placement large enough for the 127 GiB Windows 11 Enterprise multi-session image plus Trusted launch VM guest state."
+      }
+    },
+    "sessionHostNamePrefix": {
+      "type": "string",
+      "defaultValue": "ctavd",
+      "minLength": 1,
+      "maxLength": 11,
+      "metadata": {
+        "description": "Session host computer name prefix. Azure Virtual Desktop limits this to 11 characters."
+      }
+    },
+    "maxSessionLimit": {
+      "type": "int",
+      "defaultValue": 12,
+      "minValue": 1,
+      "maxValue": 40,
+      "metadata": {
+        "description": "Maximum sessions per session host. Validate this through a pilot before production."
+      }
+    },
+    "marketplaceImageSku": {
+      "type": "string",
+      "defaultValue": "win11-26h2-avd-m365",
+      "allowedValues": [
+        "win11-26h2-avd",
+        "win11-26h2-avd-m365"
+      ],
+      "metadata": {
+        "description": "Windows 11 Enterprise multi-session image family."
+      }
+    },
+    "marketplaceImageOffer": {
+      "type": "string",
+      "defaultValue": "office-365",
+      "allowedValues": [
+        "Windows-11",
+        "office-365"
+      ],
+      "metadata": {
+        "description": "Marketplace image offer for the selected image."
+      }
+    },
+    "marketplaceImagePublisher": {
+      "type": "string",
+      "defaultValue": "MicrosoftWindowsDesktop",
+      "metadata": {
+        "description": "Marketplace image publisher."
+      }
+    },
+    "marketplaceImageVersion": {
+      "type": "string",
+      "metadata": {
+        "description": "Exact Marketplace image version. Get the newest version with: az vm image list -l <region> -p MicrosoftWindowsDesktop -f <offer> -s <sku> --all --query \"[-1].version\" -o tsv, or Get-AzVMImage with Location, PublisherName, Offer and Skus."
+      }
+    },
+    "enrollSessionHostsInIntune": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enrol session hosts in Microsoft Intune as they are created. Keep true for the North Star. The tenant needs Intune licences and automatic MDM enrolment configured, or session host provisioning fails with MdmJoinFailed. Set false only for a lab without Intune."
+      }
+    },
+    "availabilityZones": {
+      "type": "array",
+      "defaultValue": [
+        1,
+        2,
+        3
+      ],
+      "metadata": {
+        "description": "Availability zones for session hosts. Leave empty in regions or subscriptions where the selected VM size does not support zones."
+      }
+    },
+    "scalingTimeZone": {
+      "type": "string",
+      "defaultValue": "AUS Eastern Standard Time",
+      "metadata": {
+        "description": "Windows time zone ID for the scaling plan."
+      }
+    },
+    "rampUpMinimumHostPoolSize": {
+      "type": "int",
+      "defaultValue": 2,
+      "minValue": 0,
+      "maxValue": 59,
+      "metadata": {
+        "description": "Minimum host pool size used during ramp-up and peak."
+      }
+    },
+    "rampUpMaximumHostPoolSize": {
+      "type": "int",
+      "defaultValue": 4,
+      "minValue": 1,
+      "maxValue": 59,
+      "metadata": {
+        "description": "Maximum host pool size used during ramp-up and peak."
+      }
+    },
+    "rampDownMinimumHostPoolSize": {
+      "type": "int",
+      "defaultValue": 0,
+      "minValue": 0,
+      "maxValue": 59,
+      "metadata": {
+        "description": "Minimum host pool size used during ramp-down and off-peak."
+      }
+    },
+    "rampDownMaximumHostPoolSize": {
+      "type": "int",
+      "defaultValue": 2,
+      "minValue": 1,
+      "maxValue": 59,
+      "metadata": {
+        "description": "Maximum host pool size used during ramp-down and off-peak."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "workload": "avd-north-star",
+        "environment": "pilot",
+        "owner": "contoso"
+      },
+      "metadata": {
+        "description": "Tags applied to deployable resources."
+      }
+    }
+  },
+  "variables": {
+    "safePrefix": "[toLower(replace(parameters('workloadPrefix'), '-', ''))]",
+    "namePrefix": "[take(variables('safePrefix'), 16)]",
+    "identityName": "[format('{0}-hp-mi', variables('namePrefix'))]",
+    "workspaceName": "[format('{0}-law', variables('namePrefix'))]",
+    "hostPoolName": "[format('{0}-hp', variables('namePrefix'))]",
+    "appGroupName": "[format('{0}-dag', variables('namePrefix'))]",
+    "avdWorkspaceName": "[format('{0}-ws', variables('namePrefix'))]",
+    "scalingPlanName": "[format('{0}-sp', variables('namePrefix'))]",
+    "keyVaultName": "[take(format('{0}{1}kv', variables('namePrefix'), uniqueString(resourceGroup().id)), 24)]",
+    "storageAccountName": "[take(format('{0}{1}st', variables('namePrefix'), uniqueString(resourceGroup().id)), 24)]",
+    "desktopVirtualizationPowerOnOffContributorRoleId": "40c5ff49-9181-41f8-ae61-143b0e78555e",
+    "desktopVirtualizationVirtualMachineContributorRoleId": "a959dbd1-f747-45e3-8ba6-dd80f235f97c"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2024-11-30",
+      "name": "[variables('identityName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "condition": "[equals(parameters('networkMode'), 'new')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "network",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "workloadPrefix": {
+            "value": "[variables('namePrefix')]"
+          },
+          "vnetAddressPrefix": {
+            "value": "[parameters('vnetAddressPrefix')]"
+          },
+          "sessionHostSubnetPrefix": {
+            "value": "[parameters('sessionHostSubnetPrefix')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "275163994268502997"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "workloadPrefix": {
+              "type": "string"
+            },
+            "vnetAddressPrefix": {
+              "type": "string"
+            },
+            "sessionHostSubnetPrefix": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2025-09-01",
+              "name": "[format('{0}-nat-pip', parameters('workloadPrefix'))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "publicIPAllocationMethod": "Static"
+              },
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Network/natGateways",
+              "apiVersion": "2025-09-01",
+              "name": "[format('{0}-nat', parameters('workloadPrefix'))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "idleTimeoutInMinutes": 4,
+                "publicIpAddresses": [
+                  {
+                    "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-nat-pip', parameters('workloadPrefix')))]"
+                  }
+                ]
+              },
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-nat-pip', parameters('workloadPrefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2025-09-01",
+              "name": "[format('{0}-sh-nsg', parameters('workloadPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2025-09-01",
+              "name": "[format('{0}-vnet', parameters('workloadPrefix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "[parameters('vnetAddressPrefix')]"
+                  ]
+                },
+                "subnets": [
+                  {
+                    "name": "snet-session-hosts",
+                    "properties": {
+                      "addressPrefix": "[parameters('sessionHostSubnetPrefix')]",
+                      "networkSecurityGroup": {
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-sh-nsg', parameters('workloadPrefix')))]"
+                      },
+                      "natGateway": {
+                        "id": "[resourceId('Microsoft.Network/natGateways', format('{0}-nat', parameters('workloadPrefix')))]"
+                      },
+                      "privateEndpointNetworkPolicies": "Disabled"
+                    }
+                  }
+                ]
+              },
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/natGateways', format('{0}-nat', parameters('workloadPrefix')))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-sh-nsg', parameters('workloadPrefix')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "sessionHostSubnetId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', format('{0}-vnet', parameters('workloadPrefix'))), '2025-09-01').subnets[0].id]"
+            },
+            "vnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', format('{0}-vnet', parameters('workloadPrefix')))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "monitoring",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "workspaceName": {
+            "value": "[variables('workspaceName')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "4683865914650459731"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "workspaceName": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2026-03-01",
+              "name": "[parameters('workspaceName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30,
+                "features": {
+                  "enableLogAccessUsingOnlyResourcePermissions": true
+                }
+              },
+              "tags": "[parameters('tags')]"
+            }
+          ],
+          "outputs": {
+            "workspaceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+            },
+            "workspaceName": {
+              "type": "string",
+              "value": "[parameters('workspaceName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "keyvault",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "keyVaultName": {
+            "value": "[variables('keyVaultName')]"
+          },
+          "localAdminUsername": {
+            "value": "[parameters('localAdminUsername')]"
+          },
+          "localAdminPassword": {
+            "value": "[parameters('localAdminPassword')]"
+          },
+          "hostPoolIdentityPrincipalId": {
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2024-11-30').principalId]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "7835609303945435331"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "localAdminUsername": {
+              "type": "securestring"
+            },
+            "localAdminPassword": {
+              "type": "securestring"
+            },
+            "hostPoolIdentityPrincipalId": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "variables": {
+            "keyVaultSecretsUserRoleId": "4633458b-17de-408a-b874-0445c86b69e6"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2026-02-01",
+              "name": "[parameters('keyVaultName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "tenantId": "[tenant().tenantId]",
+                "enableRbacAuthorization": true,
+                "enabledForDeployment": true,
+                "enabledForTemplateDeployment": true,
+                "enableSoftDelete": true,
+                "softDeleteRetentionInDays": 7,
+                "publicNetworkAccess": "Enabled",
+                "sku": {
+                  "family": "A",
+                  "name": "standard"
+                }
+              },
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2026-02-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'sessionHostLocalAdminUsername')]",
+              "properties": {
+                "value": "[parameters('localAdminUsername')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2026-02-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'sessionHostLocalAdminPassword')]",
+              "properties": {
+                "value": "[parameters('localAdminPassword')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('hostPoolIdentityPrincipalId'), variables('keyVaultSecretsUserRoleId'))]",
+              "properties": {
+                "principalId": "[parameters('hostPoolIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('keyVaultSecretsUserRoleId'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "localAdminUsernameSecretUri": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', parameters('keyVaultName'), 'sessionHostLocalAdminUsername'), '2026-02-01').secretUri]"
+            },
+            "localAdminPwdSecretUri": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', parameters('keyVaultName'), 'sessionHostLocalAdminPassword'), '2026-02-01').secretUri]"
+            },
+            "keyVaultName": {
+              "type": "string",
+              "value": "[parameters('keyVaultName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "storage",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "storageAccountName": {
+            "value": "[variables('storageAccountName')]"
+          },
+          "pilotUsersGroupObjectId": {
+            "value": "[parameters('pilotUsersGroupObjectId')]"
+          },
+          "azureVirtualDesktopServicePrincipalObjectId": {
+            "value": "[parameters('azureVirtualDesktopServicePrincipalObjectId')]"
+          },
+          "azureVirtualDesktopArmProviderServicePrincipalObjectId": {
+            "value": "[parameters('azureVirtualDesktopArmProviderServicePrincipalObjectId')]"
+          },
+          "enableFilesPrivateEndpoint": {
+            "value": "[parameters('enableFilesPrivateEndpoint')]"
+          },
+          "privateEndpointSubnetId": "[if(equals(parameters('networkMode'), 'new'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.sessionHostSubnetId.value), createObject('value', parameters('existingSubnetResourceId')))]",
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "7665738347876781495"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "storageAccountName": {
+              "type": "string"
+            },
+            "pilotUsersGroupObjectId": {
+              "type": "string"
+            },
+            "azureVirtualDesktopServicePrincipalObjectId": {
+              "type": "string"
+            },
+            "azureVirtualDesktopArmProviderServicePrincipalObjectId": {
+              "type": "string"
+            },
+            "enableFilesPrivateEndpoint": {
+              "type": "bool"
+            },
+            "privateEndpointSubnetId": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "variables": {
+            "storageFileDataSmbShareContributorRoleId": "0c867c2a-1d8c-454a-a3db-ab2ea1bdc8bb",
+            "readerAndDataAccessRoleId": "c12c1c16-33a1-487b-954d-41c89c60f349",
+            "profilesShareName": "profiles",
+            "appAttachShareName": "appattach",
+            "privateEndpointVnetId": "[split(parameters('privateEndpointSubnetId'), '/subnets/')[0]]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2026-06-01",
+              "name": "[parameters('storageAccountName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Premium_LRS"
+              },
+              "kind": "FileStorage",
+              "properties": {
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "allowSharedKeyAccess": true,
+                "azureFilesIdentityBasedAuthentication": {
+                  "directoryServiceOptions": "AADKERB",
+                  "defaultSharePermission": "None"
+                },
+                "networkAcls": {
+                  "bypass": "AzureServices",
+                  "defaultAction": "[if(parameters('enableFilesPrivateEndpoint'), 'Deny', 'Allow')]"
+                }
+              },
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/fileServices",
+              "apiVersion": "2026-06-01",
+              "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+              "apiVersion": "2026-06-01",
+              "name": "[format('{0}/{1}/{2}', parameters('storageAccountName'), 'default', variables('profilesShareName'))]",
+              "properties": {
+                "enabledProtocols": "SMB",
+                "shareQuota": 1024
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices', parameters('storageAccountName'), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+              "apiVersion": "2026-06-01",
+              "name": "[format('{0}/{1}/{2}', parameters('storageAccountName'), 'default', variables('appAttachShareName'))]",
+              "properties": {
+                "enabledProtocols": "SMB",
+                "shareQuota": 512
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices', parameters('storageAccountName'), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', variables('profilesShareName'))]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', variables('profilesShareName')), parameters('pilotUsersGroupObjectId'), variables('storageFileDataSmbShareContributorRoleId'))]",
+              "properties": {
+                "principalId": "[parameters('pilotUsersGroupObjectId')]",
+                "principalType": "Group",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('storageFileDataSmbShareContributorRoleId'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', variables('profilesShareName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('azureVirtualDesktopServicePrincipalObjectId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('azureVirtualDesktopServicePrincipalObjectId'), variables('readerAndDataAccessRoleId'))]",
+              "properties": {
+                "principalId": "[parameters('azureVirtualDesktopServicePrincipalObjectId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('readerAndDataAccessRoleId'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('azureVirtualDesktopArmProviderServicePrincipalObjectId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('azureVirtualDesktopArmProviderServicePrincipalObjectId'), variables('readerAndDataAccessRoleId'))]",
+              "properties": {
+                "principalId": "[parameters('azureVirtualDesktopArmProviderServicePrincipalObjectId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('readerAndDataAccessRoleId'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('enableFilesPrivateEndpoint')]",
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "[format('privatelink.file.{0}', environment().suffixes.storage)]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "condition": "[parameters('enableFilesPrivateEndpoint')]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.file.{0}', environment().suffixes.storage), format('{0}-vnet-link', parameters('storageAccountName')))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[variables('privateEndpointVnetId')]"
+                }
+              },
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]"
+              ]
+            },
+            {
+              "condition": "[parameters('enableFilesPrivateEndpoint')]",
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2025-09-01",
+              "name": "[format('{0}-file-pe', parameters('storageAccountName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('privateEndpointSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[format('{0}-file', parameters('storageAccountName'))]",
+                    "properties": {
+                      "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                      "groupIds": [
+                        "file"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('enableFilesPrivateEndpoint')]",
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2025-09-01",
+              "name": "[format('{0}/{1}', format('{0}-file-pe', parameters('storageAccountName')), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "privatelink-file",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]",
+                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-file-pe', parameters('storageAccountName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "storageAccountName": {
+              "type": "string",
+              "value": "[parameters('storageAccountName')]"
+            },
+            "profilesShareName": {
+              "type": "string",
+              "value": "[variables('profilesShareName')]"
+            },
+            "appAttachShareName": {
+              "type": "string",
+              "value": "[variables('appAttachShareName')]"
+            },
+            "storageAccountId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'network')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "avd",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "hostPoolName": {
+            "value": "[variables('hostPoolName')]"
+          },
+          "hostPoolDeploymentScope": {
+            "value": "[parameters('hostPoolDeploymentScope')]"
+          },
+          "appGroupName": {
+            "value": "[variables('appGroupName')]"
+          },
+          "workspaceName": {
+            "value": "[variables('avdWorkspaceName')]"
+          },
+          "scalingPlanName": {
+            "value": "[variables('scalingPlanName')]"
+          },
+          "hostPoolIdentityResourceId": {
+            "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+          },
+          "sessionHostNamePrefix": {
+            "value": "[parameters('sessionHostNamePrefix')]"
+          },
+          "sessionHostVmSize": {
+            "value": "[parameters('sessionHostVmSize')]"
+          },
+          "maxSessionLimit": {
+            "value": "[parameters('maxSessionLimit')]"
+          },
+          "subnetId": "[if(equals(parameters('networkMode'), 'new'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.sessionHostSubnetId.value), createObject('value', parameters('existingSubnetResourceId')))]",
+          "localAdminUsernameSecretUri": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault'), '2025-04-01').outputs.localAdminUsernameSecretUri.value]"
+          },
+          "localAdminPasswordSecretUri": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault'), '2025-04-01').outputs.localAdminPwdSecretUri.value]"
+          },
+          "marketplaceImagePublisher": {
+            "value": "[parameters('marketplaceImagePublisher')]"
+          },
+          "marketplaceImageOffer": {
+            "value": "[parameters('marketplaceImageOffer')]"
+          },
+          "marketplaceImageSku": {
+            "value": "[parameters('marketplaceImageSku')]"
+          },
+          "marketplaceImageVersion": {
+            "value": "[parameters('marketplaceImageVersion')]"
+          },
+          "enrollSessionHostsInIntune": {
+            "value": "[parameters('enrollSessionHostsInIntune')]"
+          },
+          "availabilityZones": {
+            "value": "[parameters('availabilityZones')]"
+          },
+          "scalingTimeZone": {
+            "value": "[parameters('scalingTimeZone')]"
+          },
+          "rampUpMinimumHostPoolSize": {
+            "value": "[parameters('rampUpMinimumHostPoolSize')]"
+          },
+          "rampUpMaximumHostPoolSize": {
+            "value": "[parameters('rampUpMaximumHostPoolSize')]"
+          },
+          "rampDownMinimumHostPoolSize": {
+            "value": "[parameters('rampDownMinimumHostPoolSize')]"
+          },
+          "rampDownMaximumHostPoolSize": {
+            "value": "[parameters('rampDownMaximumHostPoolSize')]"
+          },
+          "pilotUsersGroupObjectId": {
+            "value": "[parameters('pilotUsersGroupObjectId')]"
+          },
+          "hostPoolIdentityPrincipalId": {
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2024-11-30').principalId]"
+          },
+          "virtualMachineContributorRoleDefinitionId": {
+            "value": "[variables('desktopVirtualizationVirtualMachineContributorRoleId')]"
+          },
+          "logAnalyticsWorkspaceId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'monitoring'), '2025-04-01').outputs.workspaceId.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "18175873827779046219"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "hostPoolName": {
+              "type": "string"
+            },
+            "hostPoolDeploymentScope": {
+              "type": "string"
+            },
+            "appGroupName": {
+              "type": "string"
+            },
+            "workspaceName": {
+              "type": "string"
+            },
+            "scalingPlanName": {
+              "type": "string"
+            },
+            "hostPoolIdentityResourceId": {
+              "type": "string"
+            },
+            "sessionHostNamePrefix": {
+              "type": "string"
+            },
+            "sessionHostVmSize": {
+              "type": "string"
+            },
+            "maxSessionLimit": {
+              "type": "int"
+            },
+            "subnetId": {
+              "type": "string"
+            },
+            "localAdminUsernameSecretUri": {
+              "type": "string"
+            },
+            "localAdminPasswordSecretUri": {
+              "type": "string"
+            },
+            "marketplaceImagePublisher": {
+              "type": "string"
+            },
+            "marketplaceImageOffer": {
+              "type": "string"
+            },
+            "marketplaceImageSku": {
+              "type": "string"
+            },
+            "marketplaceImageVersion": {
+              "type": "string"
+            },
+            "enrollSessionHostsInIntune": {
+              "type": "bool"
+            },
+            "availabilityZones": {
+              "type": "array"
+            },
+            "scalingTimeZone": {
+              "type": "string"
+            },
+            "rampUpMinimumHostPoolSize": {
+              "type": "int"
+            },
+            "rampUpMaximumHostPoolSize": {
+              "type": "int"
+            },
+            "rampDownMinimumHostPoolSize": {
+              "type": "int"
+            },
+            "rampDownMaximumHostPoolSize": {
+              "type": "int"
+            },
+            "pilotUsersGroupObjectId": {
+              "type": "string"
+            },
+            "hostPoolIdentityPrincipalId": {
+              "type": "string"
+            },
+            "virtualMachineContributorRoleDefinitionId": {
+              "type": "string"
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "variables": {
+            "desktopVirtualizationUserRoleId": "1d18fff3-a72a-46b5-b4a9-0b38a3cd7e63",
+            "intuneMdmProviderGuid": "0000000a-0000-0000-c000-000000000000"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.DesktopVirtualization/hostPools",
+              "apiVersion": "2026-04-01-preview",
+              "name": "[parameters('hostPoolName')]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('hostPoolIdentityResourceId'))]": {}
+                }
+              },
+              "properties": {
+                "friendlyName": "Contoso North Star pooled host pool",
+                "description": "Pilot pooled host pool using session host configuration and dynamic autoscaling.",
+                "hostPoolType": "Pooled",
+                "preferredAppGroupType": "Desktop",
+                "loadBalancerType": "BreadthFirst",
+                "maxSessionLimit": "[parameters('maxSessionLimit')]",
+                "managementType": "Automated",
+                "deploymentScope": "[parameters('hostPoolDeploymentScope')]",
+                "validationEnvironment": false,
+                "startVMOnConnect": false,
+                "publicNetworkAccess": "Enabled",
+                "customRdpProperty": "enablerdsaadauth:i:1",
+                "agentUpdate": {
+                  "type": "Scheduled",
+                  "useSessionHostLocalTime": false,
+                  "maintenanceWindowTimeZone": "[parameters('scalingTimeZone')]",
+                  "maintenanceWindows": [
+                    {
+                      "dayOfWeek": "Saturday",
+                      "hour": 2
+                    }
+                  ]
+                }
+              },
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.DesktopVirtualization/hostPools/sessionHostConfigurations",
+              "apiVersion": "2026-04-01-preview",
+              "name": "[format('{0}/{1}', parameters('hostPoolName'), 'default')]",
+              "properties": {
+                "friendlyName": "Contoso North Star session host configuration",
+                "vmNamePrefix": "[parameters('sessionHostNamePrefix')]",
+                "vmLocation": "[parameters('location')]",
+                "vmResourceGroup": "[resourceGroup().name]",
+                "vmSizeId": "[parameters('sessionHostVmSize')]",
+                "availabilityZones": "[parameters('availabilityZones')]",
+                "diskInfo": {
+                  "diffDiskSettings": {
+                    "option": "Local",
+                    "placement": "TempDisk"
+                  }
+                },
+                "imageInfo": {
+                  "type": "Marketplace",
+                  "marketplaceInfo": {
+                    "publisher": "[parameters('marketplaceImagePublisher')]",
+                    "offer": "[parameters('marketplaceImageOffer')]",
+                    "sku": "[parameters('marketplaceImageSku')]",
+                    "exactVersion": "[parameters('marketplaceImageVersion')]"
+                  }
+                },
+                "domainInfo": "[union(createObject('joinType', 'AzureActiveDirectory'), if(parameters('enrollSessionHostsInIntune'), createObject('azureActiveDirectoryInfo', createObject('mdmProviderGuid', variables('intuneMdmProviderGuid'))), createObject()))]",
+                "networkInfo": {
+                  "subnetId": "[parameters('subnetId')]"
+                },
+                "securityInfo": {
+                  "type": "TrustedLaunch",
+                  "secureBootEnabled": true,
+                  "vTpmEnabled": true
+                },
+                "bootDiagnosticsInfo": {
+                  "enabled": true
+                },
+                "vmAdminCredentials": {
+                  "usernameKeyVaultSecretUri": "[parameters('localAdminUsernameSecretUri')]",
+                  "passwordKeyVaultSecretUri": "[parameters('localAdminPasswordSecretUri')]"
+                },
+                "vmTags": "[parameters('tags')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostPoolName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DesktopVirtualization/hostPools/sessionHostManagements",
+              "apiVersion": "2026-04-01-preview",
+              "name": "[format('{0}/{1}', parameters('hostPoolName'), 'default')]",
+              "properties": {
+                "scheduledDateTimeZone": "[parameters('scalingTimeZone')]",
+                "update": {
+                  "maxVmsRemoved": 1,
+                  "logOffDelayMinutes": 2,
+                  "logOffMessage": "You will be signed out",
+                  "deleteOriginalVm": false
+                },
+                "failedSessionHostCleanupPolicy": "KeepAll",
+                "provisioning": {
+                  "instanceCount": "[max(1, parameters('rampUpMinimumHostPoolSize'))]",
+                  "setDrainMode": false
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostPoolName'))]",
+                "[resourceId('Microsoft.DesktopVirtualization/hostPools/sessionHostConfigurations', parameters('hostPoolName'), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.DesktopVirtualization/applicationGroups",
+              "apiVersion": "2026-04-01-preview",
+              "name": "[parameters('appGroupName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "applicationGroupType": "Desktop",
+                "hostPoolArmPath": "[resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostPoolName'))]",
+                "friendlyName": "Contoso pilot desktop",
+                "description": "Desktop application group for the North Star pilot."
+              },
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostPoolName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DesktopVirtualization/workspaces",
+              "apiVersion": "2026-04-01-preview",
+              "name": "[parameters('workspaceName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "friendlyName": "Contoso North Star workspace",
+                "description": "Workspace for the North Star pilot desktop.",
+                "publicNetworkAccess": "Enabled",
+                "applicationGroupReferences": [
+                  "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', parameters('appGroupName'))]"
+                ]
+              },
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', parameters('appGroupName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DesktopVirtualization/scalingPlans",
+              "apiVersion": "2026-04-01-preview",
+              "name": "[parameters('scalingPlanName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "friendlyName": "Contoso weekday dynamic autoscaling",
+                "description": "Dynamic autoscaling schedule for the North Star pilot.",
+                "timeZone": "[parameters('scalingTimeZone')]",
+                "exclusionTag": "excludeFromScaling",
+                "hostPoolType": "Pooled",
+                "hostPoolReferences": [
+                  {
+                    "hostPoolArmPath": "[resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostPoolName'))]",
+                    "scalingPlanEnabled": true
+                  }
+                ],
+                "schedules": [
+                  {
+                    "name": "weekdays",
+                    "daysOfWeek": [
+                      "Monday",
+                      "Tuesday",
+                      "Wednesday",
+                      "Thursday",
+                      "Friday"
+                    ],
+                    "rampUpStartTime": {
+                      "hour": 7,
+                      "minute": 0
+                    },
+                    "rampUpLoadBalancingAlgorithm": "BreadthFirst",
+                    "rampUpMinimumHostsPct": 100,
+                    "rampUpCapacityThresholdPct": 80,
+                    "peakStartTime": {
+                      "hour": 9,
+                      "minute": 0
+                    },
+                    "peakLoadBalancingAlgorithm": "BreadthFirst",
+                    "rampDownStartTime": {
+                      "hour": 17,
+                      "minute": 0
+                    },
+                    "rampDownLoadBalancingAlgorithm": "DepthFirst",
+                    "rampDownMinimumHostsPct": 100,
+                    "rampDownCapacityThresholdPct": 70,
+                    "rampDownForceLogoffUsers": false,
+                    "rampDownWaitTimeMinutes": 30,
+                    "rampDownNotificationMessage": "This host is scheduled for maintenance. Save your work and sign out when ready.",
+                    "rampDownStopHostsWhen": "ZeroSessions",
+                    "offPeakStartTime": {
+                      "hour": 20,
+                      "minute": 0
+                    },
+                    "offPeakLoadBalancingAlgorithm": "DepthFirst",
+                    "scalingMethod": "CreateDeletePowerManage",
+                    "createDelete": {
+                      "rampUpMinimumHostPoolSize": "[parameters('rampUpMinimumHostPoolSize')]",
+                      "rampUpMaximumHostPoolSize": "[parameters('rampUpMaximumHostPoolSize')]",
+                      "rampDownMinimumHostPoolSize": "[parameters('rampDownMinimumHostPoolSize')]",
+                      "rampDownMaximumHostPoolSize": "[parameters('rampDownMaximumHostPoolSize')]"
+                    }
+                  }
+                ]
+              },
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostPoolName'))]",
+                "[resourceId('Microsoft.DesktopVirtualization/hostPools/sessionHostManagements', parameters('hostPoolName'), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', parameters('appGroupName'))]",
+              "name": "[guid(resourceId('Microsoft.DesktopVirtualization/applicationGroups', parameters('appGroupName')), parameters('pilotUsersGroupObjectId'), variables('desktopVirtualizationUserRoleId'))]",
+              "properties": {
+                "principalId": "[parameters('pilotUsersGroupObjectId')]",
+                "principalType": "Group",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('desktopVirtualizationUserRoleId'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', parameters('appGroupName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(resourceGroup().id, parameters('hostPoolIdentityPrincipalId'), parameters('virtualMachineContributorRoleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('hostPoolIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('virtualMachineContributorRoleDefinitionId'))]"
+              }
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostPoolName'))]",
+              "name": "send-to-log-analytics",
+              "properties": {
+                "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+                "logAnalyticsDestinationType": "Dedicated",
+                "logs": [
+                  {
+                    "categoryGroup": "allLogs",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostPoolName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', parameters('appGroupName'))]",
+              "name": "send-to-log-analytics",
+              "properties": {
+                "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+                "logAnalyticsDestinationType": "Dedicated",
+                "logs": [
+                  {
+                    "categoryGroup": "allLogs",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', parameters('appGroupName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[resourceId('Microsoft.DesktopVirtualization/workspaces', parameters('workspaceName'))]",
+              "name": "send-to-log-analytics",
+              "properties": {
+                "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+                "logAnalyticsDestinationType": "Dedicated",
+                "logs": [
+                  {
+                    "categoryGroup": "allLogs",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/workspaces', parameters('workspaceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[resourceId('Microsoft.DesktopVirtualization/scalingPlans', parameters('scalingPlanName'))]",
+              "name": "send-to-log-analytics",
+              "properties": {
+                "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+                "logAnalyticsDestinationType": "Dedicated",
+                "logs": [
+                  {
+                    "categoryGroup": "allLogs",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/scalingPlans', parameters('scalingPlanName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "hostPoolName": {
+              "type": "string",
+              "value": "[parameters('hostPoolName')]"
+            },
+            "workspaceName": {
+              "type": "string",
+              "value": "[parameters('workspaceName')]"
+            },
+            "desktopApplicationGroupName": {
+              "type": "string",
+              "value": "[parameters('appGroupName')]"
+            },
+            "scalingPlanName": {
+              "type": "string",
+              "value": "[parameters('scalingPlanName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]",
+        "[resourceId('Microsoft.Resources/deployments', 'keyvault')]",
+        "[resourceId('Microsoft.Resources/deployments', 'monitoring')]",
+        "[resourceId('Microsoft.Resources/deployments', 'network')]"
+      ]
+    },
+    {
+      "condition": "[or(parameters('assignAutoscaleRolesToHostPoolIdentity'), and(parameters('assignAutoscaleRolesToAvdServicePrincipal'), not(empty(parameters('azureVirtualDesktopServicePrincipalObjectId')))))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "subscription-avd-autoscale-roles",
+      "subscriptionId": "[subscription().subscriptionId]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "hostPoolManagedIdentityPrincipalId": {
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2024-11-30').principalId]"
+          },
+          "azureVirtualDesktopServicePrincipalObjectId": {
+            "value": "[parameters('azureVirtualDesktopServicePrincipalObjectId')]"
+          },
+          "assignAutoscaleRolesToHostPoolIdentity": {
+            "value": "[parameters('assignAutoscaleRolesToHostPoolIdentity')]"
+          },
+          "assignAutoscaleRolesToAvdServicePrincipal": {
+            "value": "[parameters('assignAutoscaleRolesToAvdServicePrincipal')]"
+          },
+          "powerOnOffContributorRoleDefinitionId": {
+            "value": "[variables('desktopVirtualizationPowerOnOffContributorRoleId')]"
+          },
+          "virtualMachineContributorRoleDefinitionId": {
+            "value": "[variables('desktopVirtualizationVirtualMachineContributorRoleId')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "16811738497834868836"
+            }
+          },
+          "parameters": {
+            "hostPoolManagedIdentityPrincipalId": {
+              "type": "string"
+            },
+            "azureVirtualDesktopServicePrincipalObjectId": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "assignAutoscaleRolesToHostPoolIdentity": {
+              "type": "bool",
+              "defaultValue": true
+            },
+            "assignAutoscaleRolesToAvdServicePrincipal": {
+              "type": "bool",
+              "defaultValue": false
+            },
+            "powerOnOffContributorRoleDefinitionId": {
+              "type": "string"
+            },
+            "virtualMachineContributorRoleDefinitionId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "condition": "[parameters('assignAutoscaleRolesToHostPoolIdentity')]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, parameters('hostPoolManagedIdentityPrincipalId'), parameters('powerOnOffContributorRoleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('hostPoolManagedIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('powerOnOffContributorRoleDefinitionId'))]"
+              }
+            },
+            {
+              "condition": "[parameters('assignAutoscaleRolesToHostPoolIdentity')]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, parameters('hostPoolManagedIdentityPrincipalId'), parameters('virtualMachineContributorRoleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('hostPoolManagedIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('virtualMachineContributorRoleDefinitionId'))]"
+              }
+            },
+            {
+              "condition": "[and(parameters('assignAutoscaleRolesToAvdServicePrincipal'), not(empty(parameters('azureVirtualDesktopServicePrincipalObjectId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, parameters('azureVirtualDesktopServicePrincipalObjectId'), parameters('powerOnOffContributorRoleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('azureVirtualDesktopServicePrincipalObjectId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('powerOnOffContributorRoleDefinitionId'))]"
+              }
+            },
+            {
+              "condition": "[and(parameters('assignAutoscaleRolesToAvdServicePrincipal'), not(empty(parameters('azureVirtualDesktopServicePrincipalObjectId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(subscription().id, parameters('azureVirtualDesktopServicePrincipalObjectId'), parameters('virtualMachineContributorRoleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('azureVirtualDesktopServicePrincipalObjectId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('virtualMachineContributorRoleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "hostPoolName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'avd'), '2025-04-01').outputs.hostPoolName.value]"
+    },
+    "workspaceName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'avd'), '2025-04-01').outputs.workspaceName.value]"
+    },
+    "desktopApplicationGroupName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'avd'), '2025-04-01').outputs.desktopApplicationGroupName.value]"
+    },
+    "scalingPlanName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'avd'), '2025-04-01').outputs.scalingPlanName.value]"
+    },
+    "logAnalyticsWorkspaceName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'monitoring'), '2025-04-01').outputs.workspaceName.value]"
+    },
+    "hostPoolManagedIdentityPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2024-11-30').principalId]"
+    },
+    "profilesSharePath": {
+      "type": "string",
+      "value": "[format('\\\\{0}.file.{1}\\{2}', reference(resourceId('Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.storageAccountName.value, environment().suffixes.storage, reference(resourceId('Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.profilesShareName.value)]"
+    },
+    "appAttachSharePath": {
+      "type": "string",
+      "value": "[format('\\\\{0}.file.{1}\\{2}', reference(resourceId('Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.storageAccountName.value, environment().suffixes.storage, reference(resourceId('Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.appAttachShareName.value)]"
+    },
+    "postDeploymentSteps": {
+      "type": "array",
+      "value": [
+        "Enable Microsoft Entra Kerberos authentication for Azure Files if tenant admin consent and storage identity configuration are not already complete.",
+        "Set directory and file level permissions on the profiles share so each user can access only their own FSLogix container.",
+        "Configure Intune Settings Catalog policy Kerberos/CloudKerberosTicketRetrievalEnabled = 1 and FSLogix profile settings including VHDLocations.",
+        "Enable Microsoft Entra authentication for RDP and configure Conditional Access for Azure Virtual Desktop and Windows Cloud Login.",
+        "Pin an exact Marketplace image version. Do not use latest for session host configuration. Get the newest version with az vm image list -l <region> -p MicrosoftWindowsDesktop -f <offer> -s <sku> --all --query \"[-1].version\" -o tsv, or Get-AzVMImage with Location, PublisherName, Offer and Skus.",
+        "Confirm App Attach package signing, package placement on the appattach share and app group assignment after the first session host is available.",
+        "Dynamic autoscaling creates the session hosts. Confirm Desktop Virtualization Power On Off Contributor and Desktop Virtualization Virtual Machine Contributor exist at subscription scope for the host pool managed identity before expecting hosts to appear.",
+        "Microsoft Learn also names the Azure Virtual Desktop service principal for dynamic autoscaling. Many tenants already have these assignments. If hosts are not created, check whether the service principal with application ID 9cdead84-a844-4324-93f2-b2e6bb768d07 has both roles at subscription scope, then assign any missing role."
+      ]
+    }
+  }
+}

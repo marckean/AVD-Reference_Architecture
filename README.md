@@ -1,55 +1,116 @@
 # Azure Virtual Desktop North Star
 
 [![Publish site](https://github.com/marckean/AVD-Reference_Architecture/actions/workflows/publish.yml/badge.svg)](https://github.com/marckean/AVD-Reference_Architecture/actions/workflows/publish.yml)
+[![Validate toolkit](https://github.com/marckean/AVD-Reference_Architecture/actions/workflows/validate.yml/badge.svg)](https://github.com/marckean/AVD-Reference_Architecture/actions/workflows/validate.yml)
 
-A reference architecture for modern Azure Virtual Desktop: what good looks like, how the pieces fit together, and how to get there from where you are today. Every recommendation links back to Microsoft Learn.
+### 👉 Read the reference architecture: **[marckean.github.io/AVD-Reference_Architecture](https://marckean.github.io/AVD-Reference_Architecture/)**
 
-**Read it here: [marckean.github.io/AVD-Reference_Architecture](https://marckean.github.io/AVD-Reference_Architecture/)**
+A one-stop shop for modern pooled Azure Virtual Desktop. It has two halves:
 
-## What's inside
+- **The reference architecture** (the website): what good looks like, how the pieces fit together, the decisions you can't change later, and how to get there from where you are today.
+- **The accelerators** (this repository): a discovery questionnaire, a Deploy to Azure wizard, App Attach and Intune toolkits, and instructions and skills so GitHub Copilot can help.
 
-The home page is an overview of the whole reference architecture: what it is, the benefits, and a map of every area. The rest of the site is organised into groups, and each area has an overview page with subsections beneath it.
+Every recommendation links back to Microsoft Learn.
 
-| Group | Areas |
-| --- | --- |
-| Overview | The home page, what good looks like (the North Star on one page) and how it fits together |
-| Platform | Identity and access, host pools, scaling and images |
-| Workloads and data | Applications with App Attach, user profiles with FSLogix, networking and security |
-| Operations | Intune, monitoring, business continuity and cost optimisation |
-| Getting there | A phased route, a dependency checklist with owners, and stepping stones for the parts of an estate that aren't ready yet |
-| Reference | Glossary, an index of every Microsoft Learn article used, and notes about the site |
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmarckean%2FAVD-Reference_Architecture%2Fmain%2Fdeploy%2Fazuredeploy.json/createUIDefinitionUri/https%3A%2F%2Fraw.githubusercontent.com%2Fmarckean%2FAVD-Reference_Architecture%2Fmain%2Fdeploy%2FcreateUiDefinition.json)
+
+## What's here
+
+| Step | Accelerator | Where |
+| --- | --- | --- |
+| **Learn** | The reference architecture: the North Star, reference architecture patterns, a master dependency map, twelve areas in depth, a dependency checklist, stepping stones and a worked example | [The website](https://marckean.github.io/AVD-Reference_Architecture/) |
+| **Discover** | An interactive discovery questionnaire you fill in with the customer. It recommends patterns, flags fixed-at-creation decisions, estimates sizing, and writes a parameters file for the pilot. Answers never leave the browser | [Discovery questionnaire](https://marckean.github.io/AVD-Reference_Architecture/accelerators/discovery-questionnaire/) |
+| **Deploy** | A Deploy to Azure template with a guided portal wizard that explains each component: an automated host pool, dynamic autoscaling, ephemeral OS disks, Microsoft Entra join, Azure Files and Key Vault | [deploy/](deploy/) |
+| **Configure** | Intune settings catalog policy examples for multi-session session hosts, and a script that resolves every setting against your tenant before it creates anything | [tools/intune/](tools/intune/) |
+| **Bring applications** | The App Attach toolkit: App-V and golden image inventory, triage rules, MSIX conversion templates, CimFS images, onboarding and share checks | [tools/app-attach/](tools/app-attach/) |
+| **Work with AI** | Repository instructions, five agent skills and the Microsoft Learn MCP Server, so GitHub Copilot knows the architecture, the tools and the rules | [.github/](.github/), [.vscode/](.vscode/) |
+
+## Quick start
+
+1. **Read the North Star** on the [website](https://marckean.github.io/AVD-Reference_Architecture/), starting with [What good looks like](https://marckean.github.io/AVD-Reference_Architecture/overview/what-good-looks-like/) and the [reference architectures](https://marckean.github.io/AVD-Reference_Architecture/overview/reference-architectures/).
+2. **Run discovery** with the [questionnaire](https://marckean.github.io/AVD-Reference_Architecture/accelerators/discovery-questionnaire/), and export the report and the parameters file.
+3. **Deploy a pilot** with the button above, or with your parameters file:
+
+    ```bash
+    az deployment group create \
+      --resource-group <resource-group> \
+      --template-uri https://raw.githubusercontent.com/marckean/AVD-Reference_Architecture/main/deploy/azuredeploy.json \
+      --parameters @azuredeploy.parameters.json
+    ```
+
+4. **Configure the session hosts** with the Intune policy examples:
+
+    ```powershell
+    ./tools/intune/Deploy-IntunePolicy.ps1 -OfflineValidationOnly
+    ./tools/intune/Deploy-IntunePolicy.ps1 -WhatIf
+    ```
+
+5. **Bring the applications across** with the [App Attach fast track](https://marckean.github.io/AVD-Reference_Architecture/accelerators/app-attach-fast-track/):
+
+    ```powershell
+    ./tools/app-attach/Get-AppVPackageInventory.ps1 -Path \\contoso.file.core.windows.net\packages -Recurse -CsvPath ./appv-inventory.csv
+    ./tools/app-attach/Get-ImageApplicationInventory.ps1 -Mode Online -CsvPath ./image-inventory.csv
+    ```
+
+Every script that changes something supports `-WhatIf`. Run it that way first, against a test group or a non-production environment.
+
+## Repository map
+
+```text
+docs/                    The website (Material for MkDocs), published to GitHub Pages
+deploy/                  Deploy to Azure: main.bicep, modules/, azuredeploy.json, createUiDefinition.json
+tools/app-attach/        App Attach toolkit, with Pester tests
+tools/intune/            Intune policy examples, deployment script and Pester tests
+.github/
+  copilot-instructions.md  Repository-wide instructions for GitHub Copilot
+  skills/                  Agent skills: triage, onboarding, Intune policy, design review, discovery to deployment
+  workflows/               Publish the site; validate the toolkit
+.vscode/                 Microsoft Learn MCP Server and recommended extensions
+scripts/                 House style check, template and wizard check, diagram generator and tests
+```
 
 ## The North Star in one line
 
 Pooled host pools of Windows 11 Enterprise multi-session, run by a session host configuration with session host update and dynamic autoscaling, on ephemeral OS disks. Session hosts are Microsoft Entra joined and Intune managed, images come from Azure Image Builder and Azure Compute Gallery, applications arrive through App Attach, and FSLogix profiles live on Azure Files with Microsoft Entra Kerberos.
 
-## Working on the site
+## Working with GitHub Copilot
 
-The site is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) and published to GitHub Pages by GitHub Actions on every push to `main`.
+Open the repository in VS Code with GitHub Copilot. The [repository instructions](.github/copilot-instructions.md) tell Copilot the North Star, the grounding rules and the safety rules. The [skills](.github/skills/) teach it the workflows, and [.vscode/mcp.json](.vscode/mcp.json) adds the Microsoft Learn MCP Server so its answers come from current Microsoft documentation. Type `/` in Copilot Chat to see the skills. See [Working with AI](https://marckean.github.io/AVD-Reference_Architecture/accelerators/working-with-ai/) for more.
 
-To preview it locally:
+## Contributing
+
+The website builds with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/). To preview it locally:
 
 ```bash
 pip install -r requirements.txt
 mkdocs serve
 ```
 
-Then open `http://127.0.0.1:8000`.
+Two GitHub Actions workflows run on every push:
 
-The architecture diagram is an SVG generated from code. After changing `scripts/diagrams/build_north_star.py`, regenerate both theme variants with:
+- **Publish site** checks the house style, builds the site in strict mode and deploys it to GitHub Pages.
+- **Validate toolkit** runs:
+  - PSScriptAnalyzer and Pester on the PowerShell tools;
+  - checks that every JSON file parses, and that the Bicep builds and lints;
+  - checks that the portal wizard and the template agree;
+  - rebuilds the diagrams and checks them with the layout lint;
+  - runs the discovery questionnaire tests.
+
+Rebuild generated files after you change their source:
 
 ```bash
-python scripts/diagrams/build_north_star.py
+az bicep build --file deploy/main.bicep --outfile deploy/azuredeploy.json
+python scripts/diagrams/build_all.py
 ```
 
-House rules for contributions:
+House rules:
 
-- Ground every Microsoft or Azure technical claim in Microsoft Learn, and link it inline.
+- Ground every Microsoft or Azure technical claim in Microsoft Learn, and link it.
 - Mark every recommended feature as generally available or preview.
-- Quote setting, role and property names exactly.
-- Keep it generic: use Contoso in examples.
+- Quote setting, role, property and parameter names exactly.
+- Keep it generic: use Contoso in examples, and never put secrets or real organisation details in a file.
 - Use plain hyphens only. The build fails on em or en dashes (`scripts/check_style.py`).
 
 ## Disclaimer
 
-This is a community reference architecture. It isn't official Microsoft guidance. Always confirm against the linked Microsoft Learn articles before you build.
+This is a community reference architecture and toolkit. It isn't official Microsoft guidance or a Microsoft product. Always confirm against the linked Microsoft Learn articles, and test in a non-production environment before you build.

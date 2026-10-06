@@ -1,0 +1,697 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "config": {
+      "basics": {
+        "description": "Deploy a pilot-sized Azure Virtual Desktop North Star environment. The Basics step selects the subscription, resource group and region. The template uses resource-group scope and uses a nested subscription-scope deployment for the autoscale role assignments that allow dynamic autoscaling to create hosts.",
+        "location": {
+          "label": "Region",
+          "toolTip": "Choose the Azure region for the host pool, storage account, Key Vault, Log Analytics workspace and networking.",
+          "resourceTypes": [
+            "Microsoft.DesktopVirtualization/hostPools",
+            "Microsoft.Storage/storageAccounts",
+            "Microsoft.Network/virtualNetworks",
+            "Microsoft.KeyVault/vaults"
+          ],
+          "visible": true
+        }
+      }
+    },
+    "basics": [
+      {
+        "name": "basicsInfo",
+        "type": "Microsoft.Common.InfoBox",
+        "options": {
+          "icon": "Info",
+          "text": "The deployment creates a pooled host pool using session host configuration, dynamic autoscaling, ephemeral OS disks, Microsoft Entra joined session hosts, Azure Files for FSLogix and App Attach, and Azure Monitor diagnostics. Learn more about Azure Virtual Desktop host pool management approaches.",
+          "uri": "https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches"
+        }
+      },
+      {
+        "name": "workloadPrefix",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Resource name prefix",
+        "defaultValue": "contoso-avd",
+        "toolTip": "Use a short, generic prefix. It is normalised for resource names where needed.",
+        "placeholder": "contoso-avd",
+        "constraints": {
+          "required": true,
+          "validations": [
+            {
+              "regex": "^[a-z0-9][a-z0-9-]{1,16}[a-z0-9]$",
+              "message": "Use 3 to 18 lower-case letters, numbers and hyphens. Start and end with a letter or number."
+            }
+          ]
+        },
+        "visible": true
+      }
+    ],
+    "steps": [
+      {
+        "name": "identityAccess",
+        "label": "Identity and access",
+        "elements": [
+          {
+            "name": "identityInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "options": {
+              "icon": "Info",
+              "text": "The North Star uses Microsoft Entra joined session hosts, single sign-on with Microsoft Entra authentication, a host pool managed identity and least-privilege role assignments. Dynamic autoscaling creates hosts in this deployment, so subscription-scope autoscale roles must exist before hosts can appear. The host pool managed identity is new and safe to assign by default. The Azure Virtual Desktop service principal may already have the same roles in tenants that use autoscale.",
+              "uri": "https://learn.microsoft.com/azure/virtual-desktop/autoscale-create-assign-scaling-plan"
+            }
+          },
+          {
+            "name": "pilotUsersGroupObjectId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Pilot users group object ID",
+            "defaultValue": "",
+            "toolTip": "Object ID of the Microsoft Entra group that receives Desktop Virtualization User and Azure Files share access.",
+            "placeholder": "00000000-0000-0000-0000-000000000000",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+                  "message": "Enter a valid Microsoft Entra object ID GUID."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "localAdminUsername",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Session host local admin username",
+            "defaultValue": "contosoadmin",
+            "toolTip": "Stored as a Key Vault secret and referenced by the session host configuration. Do not use a personal account name.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[A-Za-z][A-Za-z0-9._-]{2,19}$",
+                  "message": "Use 3 to 20 characters, starting with a letter."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "localAdminPassword",
+            "type": "Microsoft.Common.PasswordBox",
+            "label": {
+              "password": "Session host local admin password",
+              "confirmPassword": "Confirm password"
+            },
+            "toolTip": "Stored as a Key Vault secret. It is not written to any file.",
+            "constraints": {
+              "required": true,
+              "regex": "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{14,}$",
+              "validationMessage": "Use at least 14 characters with upper-case, lower-case, number and symbol."
+            },
+            "options": {
+              "hideConfirmation": false
+            },
+            "visible": true
+          },
+          {
+            "name": "assignAutoscaleRolesToHostPoolIdentity",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Assign subscription-scope autoscale roles to the host pool managed identity",
+            "defaultValue": "Yes - assign the roles now",
+            "toolTip": "Leave this on unless you will assign the roles manually before scaling runs. The managed identity is new for this deployment, so duplicate role assignments are not expected. The deploying user needs Owner or User Access Administrator on the subscription.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Yes - assign the roles now",
+                  "value": true
+                },
+                {
+                  "label": "No - I will manually assign the roles before scaling runs",
+                  "value": false
+                }
+              ],
+              "required": true
+            },
+            "visible": true
+          },
+          {
+            "name": "assignAutoscaleRolesToAvdServicePrincipal",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Assign subscription-scope autoscale roles to the Azure Virtual Desktop service principal",
+            "defaultValue": "No - leave existing service principal assignments alone",
+            "toolTip": "Default is No because many tenants that already use Autoscale already have these subscription-scope role assignments. Creating a duplicate assignment for the same principal, role and scope under a different name fails with RoleAssignmentExists. Turn this on only after checking the service principal is missing the roles.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "No - leave existing service principal assignments alone",
+                  "value": false
+                },
+                {
+                  "label": "Yes - assign the roles if I know they are missing",
+                  "value": true
+                }
+              ],
+              "required": true
+            },
+            "visible": true
+          },
+          {
+            "name": "autoscaleRoleInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": true,
+            "options": {
+              "icon": "Info",
+              "text": "If hosts are not created after deployment, check whether the Azure Virtual Desktop service principal has Desktop Virtualization Power On Off Contributor and Desktop Virtualization Virtual Machine Contributor at subscription scope. Find the service principal by application ID 9cdead84-a844-4324-93f2-b2e6bb768d07. If either role is missing, assign it at subscription scope with Owner or User Access Administrator.",
+              "uri": "https://learn.microsoft.com/azure/virtual-desktop/service-principal-assign-roles"
+            }
+          }
+        ]
+      },
+      {
+        "name": "networking",
+        "label": "Networking",
+        "elements": [
+          {
+            "name": "networkInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "options": {
+              "icon": "Info",
+              "text": "Azure Virtual Desktop uses reverse connect, so the session host subnet does not need inbound internet allow rules. New subnets should have explicit outbound connectivity, so this wizard can create a NAT Gateway.",
+              "uri": "https://learn.microsoft.com/azure/virtual-network/ip-services/default-outbound-access"
+            }
+          },
+          {
+            "name": "networkMode",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Session host subnet",
+            "defaultValue": "Create a new virtual network",
+            "toolTip": "Create a new VNet for a standalone pilot, or provide an existing subnet resource ID when landing zone networking already exists.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Create a new virtual network",
+                  "value": "new"
+                },
+                {
+                  "label": "Use an existing subnet",
+                  "value": "existing"
+                }
+              ],
+              "required": true
+            },
+            "visible": true
+          },
+          {
+            "name": "existingSubnetResourceId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Existing subnet resource ID",
+            "defaultValue": "",
+            "toolTip": "Required only when using an existing subnet. The subnet must have outbound access and must support private endpoints if you enable the Azure Files private endpoint.",
+            "placeholder": "/subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>",
+            "constraints": {
+              "required": false,
+              "validations": [
+                {
+                  "regex": "^$|^/subscriptions/[0-9a-fA-F-]+/resourceGroups/[^/]+/providers/Microsoft.Network/virtualNetworks/[^/]+/subnets/[^/]+$",
+                  "message": "Enter a valid subnet resource ID, or leave blank when creating a new VNet."
+                },
+                {
+                  "isValid": "[or(equals(steps('networking').networkMode, 'new'), startsWith(steps('networking').existingSubnetResourceId, '/subscriptions/'))]",
+                  "message": "Provide a subnet resource ID when using an existing subnet."
+                }
+              ]
+            },
+            "visible": "[equals(steps('networking').networkMode, 'existing')]"
+          },
+          {
+            "name": "vnetAddressPrefix",
+            "type": "Microsoft.Common.TextBox",
+            "label": "New VNet address prefix",
+            "defaultValue": "10.60.0.0/16",
+            "toolTip": "CIDR range for the new pilot VNet.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/([0-9]|[1-2][0-9]|3[0-2])$",
+                  "message": "Enter a CIDR prefix such as 10.60.0.0/16."
+                }
+              ]
+            },
+            "visible": "[equals(steps('networking').networkMode, 'new')]"
+          },
+          {
+            "name": "sessionHostSubnetPrefix",
+            "type": "Microsoft.Common.TextBox",
+            "label": "New session host subnet prefix",
+            "defaultValue": "10.60.1.0/24",
+            "toolTip": "CIDR range for the new session host subnet.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/([0-9]|[1-2][0-9]|3[0-2])$",
+                  "message": "Enter a CIDR prefix such as 10.60.1.0/24."
+                }
+              ]
+            },
+            "visible": "[equals(steps('networking').networkMode, 'new')]"
+          }
+        ]
+      },
+      {
+        "name": "sessionHosts",
+        "label": "Session hosts",
+        "elements": [
+          {
+            "name": "sessionHostInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "options": {
+              "icon": "Info",
+              "text": "Session host configuration defines the image, VM size, ephemeral OS disk, Microsoft Entra join, Intune enrolment, Trusted launch, subnet and naming for disposable pooled session hosts.",
+              "uri": "https://learn.microsoft.com/azure/templates/microsoft.desktopvirtualization/hostpools/sessionhostconfigurations"
+            }
+          },
+          {
+            "name": "sessionHostVmSize",
+            "type": "Microsoft.Common.DropDown",
+            "label": "VM size",
+            "defaultValue": "Standard D8ads v5 - 8 vCPU, 32 GiB memory, 300 GiB temp disk",
+            "toolTip": "Only sizes with a documented temp disk of at least 150 GiB are listed. The Windows 11 Enterprise multi-session image is 127 GiB, and Trusted launch reserves 1 GiB for VM guest state, so no-local-disk sizes such as Standard_D8s_v5 and Standard_D8as_v6 are excluded.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Standard D4ads v5 - 4 vCPU, 16 GiB memory, 150 GiB temp disk",
+                  "value": "Standard_D4ads_v5"
+                },
+                {
+                  "label": "Standard D8ads v5 - 8 vCPU, 32 GiB memory, 300 GiB temp disk",
+                  "value": "Standard_D8ads_v5"
+                },
+                {
+                  "label": "Standard D16ads v5 - 16 vCPU, 64 GiB memory, 600 GiB temp disk",
+                  "value": "Standard_D16ads_v5"
+                },
+                {
+                  "label": "Standard D4ds v5 - 4 vCPU, 16 GiB memory, 150 GiB temp disk",
+                  "value": "Standard_D4ds_v5"
+                },
+                {
+                  "label": "Standard D8ds v5 - 8 vCPU, 32 GiB memory, 300 GiB temp disk",
+                  "value": "Standard_D8ds_v5"
+                },
+                {
+                  "label": "Standard D16ds v5 - 16 vCPU, 64 GiB memory, 600 GiB temp disk",
+                  "value": "Standard_D16ds_v5"
+                },
+                {
+                  "label": "Standard E8ads v5 - 8 vCPU, 64 GiB memory, 300 GiB temp disk",
+                  "value": "Standard_E8ads_v5"
+                }
+              ],
+              "required": true
+            },
+            "visible": true
+          },
+          {
+            "name": "hostPoolDeploymentScope",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Host pool deployment scope",
+            "defaultValue": "Geographical - standard behaviour",
+            "toolTip": "The hostPools template reference allows Geographical and Regional. Geographical is the standard default. Regional host pools are generally available but only in regions where regional host pool infrastructure is available.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Geographical - standard behaviour",
+                  "value": "Geographical"
+                },
+                {
+                  "label": "Regional - only in supported regions",
+                  "value": "Regional"
+                }
+              ],
+              "required": true
+            },
+            "visible": true
+          },
+          {
+            "name": "regionalHostPoolInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": "[equals(steps('sessionHosts').hostPoolDeploymentScope, 'Regional')]",
+            "options": {
+              "icon": "Warning",
+              "text": "Regional host pools store metadata in the selected Azure region, but they are only available in supported regions. If the region does not support regional host pools, deployment fails with RegionalScopeNotAvailable. Use Geographical unless you have confirmed regional host pool availability for the selected region.",
+              "uri": "https://learn.microsoft.com/azure/virtual-desktop/regional-host-pools"
+            }
+          },
+          {
+            "name": "sessionHostNamePrefix",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Session host name prefix",
+            "defaultValue": "ctavd",
+            "toolTip": "Maximum 11 characters. Azure Virtual Desktop appends a suffix to make the computer name.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[a-zA-Z][a-zA-Z0-9-]{0,10}$",
+                  "message": "Use 1 to 11 characters, starting with a letter."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "maxSessionLimit",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Max session limit",
+            "defaultValue": "12",
+            "toolTip": "Pilot starting point only. Autoscale capacity calculations use this value.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^([1-9]|[1-3][0-9]|40)$",
+                  "message": "Enter a whole number from 1 to 40."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "imageSku",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Windows 11 Enterprise multi-session image",
+            "defaultValue": "Windows 11 Enterprise + Microsoft 365 Apps 26H2",
+            "toolTip": "Select the marketplace image family. Confirm the exact marketplace SKU in your tenant before production.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Windows 11 Enterprise 26H2",
+                  "value": "win11-26h2-avd"
+                },
+                {
+                  "label": "Windows 11 Enterprise + Microsoft 365 Apps 26H2",
+                  "value": "win11-26h2-avd-m365"
+                }
+              ],
+              "required": true
+            },
+            "visible": true
+          },
+          {
+            "name": "marketplaceImageVersion",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Marketplace image version",
+            "defaultValue": "",
+            "toolTip": "Enter an exact image version. To find the newest version, run: az vm image list -l <region> -p MicrosoftWindowsDesktop -f <offer> -s <sku> --all --query \"[-1].version\" -o tsv. The offer is office-365 for the Microsoft 365 Apps image and Windows-11 for the image without Microsoft 365 Apps.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+                  "message": "Enter an exact version such as 26300.9457.260914. Do not use latest."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "enrollSessionHostsInIntune",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Enrol session hosts in Microsoft Intune",
+            "defaultValue": "Yes - enrol each new host (North Star)",
+            "toolTip": "The North Star manages session hosts with Intune. Enrolment needs Intune licences and automatic MDM enrolment configured in the tenant. If enrolment fails, session host provisioning fails with MdmJoinFailed after about 30 minutes. Choose No only for a lab without Intune.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Yes - enrol each new host (North Star)",
+                  "value": true
+                },
+                {
+                  "label": "No - Microsoft Entra join only, for a lab without Intune",
+                  "value": false
+                }
+              ],
+              "required": true
+            },
+            "visible": true
+          },
+          {
+            "name": "availabilityZones",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Availability zones",
+            "defaultValue": "1,2,3",
+            "toolTip": "Comma-separated zones supported by the region and VM size. Use 1,2,3 for a zone-resilient pilot where supported.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[1-3](,[1-3]){0,2}$",
+                  "message": "Use comma-separated zone numbers, for example 1,2,3 or 1."
+                }
+              ]
+            },
+            "visible": true
+          }
+        ]
+      },
+      {
+        "name": "profilesApplications",
+        "label": "Profiles and applications",
+        "elements": [
+          {
+            "name": "profilesInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "options": {
+              "icon": "Info",
+              "text": "The deployment creates a premium Azure Files storage account with separate shares for FSLogix profiles and App Attach packages. It enables Microsoft Entra Kerberos on the storage account, but tenant admin consent and NTFS permissions remain post-deployment steps.",
+              "uri": "https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable"
+            }
+          },
+          {
+            "name": "enableFilesPrivateEndpoint",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Azure Files private endpoint",
+            "defaultValue": "Yes",
+            "toolTip": "Creates a private endpoint for the storage account file endpoint and links privatelink.file.core.windows.net to the VNet.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Yes",
+                  "value": true
+                },
+                {
+                  "label": "No",
+                  "value": false
+                }
+              ],
+              "required": true
+            },
+            "visible": true
+          },
+          {
+            "name": "azureVirtualDesktopServicePrincipalObjectId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Azure Virtual Desktop service principal object ID",
+            "defaultValue": "",
+            "toolTip": "Recommended. Find the Enterprise application with application ID 9cdead84-a844-4324-93f2-b2e6bb768d07, then copy its object ID. When supplied, the template assigns the subscription-scope autoscale roles and storage Reader and Data Access role to it.",
+            "placeholder": "00000000-0000-0000-0000-000000000000",
+            "constraints": {
+              "required": false,
+              "validations": [
+                {
+                  "regex": "^$|^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+                  "message": "Enter a valid object ID GUID, or leave blank."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "autoscaleManualSteps",
+            "type": "Microsoft.Common.InfoBox",
+            "visible": "[equals(steps('identityAccess').assignAutoscaleRolesToHostPoolIdentity, false)]",
+            "options": {
+              "icon": "Warning",
+              "text": "If you do not assign subscription-scope autoscale roles to the new host pool managed identity, no hosts are expected to be created until an Owner or User Access Administrator manually assigns Desktop Virtualization Power On Off Contributor and Desktop Virtualization Virtual Machine Contributor at subscription scope. Learn's dynamic autoscaling article also names the Azure Virtual Desktop service principal, but many tenants already have that assignment. Check it before assigning to avoid RoleAssignmentExists.",
+              "uri": "https://learn.microsoft.com/azure/virtual-desktop/service-principal-assign-roles"
+            }
+          },
+          {
+            "name": "azureVirtualDesktopArmProviderServicePrincipalObjectId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Azure Virtual Desktop ARM Provider service principal object ID",
+            "defaultValue": "",
+            "toolTip": "Optional. Assigns Reader and Data Access on the storage account for App Attach on Microsoft Entra joined hosts.",
+            "placeholder": "00000000-0000-0000-0000-000000000000",
+            "constraints": {
+              "required": false,
+              "validations": [
+                {
+                  "regex": "^$|^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+                  "message": "Enter a valid object ID GUID, or leave blank."
+                }
+              ]
+            },
+            "visible": true
+          }
+        ]
+      },
+      {
+        "name": "scalingMonitoring",
+        "label": "Scaling and monitoring",
+        "elements": [
+          {
+            "name": "scalingInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "options": {
+              "icon": "Info",
+              "text": "Dynamic autoscaling for a session host configuration host pool can create and delete hosts. The weekday schedule keeps 100 percent of active hosts during each phase so ephemeral OS disk pools use create and delete rather than stop and deallocate.",
+              "uri": "https://learn.microsoft.com/azure/virtual-desktop/autoscale-scenarios"
+            }
+          },
+          {
+            "name": "scalingTimeZone",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Scaling plan time zone",
+            "defaultValue": "AUS Eastern Standard Time",
+            "toolTip": "Windows time zone ID used by the scaling plan schedule.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[A-Za-z0-9 _.-]{3,80}$",
+                  "message": "Enter a valid Windows time zone ID."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "rampUpMinimumHostPoolSize",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Ramp-up minimum host pool size",
+            "defaultValue": "2",
+            "toolTip": "Minimum number of hosts during ramp-up and peak.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^([0-9]|10)$",
+                  "message": "Enter a whole number from 0 to 10."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "rampUpMaximumHostPoolSize",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Ramp-up maximum host pool size",
+            "defaultValue": "4",
+            "toolTip": "Maximum number of hosts during ramp-up and peak.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^([1-9]|1[0-9]|20)$",
+                  "message": "Enter a whole number from 1 to 20."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "rampDownMinimumHostPoolSize",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Ramp-down minimum host pool size",
+            "defaultValue": "0",
+            "toolTip": "Minimum number of hosts during ramp-down and off-peak.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^([0-9]|10)$",
+                  "message": "Enter a whole number from 0 to 10."
+                }
+              ]
+            },
+            "visible": true
+          },
+          {
+            "name": "rampDownMaximumHostPoolSize",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Ramp-down maximum host pool size",
+            "defaultValue": "2",
+            "toolTip": "Maximum number of hosts during ramp-down and off-peak.",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^([1-9]|1[0-9]|20)$",
+                  "message": "Enter a whole number from 1 to 20."
+                }
+              ]
+            },
+            "visible": true
+          }
+        ]
+      },
+      {
+        "name": "nextSteps",
+        "label": "Next steps",
+        "elements": [
+          {
+            "name": "nextStepsInfo",
+            "type": "Microsoft.Common.InfoBox",
+            "options": {
+              "icon": "Warning",
+              "text": "The template builds the Azure foundation. Complete the numbered post-deployment steps from the template outputs and README before allowing pilot users to sign in: tenant SSO settings, Conditional Access review, Intune FSLogix settings, Microsoft Entra Kerberos admin consent, profile share NTFS permissions, App Attach package upload and scaling role assignment if you did not create it here.",
+              "uri": "https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts"
+            }
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "workloadPrefix": "[basics('workloadPrefix')]",
+      "location": "[location()]",
+      "pilotUsersGroupObjectId": "[steps('identityAccess').pilotUsersGroupObjectId]",
+      "localAdminUsername": "[steps('identityAccess').localAdminUsername]",
+      "localAdminPassword": "[steps('identityAccess').localAdminPassword]",
+      "assignAutoscaleRolesToHostPoolIdentity": "[steps('identityAccess').assignAutoscaleRolesToHostPoolIdentity]",
+      "assignAutoscaleRolesToAvdServicePrincipal": "[steps('identityAccess').assignAutoscaleRolesToAvdServicePrincipal]",
+      "networkMode": "[steps('networking').networkMode]",
+      "existingSubnetResourceId": "[steps('networking').existingSubnetResourceId]",
+      "vnetAddressPrefix": "[steps('networking').vnetAddressPrefix]",
+      "sessionHostSubnetPrefix": "[steps('networking').sessionHostSubnetPrefix]",
+      "enableFilesPrivateEndpoint": "[steps('profilesApplications').enableFilesPrivateEndpoint]",
+      "azureVirtualDesktopServicePrincipalObjectId": "[steps('profilesApplications').azureVirtualDesktopServicePrincipalObjectId]",
+      "azureVirtualDesktopArmProviderServicePrincipalObjectId": "[steps('profilesApplications').azureVirtualDesktopArmProviderServicePrincipalObjectId]",
+      "hostPoolDeploymentScope": "[steps('sessionHosts').hostPoolDeploymentScope]",
+      "sessionHostVmSize": "[steps('sessionHosts').sessionHostVmSize]",
+      "sessionHostNamePrefix": "[steps('sessionHosts').sessionHostNamePrefix]",
+      "maxSessionLimit": "[int(steps('sessionHosts').maxSessionLimit)]",
+      "marketplaceImageSku": "[steps('sessionHosts').imageSku]",
+      "marketplaceImageOffer": "[if(equals(steps('sessionHosts').imageSku, 'win11-26h2-avd-m365'), 'office-365', 'Windows-11')]",
+      "marketplaceImageVersion": "[steps('sessionHosts').marketplaceImageVersion]",
+      "enrollSessionHostsInIntune": "[steps('sessionHosts').enrollSessionHostsInIntune]",
+      "availabilityZones": "[parse(concat('[', steps('sessionHosts').availabilityZones, ']'))]",
+      "scalingTimeZone": "[steps('scalingMonitoring').scalingTimeZone]",
+      "rampUpMinimumHostPoolSize": "[int(steps('scalingMonitoring').rampUpMinimumHostPoolSize)]",
+      "rampUpMaximumHostPoolSize": "[int(steps('scalingMonitoring').rampUpMaximumHostPoolSize)]",
+      "rampDownMinimumHostPoolSize": "[int(steps('scalingMonitoring').rampDownMinimumHostPoolSize)]",
+      "rampDownMaximumHostPoolSize": "[int(steps('scalingMonitoring').rampDownMaximumHostPoolSize)]"
+    },
+    "resourceTypes": [
+      "Microsoft.DesktopVirtualization/hostPools",
+      "Microsoft.Storage/storageAccounts",
+      "Microsoft.Network/virtualNetworks",
+      "Microsoft.KeyVault/vaults",
+      "Microsoft.OperationalInsights/workspaces"
+    ]
+  }
+}

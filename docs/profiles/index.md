@@ -22,6 +22,18 @@ In a pooled host pool, session hosts are non-persistent. With ephemeral OS disks
 
 ## How it fits
 
+![FSLogix profile flow from user sign-in through Microsoft Entra Kerberos to Azure Files, with sharding across storage accounts and shares.](../assets/images/profiles-fslogix-light.svg#only-light)
+![FSLogix profile flow from user sign-in through Microsoft Entra Kerberos to Azure Files, with sharding across storage accounts and shares.](../assets/images/profiles-fslogix-dark.svg#only-dark)
+
+1. **The user signs in** to a Microsoft Entra joined session host.
+2. **The host retrieves a Kerberos ticket** from Microsoft Entra Kerberos. This needs **CloudKerberosTicketRetrievalEnabled** set on the host, which Intune delivers.
+3. **Kerberos authenticates the SMB connection** to the storage account.
+4. **Azure Files opens the share**, checking share-level RBAC and NTFS permissions.
+5. **FSLogix attaches the profile container**, the VHDX file that holds the user's profile.
+6. **Shard by IOPS and throughput.** Spread users across shares and storage accounts so that sign-in peaks stay inside each one's limits ([Sizing and sharding](sizing-and-sharding.md)).
+
+The same sign-in as a sequence:
+
 ```mermaid
 sequenceDiagram
     participant User as User

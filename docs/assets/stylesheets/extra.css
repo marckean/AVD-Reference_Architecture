@@ -58,6 +58,12 @@
   font-weight: 600;
 }
 
+/* Centre every table cell vertically, site-wide (Material defaults to top) */
+.md-typeset table:not([class]) th,
+.md-typeset table:not([class]) td {
+  vertical-align: middle;
+}
+
 /* Status pills: <span class="status ga">GA</span> */
 .md-typeset .status {
   display: inline-block;
