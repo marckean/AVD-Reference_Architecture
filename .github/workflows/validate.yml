@@ -105,6 +105,11 @@ jobs:
           python3 scripts/diagrams/build_all.py
           git diff --exit-code --stat -- docs/assets/images
 
+      - name: Diagram lint tests
+        if: hashFiles('scripts/diagrams/test_lint.py') != ''
+        working-directory: scripts/diagrams
+        run: python3 -m unittest -v test_lint
+
       - name: Discovery questionnaire tests
         if: hashFiles('scripts/tests/discovery/**') != ''
         run: node --test scripts/tests/discovery/

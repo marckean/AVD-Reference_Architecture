@@ -94,7 +94,7 @@ Two GitHub Actions workflows run on every push:
   - PSScriptAnalyzer and Pester on the PowerShell tools;
   - checks that every JSON file parses, and that the Bicep builds and lints;
   - checks that the portal wizard and the template agree;
-  - rebuilds the diagrams and checks them with the layout lint;
+  - rebuilds the diagrams, checks them with the layout lint, and runs the lint's own tests;
   - runs the discovery questionnaire tests.
 
 Rebuild generated files after you change their source:
