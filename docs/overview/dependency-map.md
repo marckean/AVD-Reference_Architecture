@@ -11,6 +11,22 @@ description: The master dependency map for the North Star - which decisions are 
     - The domain join type decides how single sign-on, profiles, App Attach, Intune and legacy applications work. That's why applications that need Active Directory get [their own host pool](reference-architectures.md#two-host-pools).
     - Settle the decisions in number order. Everything below them can change as you learn.
 
+
+<span class="level l300">Level 300</span>
+
+Use the dependency map before you build. It keeps creation-time decisions separate from settings you can safely tune later.
+
+This compact view shows the decision chain.
+
+```mermaid
+flowchart TB
+    F["Foundations"] --> T["Host pool type"]
+    T --> M["Management approach"]
+    M --> J["Join type"]
+    J --> S["Services"]
+    S --> U["Users"]
+```
+
 ## The map
 
 ![The master dependency map. Licences and quota, identity and network come first. They feed three decisions that are fixed when a host pool is created: the host pool type, the management approach and the domain join type. The management approach enables the session host configuration, session host update, dynamic autoscaling and ephemeral OS disks. The domain join type decides how single sign-on, FSLogix profiles, App Attach, Intune policy and legacy authentication work.](../assets/images/dependency-map-light.svg#only-light)
@@ -39,6 +55,8 @@ No. Learn is explicit: *"All session hosts in a host pool should have the same c
 With a session host configuration it's also structural. The configuration holds a single domain join setting, and every host it creates uses that setting.
 
 So when some applications need Active Directory, build two host pools:
+
+For identity background, see [Device join models](../demystified/device-join-models.md), [Application authentication](../demystified/application-authentication.md) and [Kerberos and NTLM](../demystified/kerberos-and-ntlm.md).
 
 1. A **North Star pool**, Microsoft Entra joined, for everything that can run there.
 2. A **legacy pool**, Active Directory joined, for the applications that can't. For example, Learn says Microsoft Entra joined devices don't support on-premises applications that rely on machine authentication ([Plan your Microsoft Entra join deployment](https://learn.microsoft.com/entra/identity/devices/device-join-plan#understand-considerations-for-applications-and-resources)).
@@ -73,3 +91,16 @@ One workspace can publish application groups from both pools, so users see one f
 4. **Wire up the bottom row** for each pool's join type: single sign-on, profiles, App Attach, Intune and any legacy exceptions.
 
 The [dependency checklist](../getting-there/dependencies.md) turns the map into owned, checkable items. The [discovery questionnaire](../accelerators/discovery-questionnaire.md) captures the answers you need to make the fixed decisions.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+When you troubleshoot a failed North Star build, work from the bottom up: subscription and quota, identity, network, then host pool creation. Session host update also validates subnet and VM core quota before it starts ([Session host update](https://learn.microsoft.com/azure/virtual-desktop/session-host-update)).
+
+```mermaid
+flowchart TB
+    Q["Check quota"] --> N["Check subnet"]
+    N --> H["Create pool"]
+    H --> U["Validate update"]
+```

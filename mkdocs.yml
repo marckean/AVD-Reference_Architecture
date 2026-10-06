@@ -115,6 +115,7 @@ nav:
       - What good looks like: overview/what-good-looks-like.md
       - Reference architectures: overview/reference-architectures.md
       - Dependency map: overview/dependency-map.md
+      - Sizing estimates: overview/sizing-estimates.md
       - How it fits together: overview/how-it-fits-together.md
   - Platform:
       - Identity and access:
@@ -188,6 +189,15 @@ nav:
       - Dependency checklist: getting-there/dependencies.md
       - Stepping stones: getting-there/stepping-stones.md
       - Worked example: getting-there/worked-example.md
+  - Identity demystified:
+      - demystified/index.md
+      - Two directories: demystified/two-directories.md
+      - Tokens and tickets: demystified/tokens-and-tickets.md
+      - Device join models: demystified/device-join-models.md
+      - Kerberos, NTLM and Negotiate: demystified/kerberos-and-ntlm.md
+      - How applications authenticate: demystified/application-authentication.md
+      - An AVD sign-in, end to end: demystified/avd-sign-in-end-to-end.md
+      - Troubleshooting toolkit: demystified/troubleshooting.md
   - Accelerators:
       - accelerators/index.md
       - Discovery questionnaire: accelerators/discovery-questionnaire.md

@@ -5,6 +5,21 @@ description: Licence entitlements for Azure Virtual Desktop, profile storage, im
 
 # Licensing and storage
 
+<span class="level l300">Level 300</span>
+
+Licensing grants the right to use Azure Virtual Desktop. Storage pays for profiles, packages and images. They are separate cost lines and need separate controls.
+
+This diagram shows the separation.
+
+```mermaid
+flowchart TB
+    U["User"] --> L["AVD licence"]
+    U --> P["Profile data"]
+    P --> F["Azure Files"]
+    A["Apps"] --> S["Package share"]
+    I["Images"] --> G["Compute Gallery"]
+```
+
 ## Licensing
 
 Azure Virtual Desktop requires an eligible licence for each user. For Windows 11 Enterprise multi-session, Learn lists these internal-use licences: **Microsoft 365 E3, E5, A3, A5, F3, Business Premium, Student Use Benefit**, **Windows Enterprise E3, E5**, **Windows Education A3, A5** and **Windows VDA per user** [Licensing Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/licensing).
@@ -34,6 +49,14 @@ Azure VM Image Builder builds and distributes images from a configuration and ca
 **Status:** Generally available for App Attach in Azure Virtual Desktop. The App Attach article is not labelled preview; confirm regional and package-format support for your environment.
 
 The cost effect is indirect but material. Smaller images rebuild faster and let Autoscale add capacity quickly. App Attach reduces image variants, but package storage and testing still need funding.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Azure Files provisioned v2 is a useful Level 400 cost lever because it separates the meters. Learn states that provisioned v2 lets you separately provision storage, input/output operations per second and throughput, and that the amount provisioned determines the bill [Understand Azure Files billing](https://learn.microsoft.com/azure/storage/files/understanding-billing#provisioned-v2-model). It also states that you can scale storage, IOPS and throughput up or down, but you can only decrease a provisioned quantity after 24 hours have elapsed since the last increase.
+
+Do not duplicate sizing tables here. Use [Sizing estimates](../overview/sizing-estimates.md) to decide the profile IOPS, throughput and shard assumptions, then apply those values to provisioned v2.
 
 ---
 

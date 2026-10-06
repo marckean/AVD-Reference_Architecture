@@ -1,6 +1,9 @@
 ---
 title: Discovery questionnaire
 description: An interactive workshop questionnaire that turns Azure Virtual Desktop discovery answers into reference architecture recommendations, readiness gaps and pilot deployment parameters.
+hide:
+  - navigation
+  - toc
 ---
 
 # Discovery questionnaire

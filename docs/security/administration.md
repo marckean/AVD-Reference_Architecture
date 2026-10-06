@@ -5,6 +5,10 @@ description: Using the built-in Desktop Virtualization roles to give each team o
 
 # Least-privilege administration
 
+<span class="level l300">Level 300</span>
+
+Least privilege means giving each support team only the Azure Virtual Desktop actions it needs, at the narrowest useful scope.
+
 Do not give every operator **Contributor** on the resource group. Azure Virtual Desktop has built-in RBAC roles for common duties [Built-in Azure RBAC roles](https://learn.microsoft.com/azure/virtual-desktop/rbac):
 
 | Role | Use |
@@ -16,6 +20,20 @@ Do not give every operator **Contributor** on the resource group. Azure Virtual 
 | **Desktop Virtualization User** | Allow end users to use applications from an application group. |
 
 Scope operational roles to the smallest practical resource group, host pool or application group. Pair Azure RBAC with Privileged Identity Management where available.
+
+This diagram shows the split between reader, operator and contributor access.
+
+```mermaid
+flowchart TB
+    Help[Help desk] --> USO[User Session<br/>Operator]
+    Ops[AVD ops] --> HPC[Host Pool<br/>Contributor]
+    App[App team] --> AGC[Application Group<br/>Contributor]
+    Audit[Auditors] --> R[Reader]
+    USO --> HP[Host pool]
+    HPC --> HP
+    AGC --> AG[Application group]
+    R --> All[AVD resources]
+```
 
 ---
 

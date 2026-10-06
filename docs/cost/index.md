@@ -13,13 +13,38 @@ description: Optimise Azure Virtual Desktop cost by controlling host capacity, p
     - FSLogix profile cost is driven by Azure Files billing model, performance, redundancy and shard design.
     - Log Analytics cost is controlled by collecting only the diagnostics, counters and event logs that support operations.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Cost optimisation means paying for the desktop service people actually use, not for idle machines, unused storage or logs nobody reads. It is like running a building: you still need lights, lifts and security, but you switch off empty floors and meter shared services.
+
+For Azure Virtual Desktop, the main cost choices are how many session hosts run, how large they are, how profiles are stored, how much telemetry is kept, and which baseline usage should be covered by commitments.
+
+This diagram shows the main cost levers.
+
+```mermaid
+flowchart TB
+    C["AVD cost"] --> H["Host run time"]
+    C --> S["Profile storage"]
+    C --> L["Licences"]
+    C --> G["Logs"]
+    C --> T["Tags"]
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 Cost optimisation is not a one-off right-sizing exercise. It is the operating model that keeps Azure Virtual Desktop capacity, storage, logging and licences aligned to real usage. The [North Star architecture](../overview/how-it-fits-together.md) optimises cost by using pooled Windows 11 Enterprise multi-session host pools, disposable ephemeral session hosts, Autoscale, Azure Image Builder, Azure Compute Gallery, App Attach, FSLogix on Azure Files and central monitoring.
 
 Do not optimise by weakening the design. A host pool that cannot absorb logon storms, mount profiles or attach applications is not a saving. Optimise documented levers: host count, VM size, run time, OS disk model, profile storage, licence entitlement, logging and commitments.
 
 ## Cost levers
+
+<span class="level l300">Level 300</span>
+
+Detailed sizing numbers are consolidated in [Sizing estimates](../overview/sizing-estimates.md). Use that page for density, profile input/output operations per second, bandwidth, subnet and quota assumptions instead of duplicating sizing tables here.
 
 | Lever | What it changes | North Star setting | Learn link |
 | --- | --- | --- | --- |
@@ -32,6 +57,24 @@ Do not optimise by weakening the design. A host pool that cannot absorb logon st
 | Azure Files provisioned v2 | Separates provisioned storage, IOPS and throughput choices for file shares | Size profile shards by IOPS and capacity, not just user count | [Understand Azure Files billing](https://learn.microsoft.com/azure/storage/files/understanding-billing#provisioned-v2-model) |
 | Log Analytics data volume | Changes ingestion and retention charges | Collect only AVD diagnostics and session host data needed for operations | [Azure Monitor Logs cost calculations and options](https://learn.microsoft.com/azure/azure-monitor/logs/cost-logs) |
 | Tags and Cost Management | Allocates cost to environment, service, host pool and application | Enforce tags through IaC and policy | [Cost allocation with tags](https://learn.microsoft.com/azure/cost-management-billing/costs/enable-tag-inheritance) |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The cost model is a set of meters, not a single AVD price. Ephemeral OS disks place the operating system on local VM storage rather than remote storage, enabling non-persistence for session hosts [Ephemeral OS disks on Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/deploy/session-hosts/ephemeral-os-disks). Azure Files provisioned v2 lets you separately provision storage, input/output operations per second and throughput, and Learn states you pay based on what you provision regardless of how much you use [Understand Azure Files billing](https://learn.microsoft.com/azure/storage/files/understanding-billing#provisioned-v2-model).
+
+This sequence shows how a cost decision becomes an Azure meter.
+
+```mermaid
+flowchart TB
+    A["Architect"] --> H["Set host<br/>capacity"]
+    A --> F["Set provisioned<br/>v2"]
+    A --> L["Set log<br/>collection"]
+    H --> C["Cost data"]
+    F --> C
+    L --> C
+```
 
 ## Cost model checklist
 

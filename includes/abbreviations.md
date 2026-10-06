@@ -25,3 +25,14 @@
 *[DCR]: Data collection rule
 *[AMA]: Azure Monitor Agent
 *[VDI]: Virtual desktop infrastructure
+*[PRT]: Primary Refresh Token - the Microsoft Entra token used for single sign-on on a device
+*[TGT]: Ticket-granting ticket - the Kerberos ticket a user gets at sign-in
+*[KDC]: Key Distribution Center - the Kerberos service on each domain controller
+*[SPN]: Service principal name - how Kerberos identifies a service
+*[gMSA]: Group managed service account
+*[KCD]: Kerberos constrained delegation
+*[LDAP]: Lightweight Directory Access Protocol
+*[SAML]: Security Assertion Markup Language
+*[SID]: Security identifier
+*[UPN]: User principal name, such as user@contoso.com
+*[PAC]: Privilege Attribute Certificate - the authorisation data inside a Kerberos ticket

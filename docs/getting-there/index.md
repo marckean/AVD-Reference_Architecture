@@ -11,23 +11,23 @@ description: A phased route from an existing virtual desktop platform to the Nor
     - A host pool can't be switched to a session host configuration later, so the North Star is always a new host pool that users move to.
     - Run stepping stones in parallel for the parts of the estate that aren't ready yet, and give each one an exit plan.
 
+
+<span class="level l200">Level 200</span>
+
+Getting to the North Star is a staged build. Put the foundations in first, then identity and management, then data, image, applications and operations.
+
 ## The route
 
 ```mermaid
-flowchart LR
-    subgraph PREP["Prepare"]
-        direction TB
-        P0["0. Decide"] --> P1["1. Foundations"]
-    end
-    subgraph BUILD["Build the platform"]
-        direction TB
-        P2["2. Identity and management"] --> P3["3. Storage"] --> P4["4. Image pipeline"] --> P5["5. Automated host pool"]
-    end
-    subgraph DELIVER["Deliver"]
-        direction TB
-        P6["6. Applications"] --> P7["7. Scale and operate"] --> P8["8. Pilot and migrate"]
-    end
-    PREP --> BUILD --> DELIVER
+flowchart TB
+    P0["0 Decide"] --> P1["1 Foundations"]
+    P1 --> P2["2 Identity"]
+    P2 --> P3["3 Storage"]
+    P3 --> P4["4 Image"]
+    P4 --> P5["5 Host pool"]
+    P5 --> P6["6 Applications"]
+    P6 --> P7["7 Operate"]
+    P7 --> P8["8 Migrate"]
 ```
 
 | Phase | What happens | Done when | Read |
@@ -50,6 +50,26 @@ flowchart LR
 4. **Move the easy users first.** Pilot with groups whose applications are already proven, and handle complex personas in a parallel stream rather than leaving them to the end.
 5. **Every stepping stone gets an exit plan.** A stepping stone with no exit date becomes the platform.
 6. **Measure before and after.** Capture sign-in time, connection quality and density on the current platform, so the North Star can be compared on evidence.
+
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The journey is ordered around irreversible host pool decisions. Microsoft says the host pool management approach is set at creation and cannot be changed later ([Host pool management approaches](https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches)). Build a new pool for the target state, then migrate users.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant P as Platform
+    participant N as New pool
+    participant U as Users
+    participant O as Old platform
+    P->>N: Build target
+    N->>U: Pilot users
+    U->>N: Migrate waves
+    O->>O: Drain capacity
+```
 
 ## Next
 

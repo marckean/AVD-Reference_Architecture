@@ -5,6 +5,21 @@ description: The minimum Intune configuration an organisation with no virtual de
 
 # Starting from zero
 
+<span class="level l200">Level 200</span>
+
+Starting from zero means building the identity, licensing, enrolment and baseline policy prerequisites before the first host pool is used by real users.
+
+This diagram shows the minimum order.
+
+```mermaid
+flowchart TB
+    L[Licences] --> T[Tenant<br/>alignment]
+    T --> E[Entra join<br/>and enrol]
+    E --> G[Device<br/>groups]
+    G --> P[Baseline<br/>policies]
+    P --> U[First users]
+```
+
 Before the first Microsoft Entra joined host pool works, an organisation needs:
 
 1. Azure Virtual Desktop licensing and Microsoft Intune licensing. Learn says the appropriate Azure Virtual Desktop and Microsoft Intune licence is required if a user or device benefits directly or indirectly from Intune [Windows Enterprise multi-session](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session#prerequisites).

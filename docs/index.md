@@ -238,6 +238,24 @@ The site is organised into twelve areas in three groups. Each area has an overvi
 
 The [Glossary](reference/glossary.md) explains every term the site uses, and the [Microsoft Learn index](reference/learn-links.md) lists every article it cites.
 
+## Go deeper
+
+<div class="grid cards" markdown>
+
+-   :material-key-chain-variant:{ .lg .middle } __[Identity demystified](demystified/index.md)__
+
+    ---
+
+    Active Directory and Microsoft Entra ID, Kerberos tickets and the Primary Refresh Token, the device join models, NTLMv1 and NTLMv2, and how legacy and modern applications authenticate. From Level 100 to Level 400, with diagrams.
+
+-   :material-calculator-variant-outline:{ .lg .middle } __[Sizing estimates](overview/sizing-estimates.md)__
+
+    ---
+
+    The Microsoft-documented numbers for a first design: session host density, profile and App Attach IOPS, bandwidth, subnet addresses, quota and service limits, with a worked example.
+
+</div>
+
 ## Accelerators
 
 Tools that take you from zero to a working pilot faster. The questionnaire runs on this site. Everything else lives in the [GitHub repository](https://github.com/marckean/AVD-Reference_Architecture).
@@ -284,7 +302,7 @@ Tools that take you from zero to a working pilot faster. The questionnaire runs 
 
 ## Who this is for
 
-Architects and engineers who design, build or modernise Azure Virtual Desktop, at level 200 to 400. Each page explains the concepts it relies on before it goes deep, so you don't need to know every detail to follow it.
+Architects and engineers who design, build or modernise Azure Virtual Desktop. Every area starts in plain terms and goes deeper step by step, so you don't need to know every detail to follow it. Look for the reading level where each part starts: <span class="level l100">Level 100</span> in plain terms, <span class="level l200">Level 200</span> how it works, <span class="level l300">Level 300</span> design, and <span class="level l400">Level 400</span> under the hood. [About this site](reference/about.md#reading-levels) explains each level.
 
 !!! info "A community reference, grounded in Microsoft Learn"
     This site is a community reference architecture. It isn't official Microsoft guidance. Every technical claim links to the Microsoft Learn article it's based on, and each recommended feature is marked <span class="status ga">GA</span> or <span class="status preview">Preview</span>. Azure Virtual Desktop changes quickly, so always confirm against the linked article before you build. This version reflects Microsoft Learn as at October 2026.

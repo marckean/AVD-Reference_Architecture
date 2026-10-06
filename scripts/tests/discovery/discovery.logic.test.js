@@ -61,13 +61,25 @@ test("sizing estimates use expected formulas", () => {
   answers.sessionsPerHost = 10;
   answers.headroomPercent = 20;
   answers.profileStorageTier = "ssd-v2";
+  answers.appAttachImagesPerHost = 10;
+  answers.maxHosts = 40;
+  answers.sessionHostUpdateBatchSize = 2;
+  answers.sessionHostVmSize = "Standard_D8ads_v5";
   const sizing = discovery.sizingEstimates(data, answers);
   assert.equal(sizing.sessionHosts.value, 30);
   assert.equal(sizing.fslogixSteady.value, 2500);
   assert.equal(sizing.fslogixSignIn.value, 12500);
+  assert.match(sizing.fslogixSignIn.formula, /conservative first pass/);
   assert.equal(sizing.azureFilesShares.value, 1);
-  assert.equal(sizing.appAttachSteady.value, 250);
-  assert.equal(sizing.appAttachSignIn.value, 2500);
+  assert.match(sizing.azureFilesShares.label, /storage account IOPS partitions/);
+  assert.equal(sizing.vcpuQuota.value, 336);
+  assert.match(sizing.vcpuQuota.formula, /\(40 maximum session hosts \+ 2 session host update batch headroom\) \* 8 vCPUs/);
+  assert.equal(sizing.subnetAddresses.value, "47 addresses, smallest subnet /26");
+  assert.match(sizing.subnetAddresses.formula, /40 maximum session host network interfaces \+ 2 session host update batch headroom \+ 5 Azure-reserved subnet addresses/);
+  assert.equal(sizing.appAttachSteady.value, 300);
+  assert.equal(sizing.appAttachSignIn.value, 3000);
+  assert.equal(sizing.appAttachOpenHandles.value, 30);
+  assert.match(sizing.appAttachSteady.formula, /30 estimated session hosts \* 10 images per host/);
 });
 
 test("deployment parameters are valid ARM parameters and omit password", () => {

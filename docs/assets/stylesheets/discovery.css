@@ -2,6 +2,23 @@
 
 .md-typeset .dq-shell {
   margin: 1.5rem 0;
+  container-type: inline-size;
+}
+
+.md-typeset .dq-shell,
+.md-typeset .dq-shell * {
+  box-sizing: border-box;
+}
+
+.md-typeset .dq-shell h2,
+.md-typeset .dq-shell h3,
+.md-typeset .dq-shell h4,
+.md-typeset .dq-shell label,
+.md-typeset .dq-shell legend,
+.md-typeset .dq-tabs button {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: manual;
 }
 
 .md-typeset .dq-shell a {
@@ -62,7 +79,10 @@
 
 .md-typeset .dq-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem);
+  grid-template-areas:
+    "left"
+    "results";
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
@@ -72,11 +92,19 @@
   min-width: 0;
 }
 
+.md-typeset .dq-left {
+  display: grid;
+  grid-area: left;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
 .md-typeset .dq-tabs {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   gap: 0.4rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .md-typeset .dq-tabs button {
@@ -144,7 +172,9 @@
 .md-typeset .dq-question input[type="text"],
 .md-typeset .dq-question input[type="number"],
 .md-typeset .dq-question textarea {
+  display: block;
   width: 100%;
+  max-width: 100%;
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.3rem;
   padding: 0.45rem 0.55rem;
@@ -200,6 +230,7 @@
 }
 
 .md-typeset .dq-results {
+  grid-area: results;
   position: sticky;
   top: 4rem;
   max-height: calc(100vh - 5rem);
@@ -224,8 +255,15 @@
   background: var(--md-accent-fg-color--transparent);
 }
 
+.md-typeset .dq-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .md-typeset .dq-table {
   width: 100%;
+  min-width: 24rem;
   border-collapse: collapse;
   font-size: 0.68rem;
 }
@@ -279,11 +317,24 @@
   color: #b42318;
 }
 
-@media screen and (max-width: 72rem) {
+@container (min-width: 700px) {
+  .md-typeset .dq-left {
+    grid-template-columns: 14rem minmax(24rem, 1fr);
+  }
+}
+
+@container (min-width: 1100px) {
   .md-typeset .dq-main {
-    grid-template-columns: 1fr;
+    grid-template-areas: "left results";
+    grid-template-columns: minmax(38rem, 1fr) minmax(20rem, 28rem);
   }
 
+  .md-typeset .dq-left {
+    grid-template-columns: 14rem minmax(24rem, 1fr);
+  }
+}
+
+@container (max-width: 1099px) {
   .md-typeset .dq-results {
     position: static;
     max-height: none;

@@ -13,7 +13,30 @@ description: Protect the AVD state that matters, rebuild disposable session host
     - Prefer active-passive regional recovery for most pooled host pool designs unless your recovery time objective requires active-active.
     - Test failover as an application and identity workflow, not only as an infrastructure deployment.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Business continuity is the plan for keeping work going when something breaks. Disaster recovery is the plan for bringing the service back in another place when the normal place is unavailable.
+
+For Azure Virtual Desktop, the desktop machine should be easy to replace. The important things are the user's profile, the application packages, the image, the network and the configuration that can rebuild the environment.
+
+This diagram shows the simple idea.
+
+```mermaid
+flowchart TB
+    U["User"] --> D["Desktop service"]
+    D --> P["Profiles"]
+    D --> A["Apps"]
+    D --> I["Images"]
+    P --> R["Recovery plan"]
+    A --> R
+    I --> R
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 BCDR is the design that keeps users working when a component, availability zone or region is unavailable. In Azure Virtual Desktop, the key choice is what to restore and what to rebuild.
 
@@ -49,6 +72,8 @@ The primary and secondary host pools should use the same image family, App Attac
 
 ## North Star recommendation
 
+<span class="level l300">Level 300</span>
+
 | Decision | North Star choice | Why |
 | --- | --- | --- |
 | Host recovery | Rebuild pooled session hosts rather than replicate individual VMs | Ephemeral OS disks make hosts stateless and disposable. |
@@ -73,6 +98,23 @@ The primary and secondary host pools should use the same image family, App Attac
 - **Session hosts** - rebuild from the current image and host pool configuration.
 - **Temporary OS state** - do not protect it. It should not contain user data or application source data.
 - **Broken hosts** - drain, delete and replace. Do not repair a disposable host.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The recovery sequence is a dependency chain. Profiles and packages must be available before the user signs in. Images and host pool configuration must be available before capacity can be rebuilt. Entitlements must be changed only when the secondary service is ready.
+
+```mermaid
+flowchart TB
+    O["Operator"] --> G["Check image"]
+    O --> F["Restore profile"]
+    O --> H["Build hosts"]
+    H --> A["Assign users"]
+    A --> U["User starts<br/>session"]
+```
+
+Azure Compute Gallery image versions have **Target regions** and **Regional replica count** properties, and Learn states that the source region must also be passed as one of the target regions when creating an image version [Store and share images in an Azure Compute Gallery](https://learn.microsoft.com/azure/virtual-machines/shared-image-galleries). Azure Files backup uses a Recovery Services vault, backup policy, schedule and retention, then the Azure Backup scheduler triggers backups at the scheduled time [About Azure Files backup](https://learn.microsoft.com/azure/backup/azure-file-share-backup-overview).
 
 ## In this section
 

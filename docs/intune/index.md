@@ -12,7 +12,28 @@ description: Microsoft Intune policy design for Windows 11 Enterprise multi-sess
     - Use device-scoped policies for host configuration and user-scoped policies only where the setting is explicitly user scope and assigned to user groups.
     - Treat pooled ephemeral hosts as image-managed. Use Intune for policy, security configuration and apps that belong in the base layer, not for in-place image lifecycle.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Intune is the policy engine for the virtual desktop fleet. The image gives every new session host the same starting point. Intune then applies the rules: security settings, profile settings, redirection settings, local administrator password management and required device apps.
+
+For pooled multi-session desktops, Intune is not the rebuild engine. The North Star uses images and session host update to replace hosts. Intune keeps the running hosts configured while they exist.
+
+This diagram shows the simple job split.
+
+```mermaid
+flowchart TB
+    IMG[Base image] --> H[Session host]
+    H --> I[Intune<br/>policy]
+    I --> S[Security<br/>settings]
+    I --> P[Profile<br/>settings]
+    I --> R[Redirection<br/>settings]
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 Intune is the device and policy management layer for the North Star. It applies configuration profiles, endpoint security policy, compliance policy, scripts and required device-context applications to Windows 11 Enterprise multi-session session hosts. Microsoft Learn states that Azure Virtual Desktop multi-session with Microsoft Intune is now generally available, and that Windows Enterprise multi-session VMs can be managed in the Microsoft Intune admin centre like shared Windows client devices [Windows Enterprise multi-session remote desktops](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session).
 
@@ -35,6 +56,8 @@ Do not use Intune as the primary update or rebuild mechanism for pooled ephemera
 
 ## Requirements and limitations
 
+<span class="level l300">Level 300</span>
+
 | Area | Learn-confirmed behaviour | Design impact |
 | --- | --- | --- |
 | Supported host type | Windows Enterprise multi-session VMs in pooled host pools deployed through Azure Resource Manager, under the same tenant as Intune, with Azure Virtual Desktop agent version 1.0.2944.1400 or later [Windows Enterprise multi-session](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session#prerequisites). | Build host pools through Azure Resource Manager or infrastructure as code that uses ARM APIs. |
@@ -47,6 +70,31 @@ Do not use Intune as the primary update or rebuild mechanism for pooled ephemera
 | Update rings | Windows update rings policies are not currently supported. Quality updates can be managed through Settings Catalog Windows Update for Business settings [Windows Enterprise multi-session](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session#windows-update-client-policies). | Use image-based updates for pooled hosts; use Settings Catalog quality update controls only where required. |
 | Remote actions | Windows Autopilot reset, BitLocker key rotation, Fresh Start, Remote lock, Reset password and Wipe are not supported [Windows Enterprise multi-session](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session#remote-actions). | Rebuild hosts through AVD host pool lifecycle, not Intune remote reset. |
 | Security baselines | Security baselines are available for Windows Enterprise multi-session, and Learn recommends reviewing available baselines and configuring settings in Settings Catalog [Windows Enterprise multi-session](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session#security-baselines). | Use baselines as input, then implement through Settings Catalog for deterministic control. |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The most common Intune failure on multi-session hosts is a scope mismatch. Learn says device-based configuration cannot be assigned to users and user-based configuration cannot be assigned to devices; if the scope is wrong, the policy reports **Error** or **Not applicable** [Windows Enterprise multi-session remote desktops](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session#overview).
+
+The second trap is image cloning. Learn states that Intune does not support using a cloned image of a computer that is already enrolled, because replicated device enrollment or identity tokens can cause enrollment or synchronisation failures [Windows Enterprise multi-session remote desktops](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session#limitations). Build the image before enrolment, then enrol each session host as it is created.
+
+This diagram shows the deployment order.
+
+```mermaid
+flowchart TB
+    B[Build image] --> G[Publish gallery<br/>version]
+    G --> C[Create host]
+    C --> E[Enrol in<br/>Intune]
+    E --> P[Apply device<br/>policies]
+    P --> U[Apply user<br/>policies]
+```
+
+1. Build and generalise the image before any Intune enrolment.
+2. Publish it to Azure Compute Gallery.
+3. Create a session host from the image.
+4. Enrol the host in Intune during Azure Virtual Desktop provisioning.
+5. Apply device-scoped policies to device groups and user-scoped policies to user groups.
 
 ## In this section
 

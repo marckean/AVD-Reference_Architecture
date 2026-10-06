@@ -5,6 +5,21 @@ description: The network flows, endpoints and service tags Azure Virtual Desktop
 
 # Required flows and endpoints
 
+<span class="level l300">Level 300</span>
+
+This page is the firewall checklist. Azure Virtual Desktop will not work reliably if the service, agent, authentication, monitoring or transport endpoints are blocked.
+
+This diagram groups the outbound paths a session host needs.
+
+```mermaid
+flowchart TB
+    H["Session host"] --> A["AVD service"]
+    A --> E["Entra ID"]
+    E --> M["Monitor"]
+    M --> P["Platform IPs"]
+    P --> F["Azure Files"]
+```
+
 ## Required flows
 
 | Source | Destination | Port or protocol | Purpose |
@@ -31,6 +46,16 @@ The same article warns that `169.254.169.254` and `168.63.129.16` must not be in
 Microsoft Learn is direct: "We recommend bypassing proxies for Azure Virtual Desktop traffic" because proxies do not make Azure Virtual Desktop more secure, most are not designed for long-running WebSocket connections, and proxy geography can add latency ([Proxy server guidelines for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/proxy-server-support)).
 
 Learn also states that Azure Virtual Desktop does not support proxy servers with media optimisation for Microsoft Teams ([Proxy server guidelines for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/proxy-server-support)). If a proxy is mandatory, keep it in the same Azure geography as the Azure Virtual Desktop cluster and use RDP Shortpath for managed networks so RDP data can bypass the proxy where possible ([Proxy server guidelines for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/proxy-server-support)).
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The required endpoint page separates session host endpoints, Azure fabric communication IPs, optional endpoints, client endpoints and certificate checks. It also says all session host entries are outbound and that you do not need to open inbound ports for Azure Virtual Desktop ([Required FQDNs and endpoints for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint)).
+
+Two Azure platform addresses are special. Learn says `169.254.169.254` is the Azure Instance Metadata Service endpoint, and `168.63.129.16` is used for Azure platform service connectivity. Traffic to these addresses **must not be intercepted, proxied, or redirected** ([Required FQDNs and endpoints for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint)).
+
+For restricted egress environments, Learn says the Azure Virtual Desktop Agent URL Tool validates required FQDNs and endpoints. It also says that if you prefer not to use a wildcard for agent traffic, you can find specific FQDNs by looking under **event ID 3701**, and those FQDNs are region-specific ([Required FQDNs and endpoints for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint)).
 
 ---
 

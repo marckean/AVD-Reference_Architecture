@@ -40,6 +40,19 @@ LEARN = {
     "security": "https://learn.microsoft.com/azure/virtual-desktop/security-recommendations",
     "regional": "https://learn.microsoft.com/azure/virtual-desktop/regional-host-pools",
     "backup": "https://learn.microsoft.com/azure/backup/azure-file-share-backup-overview",
+    "hybrid_identity": "https://learn.microsoft.com/entra/identity/hybrid/whatis-hybrid-identity",
+    "entra_what_is": "https://learn.microsoft.com/entra/fundamentals/whatis",
+    "cloud_sync": "https://learn.microsoft.com/entra/identity/hybrid/cloud-sync/what-is-cloud-sync",
+    "ad_ds": "https://learn.microsoft.com/windows-server/identity/ad-ds/get-started/virtual-dc/active-directory-domain-services-overview",
+    "identity_platform": "https://learn.microsoft.com/entra/identity-platform/v2-overview",
+    "device_overview": "https://learn.microsoft.com/entra/identity/devices/overview",
+    "device_registered": "https://learn.microsoft.com/entra/identity/devices/concept-device-registration",
+    "concept_join": "https://learn.microsoft.com/entra/identity/devices/concept-directory-join",
+    "hybrid_join": "https://learn.microsoft.com/entra/identity/devices/concept-hybrid-join",
+    "prt": "https://learn.microsoft.com/entra/identity/devices/concept-primary-refresh-token",
+    "device_sso_onprem": "https://learn.microsoft.com/entra/identity/devices/device-sso-to-on-premises-resources",
+    "cloud_kerberos_trust": "https://learn.microsoft.com/windows/security/identity-protection/hello-for-business/deploy/hybrid-cloud-kerberos-trust",
+    "passwordless_onprem": "https://learn.microsoft.com/entra/identity/authentication/howto-authentication-passwordless-security-key-on-premises",
 }
 
 
@@ -61,13 +74,13 @@ def add_manifest(name: str, page: str, section: str, alt: str, steps: list[str] 
 
 
 def north_star(mode: str) -> Svg:
-    s = Svg(W, 548, mode, "Azure Virtual Desktop North Star architecture", "Users sign in with Microsoft Entra ID and connect through Azure Virtual Desktop. A pooled host pool of Microsoft Entra joined session hosts on ephemeral OS disks is created and updated by session host configuration and autoscale, uses images from Azure Compute Gallery and policy from Microsoft Intune, reads profiles and App Attach packages from Azure Files over a private endpoint, and sends telemetry to Azure Monitor.")
+    s = Svg(W, 564, mode, "Azure Virtual Desktop North Star architecture", "Users sign in with Microsoft Entra ID and connect through Azure Virtual Desktop. A pooled host pool of Microsoft Entra joined session hosts on ephemeral OS disks is created and updated by session host configuration and autoscale, uses images from Azure Compute Gallery and policy from Microsoft Intune, reads profiles and App Attach packages from Azure Files over a private endpoint, and sends telemetry to Azure Monitor.")
     p = s.p
     s.icon("users", 52, 192, 52)
     s.text(78, 270, "Users", size=14, weight=600, colour=p["title"], anchor="middle")
     s.text(78, 288, "Windows App or", anchor="middle")
     s.text(78, 304, "web browser", anchor="middle")
-    s.panel(168, 24, 318, 504, "Microsoft-managed services", "panel_ms")
+    s.panel(168, 24, 318, 520, "Microsoft-managed services", "panel_ms")
     s.card(186, 66, 282, 92, "entra-id", "Microsoft Entra ID", ["Sign-in, Conditional Access", "and single sign-on"])
     s.rect(186, 180, 282, 178, *p["card"], rx=8, width=1)
     s.icon("avd", 200, 198, 38)
@@ -79,7 +92,7 @@ def north_star(mode: str) -> Svg:
     s.text(250, 304, "session host update and")
     s.text(250, 320, "autoscale")
     s.card(186, 380, 282, 92, "intune", "Microsoft Intune", ["Device and user policy from", "the settings catalog"])
-    s.panel(516, 24, 468, 504, "Your Azure subscription", "panel_sub")
+    s.panel(516, 24, 468, 520, "Your Azure subscription", "panel_sub")
     s.rect(534, 62, 432, 240, "none", p["vnet"], rx=8, dash="6 4", width=1.3)
     s.icon("vnet", 548, 70, 18)
     s.text(572, 84, "Spoke virtual network", size=12, weight=600, colour=p["title"])
@@ -95,22 +108,23 @@ def north_star(mode: str) -> Svg:
     s.rect(826, 156, 124, 72, *p["card"], rx=8, width=1)
     s.icon("private-endpoint", 873, 164, 30)
     s.text(888, 214, "Private endpoint", size=12, anchor="middle")
-    s.card(534, 330, 214, 94, "gallery", "Azure Compute Gallery", ["Image versions built by", "Azure Image Builder"], title_size=12)
-    s.card(770, 330, 196, 94, "files", "Azure Files", ["FSLogix profiles and", "App Attach packages"], title_size=13)
-    s.rect(534, 446, 432, 66, *p["card"], rx=8, width=1)
-    s.icon("monitor", 548, 462, 34)
-    s.text(594, 476, "Azure Monitor and Log Analytics", size=13, weight=600, colour=p["title"])
-    s.text(594, 495, "Diagnostics, performance data, AVD Insights and alerts")
+    s.card(534, 336, 214, 110, "gallery", "Azure Compute Gallery", ["Image versions built by", "Azure Image Builder"], title_size=12)
+    s.card(770, 336, 196, 110, "files", "Azure Files", ["FSLogix profiles and", "App Attach packages"], title_size=13)
+    s.rect(534, 468, 432, 66, *p["card"], rx=8, width=1)
+    s.icon("monitor", 548, 484, 34)
+    s.text(594, 498, "Azure Monitor and Log Analytics", size=13, weight=600, colour=p["title"])
+    s.text(594, 517, "Diagnostics, performance data, AVD Insights and alerts")
     s.arrow([(110, 214), (140, 214), (140, 112), (183, 112)])
     s.arrow([(110, 240), (183, 240)])
     s.arrow([(550, 140), (500, 140), (500, 222), (471, 222)])
     s.arrow([(788, 192), (823, 192)])
-    s.arrow([(888, 228), (888, 327)])
+    s.arrow([(888, 228), (888, 336)])
     s.arrow([(468, 300), (510, 300), (510, 250), (549, 250)])
-    s.arrow([(640, 330), (640, 289)])
+    s.arrow([(640, 336), (640, 289)])
     s.arrow([(468, 426), (524, 426), (524, 272), (549, 272)])
-    s.arrow([(760, 286), (760, 443)])
-    for cx, cy, n in [(140, 166, 1), (152, 240, 2), (500, 182, 3), (888, 268, 4), (510, 284, 5), (640, 316, 6), (524, 372, 7), (760, 316, 8)]:
+    s.arrow([(760, 286), (760, 465)])
+    # Badges 6 and 8 sit in the clear band between the spoke's dashed border (y 302) and the cards below (y 336).
+    for cx, cy, n in [(140, 166, 1), (152, 240, 2), (500, 182, 3), (888, 268, 4), (500, 284, 5), (640, 319, 6), (500, 372, 7), (760, 319, 8)]:
         s.badge(cx, cy, str(n))
     return s
 
@@ -124,26 +138,26 @@ def two_host_pools(mode: str) -> Svg:
     s.card(172, 83, 200, 94, "entra-id", "Microsoft Entra ID", "Sign-in and SSO")
     s.card(172, 225, 200, 96, "workspace", "One workspace", "One feed for both pools")
     s.card(172, 370, 200, 96, "application-group", "Application groups", "User assignments")
-    s.panel(430, 45, 520, 475, "Your Azure subscription", "panel_sub")
-    s.rect(455, 92, 455, 435, "none", p["vnet"], rx=10, dash="6 4")
+    s.panel(430, 45, 520, 510, "Your Azure subscription", "panel_sub")
+    s.rect(455, 92, 455, 455, "none", p["vnet"], rx=10, dash="6 4")
     s.text(477, 116, "Spoke virtual network", size=12, weight=700, colour=p["title"])
     s.card(480, 145, 195, 150, "host-pools", "North Star pooled pool", ["Entra joined", "Intune managed", "Dynamic autoscale"], number=1)
     s.card(700, 145, 185, 150, "host-pools", "Legacy pooled pool", ["Hybrid joined", "AD DS dependency"], number=2, fixed=True)
     s.card(480, 330, 195, 105, "files", "North Star storage", ["Azure Files", "Entra Kerberos"])
     s.card(700, 330, 185, 105, "storage-account", "Legacy storage access", ["Separate model", "Per app need"])
-    s.card(482, 448, 185, 58, "compute-gallery", "Clean image", "Marketplace base")
-    s.card(700, 448, 185, 58, "images", "Legacy image track", "Separate image path")
-    s.panel(430, 545, 520, 110, "Identity infrastructure", "panel_alt")
-    s.card(450, 575, 145, 62, "domain-services", "AD DS DCs", "Line of sight", title_size=12)
-    s.card(615, 575, 170, 62, "entra-id-official", "Connect or Cloud Sync", "Hybrid IDs", title_size=12)
-    s.card(805, 575, 125, 62, "groups", "Assignments", "Apps", title_size=12)
+    s.card(482, 448, 185, 84, "compute-gallery", "Clean image", "Marketplace base")
+    s.card(700, 448, 185, 84, "images", "Legacy image track", "Separate path")
+    s.panel(430, 570, 520, 145, "Identity infrastructure", "panel_alt")
+    s.card(450, 610, 145, 84, "domain-services", "AD DS DCs", "Line of sight", title_size=11, body_size=11)
+    s.card(615, 610, 170, 84, "entra-id-official", "Connect or Cloud Sync", "Hybrid IDs", title_size=12)
+    s.card(790, 610, 145, 84, "groups", "Assignments", "Apps", title_size=12)
     s.arrow([(95, 302), (140, 302), (140, 273), (172, 273)])
     s.arrow([(272, 177), (272, 225)])
     s.arrow([(372, 274), (430, 274), (430, 210), (480, 210)])
     s.arrow([(372, 274), (430, 274), (430, 128), (792, 128), (792, 145)])
     s.arrow([(272, 321), (272, 370)])
     s.arrow([(372, 418), (430, 418), (430, 254), (480, 254)], dashed=True)
-    for n, x, y in [(1, 472, 210), (2, 792, 134), (3, 405, 274)]:
+    for n, x, y in [(1, 450, 210), (2, 792, 125), (3, 408, 274)]:
         s.badge(x, y, str(n))
     return s
 
@@ -162,7 +176,7 @@ def personal_desktops(mode: str) -> Svg:
     s.card(710, 100, 190, 150, None, "Windows 365 Cloud PC", ["Dedicated Cloud PC", "Managed with Intune"], number=2)
     s.card(475, 300, 190, 115, "disks", "Persistent OS disk", ["User changes persist", "Not disposable"])
     s.card(710, 300, 190, 115, "files", "Profile model differs", ["FSLogix may not", "be required"])
-    s.card(595, 455, 190, 75, "compute-gallery", "Keep the pool small", "Review often")
+    s.card(595, 455, 190, 84, "compute-gallery", "Keep the pool small", "Review often")
     s.arrow([(108, 304), (140, 304), (140, 142), (180, 142)])
     s.arrow([(385, 292), (430, 292), (430, 176), (475, 176)])
     s.arrow([(385, 292), (430, 292), (430, 40), (805, 40), (805, 100)])
@@ -170,7 +184,7 @@ def personal_desktops(mode: str) -> Svg:
     s.arrow([(805, 250), (805, 300)])
     s.arrow([(570, 415), (570, 442), (650, 442), (650, 455)], dashed=True)
     s.arrow([(805, 415), (805, 442), (735, 442), (735, 455)], dashed=True)
-    for n, x, y in [(1, 452, 176), (2, 805, 70), (3, 650, 442)]:
+    for n, x, y in [(1, 462, 176), (2, 805, 76), (3, 650, 442)]:
         s.badge(x, y, str(n))
     return s
 
@@ -217,7 +231,7 @@ def multi_region(mode: str) -> Svg:
     secondary_profiles = s.card(575, 265, 155, 100, "files", "Profiles", "Protected share")
     secondary_apps = s.card(760, 265, 145, 100, "files", "App packages", "Replicated share")
     secondary_images = s.card(655, 410, 170, 100, "compute-gallery", "Image versions", "Replicated versions")
-    iac = s.card(380, 570, 240, 58, "resource-group", "Infrastructure as code", "Rebuilds the platform")
+    iac = s.card(380, 570, 240, 74, "resource-group", "Infrastructure as code", "Rebuilds the platform")
     s.h_arrow(primary_hp, primary_hosts)
     s.h_arrow(secondary_hp, secondary_hosts)
     s.arrow([(245, 315), (245, 385), (575, 385), (575, 315)], dashed=True, source=primary_profiles, target=secondary_profiles, label="profiles")
@@ -234,31 +248,30 @@ def multi_region(mode: str) -> Svg:
 def private_connectivity(mode: str) -> Svg:
     s = Svg(W, 650, mode, "Private and public connectivity paths", "Azure Virtual Desktop uses reverse connect by default, can use Private Link for private service access, and can use RDP Shortpath over managed networks or public STUN and TURN paths.")
     p = s.p
-    s.panel(40, 70, 260, 470, "Client networks", "panel_sub")
+    s.panel(40, 70, 260, 500, "Client networks", "panel_sub")
     s.card(68, 120, 200, 90, "users", "Managed network users", "ExpressRoute or VPN")
     s.card(68, 310, 200, 90, "users", "Internet users", "Public client path")
-    s.card(80, 455, 175, 58, "expressroute", "ExpressRoute or VPN", "Private path")
+    s.card(80, 455, 175, 84, "expressroute", "ExpressRoute or VPN", "Private path")
     s.panel(355, 70, 250, 470, "Microsoft-managed services", "panel_ms")
-    s.card(382, 120, 195, 95, "private-link", "AVD Private Link", "Private service access")
+    s.card(382, 120, 195, 110, "private-link", "AVD Private Link", "Private service access")
     s.card(382, 300, 195, 95, "avd", "AVD gateway and broker", "Reverse connect")
     s.panel(660, 70, 285, 470, "Hub and spoke Azure", "panel_sub")
     s.card(685, 110, 105, 82, "azure-firewall", "Hub", "DNS", title_size=12)
     s.card(812, 110, 105, 82, "vnet", "Spoke", "Hosts", title_size=12)
-    s.rect(690, 230, 230, 225, "none", p["vnet"], rx=9, dash="6 4")
-    s.text(710, 254, "Session host spoke", size=12, weight=700, colour=p["title"])
-    s.card(710, 280, 185, 82, "host-pools", "Session hosts", "Outbound only")
-    s.card(710, 390, 185, 45, "private-endpoint", "Storage endpoint", "Azure Files")
+    spoke = s.panel(690, 230, 230, 280, "Session host spoke", "panel_alt", dashed=True)
+    session_hosts = s.card(710, 280, 185, 82, "host-pools", "Session hosts", "Outbound only", parent=spoke)
+    storage = s.card(710, 390, 185, 84, "private-endpoint", "Azure Files", "Private endpoint", parent=spoke)
     s.arrow([(268, 165), (382, 165)], dashed=True)
     s.arrow([(268, 355), (382, 355)])
-    s.arrow([(480, 215), (480, 300)])
+    s.arrow([(480, 230), (480, 300)])
     s.arrow([(577, 348), (660, 348), (660, 322), (710, 322)])
-    s.arrow([(255, 484), (890, 484), (890, 455)], dashed=True)
+    s.arrow([(255, 490), (690, 490)], dashed=True)
     s.arrow([(268, 165), (330, 165), (330, 265), (760, 265), (760, 280)], dashed=True)
-    s.arrow([(765, 362), (765, 390)])
+    s.arrow([(765, 362), (765, 390)], source=session_hosts, target=storage, label="5")
     s.badge(318, 165, "1")
     s.badge(318, 355, "2")
-    s.badge(610, 348, "3")
-    s.badge(890, 455, "4")
+    s.badge(635, 348, "3")
+    s.badge(632, 490, "4")
     s.badge(765, 376, "5")
     return s
 
@@ -270,12 +283,12 @@ DEPENDENCY_NODES = [
     (4, "Host pool type", "Pooled or personal.",),
     (5, "Management approach", "Standard or SHC.",),
     (6, "Domain join type", "One type per pool.",),
-    (7, "Session host config", "MI and Key Vault."),
+    (7, "Host config", "MI and Key Vault."),
     (8, "Session update", "Batch replace."),
     (9, "Dynamic autoscale", "Create and delete."),
     (10, "Ephemeral OS disks", "Create and delete only."),
     (11, "Single sign-on", "Entra auth."),
-    (12, "FSLogix profiles", "SMB, RBAC, NTFS."),
+    (12, "FSLogix profiles", "SMB and RBAC."),
     (13, "App Attach", "Share and SP roles."),
     (14, "Intune policy", "Settings catalog."),
     (15, "Legacy auth", "Use a hybrid pool."),
@@ -293,15 +306,15 @@ def dependency_map(mode: str) -> Svg:
         4: (65, 225),
         5: (390, 225),
         6: (715, 225),
-        7: (40, 375),
+        7: (50, 375),
         8: (280, 375),
         9: (520, 375),
         10: (760, 375),
         11: (50, 540),
-        12: (235, 540),
-        13: (420, 540),
-        14: (605, 540),
-        15: (790, 540),
+        12: (232, 540),
+        13: (414, 540),
+        14: (596, 540),
+        15: (778, 540),
     }
     icons = {1: "resource-group", 2: "entra-id", 3: "vnet", 4: "host-pools", 5: "host-pools", 6: "entra-id-official", 7: "key-vault", 8: "compute-gallery", 9: "avd", 10: "disks", 11: "entra-id-official", 12: "files", 13: "application-group", 14: "intune", 15: "domain-services"}
     fixed = {4, 5, 6}
@@ -352,10 +365,10 @@ def identity_flow(mode: str) -> Svg:
     s.icon("users", 55, 278, 54)
     s.text(82, 350, "User", size=14, weight=700, colour=p["title"], anchor="middle")
     cards = [
-        (160, 120, "entra-id", "Microsoft Entra ID", "User authentication"),
-        (360, 120, "policy", "Conditional Access", "AVD and WCL"),
+        (160, 120, "entra-id", "Microsoft Entra ID", "User auth"),
+        (360, 120, "policy", "CA policy", "AVD and WCL"),
         (560, 120, "avd", "AVD broker", "Workspace access"),
-        (760, 120, "vm", "Host sign-in", "SSO with Entra auth"),
+        (760, 120, "vm", "Host sign-in", "Entra SSO"),
         (560, 380, "entra-id-official", "Entra Kerberos", "File ticket"),
         (760, 380, "files", "Azure Files", "FSLogix profile"),
     ]
@@ -378,12 +391,12 @@ def profiles_flow(mode: str) -> Svg:
     s.card(265, 130, 150, 105, "vm", "Session host", "Gets ticket", number=2)
     s.card(175, 320, 180, 105, "disks", "FSLogix container", "Profile attaches", number=5)
     s.panel(520, 80, 390, 450, "Profile storage", "panel_sub")
-    s.card(550, 130, 150, 105, "entra-id-official", "Entra Kerberos", "Identity SMB", number=3)
-    s.card(730, 130, 150, 105, "files", "Azure Files", "SMB share", number=4)
+    s.card(545, 130, 165, 105, "entra-id-official", "Kerberos", "SMB", number=3)
+    s.card(725, 130, 165, 105, "files", "Azure Files", "SMB share", number=4)
     s.card(550, 320, 330, 105, "storage-account", "Shard by IOPS and throughput", "Use multiple accounts and shares", number=6)
     s.arrow([(235, 182), (265, 182)])
-    s.arrow([(415, 182), (550, 182)])
-    s.arrow([(700, 182), (730, 182)])
+    s.arrow([(415, 182), (545, 182)])
+    s.arrow([(710, 182), (725, 182)])
     s.arrow([(805, 235), (805, 320)])
     s.arrow([(805, 235), (805, 280), (500, 280), (500, 372), (355, 372)])
     s.arrow([(355, 372), (550, 372)], dashed=True)
@@ -396,9 +409,9 @@ def app_attach_flow(mode: str) -> Svg:
     stages = [
         (55, 145, "images", "Package", "MSIX, Appx or App-V", 1),
         (245, 145, "files", "SMB share", "Azure Files share", 2),
-        (435, 145, "application-group", "App object", "Metadata and type", 3),
+        (435, 145, "application-group", "App", "Data", 3),
         (625, 145, "host-pools", "Host pool", "Assign to pool", 4),
-        (815, 145, "groups", "User or group", "Assign to group", 5),
+        (815, 145, "groups", "User group", "Assign to group", 5),
     ]
     for x, y, icon, title, body, n in stages:
         s.card(x, y, 150, 120, icon, title, body, number=n, title_size=12.2)
@@ -416,20 +429,20 @@ def images_pipeline(mode: str) -> Svg:
     s = Svg(W, 640, mode, "Image build and session host update pipeline", "A fresh Marketplace image is customised with Azure Image Builder, published to Azure Compute Gallery, referenced by the session host configuration, then rolled through session host update in rings.")
     p = s.p
     stages = [
-        (70, 135, "marketplace", "Marketplace source", "Windows 11 multi-session", 1),
+        (70, 135, "marketplace", "Source", "Image", 1),
         (260, 135, "image-builder", "Image Builder", "Lean base image", 2),
         (450, 135, "compute-gallery", "Compute Gallery", "Versioned images", 3),
         (640, 135, "host-pools", "Host config", "Image and settings", 4),
         (790, 365, "vm", "Ringed update", "Batch replace", 5),
     ]
     for x, y, icon, title, body, n in stages:
-        s.card(x, y, 155, 120, icon, title, body, number=n, fixed=(n == 4), title_size=12.2)
+        s.card(x, y, 155, 140 if n == 4 else 120, icon, title, body, number=n, fixed=(n == 4), title_size=12.2)
     s.card(220, 365, 150, 92, "host-pools", "Ring 0", "Pilot pool")
     s.card(420, 365, 150, 92, "host-pools", "Ring 1", "Early adopters")
     s.card(620, 365, 150, 92, "host-pools", "Production", "Broad rollout")
     for x in [225, 415, 605]:
         s.arrow([(x, 195), (x + 35, 195)])
-    s.arrow([(718, 255), (718, 365)])
+    s.arrow([(718, 275), (718, 365)])
     s.arrow([(370, 410), (420, 410)])
     s.arrow([(570, 410), (620, 410)])
     s.arrow([(770, 410), (790, 410)])
@@ -442,9 +455,9 @@ def scaling_lifecycle(mode: str) -> Svg:
     s.card(70, 120, 150, 105, "avd", "Scaling plan", "Schedule", number=1)
     s.card(270, 120, 150, 105, "host-pools", "Host config", "Source", number=2, fixed=True)
     s.card(470, 120, 150, 105, "vm", "Create hosts", "Ramp up", number=3)
-    s.card(670, 120, 150, 105, "users", "User sessions", "Use capacity", number=4)
-    s.card(470, 360, 150, 105, "vm", "Delete hosts", "No deallocate", number=5)
-    s.card(270, 360, 150, 105, "monitor", "Diagnostics", "Track decisions", number=6)
+    s.card(670, 120, 150, 105, "users", "Users", "Capacity", number=4)
+    s.card(470, 360, 150, 105, "vm", "Delete hosts", "Delete only", number=5)
+    s.card(270, 360, 150, 105, "monitor", "Logs", "Data", number=6)
     s.arrow([(220, 172), (270, 172)])
     s.arrow([(420, 172), (470, 172)])
     s.arrow([(620, 172), (670, 172)])
@@ -459,7 +472,7 @@ def monitoring_flow(mode: str) -> Svg:
     s = Svg(W, 640, mode, "Monitoring data flow", "Azure Virtual Desktop diagnostic settings and Azure Monitor Agent data collection rules send control plane and session host telemetry to Log Analytics, then AVD Insights and alerts use the data.")
     p = s.p
     s.card(70, 130, 165, 110, "avd", "AVD resources", "Control plane", number=1)
-    s.card(285, 130, 165, 110, "monitor-official", "Diagnostic settings", "Connections and errors", number=2)
+    s.card(285, 130, 165, 110, "monitor-official", "Diag", "Conn", number=2)
     s.card(70, 360, 165, 110, "vm", "Session hosts", "Guest OS data", number=3)
     s.card(285, 360, 165, 110, "monitor", "Monitor Agent", "DCR collection", number=4)
     s.card(540, 245, 165, 110, "log-analytics", "Log Analytics", "Query store", number=5)
@@ -484,14 +497,109 @@ def security_layers(mode: str) -> Svg:
         (760, 95, "files", "Storage access", "Private endpoints and SMB"),
         (185, 350, "azure-firewall", "Network boundary", "Reverse connect and outbound"),
         (415, 350, "monitor", "Operations evidence", "Diagnostics and alerts"),
-        (645, 350, "groups", "Administrator access", "Least-privilege RBAC"),
+        (645, 350, "groups", "Admin access", "RBAC"),
     ]
     for i, (x, y, icon, title, body) in enumerate(layers, 1):
-        s.card(x, y, 185, 132, icon, title, body, number=i, title_size=12.5)
+        s.card(x, y, 185, 132, icon, title, body, number=i, title_size=11.5)
     s.arrow([(162, 227), (162, 290), (277, 290), (277, 350)], dashed=True)
     s.arrow([(392, 227), (392, 290), (507, 290), (507, 350)], dashed=True)
     s.arrow([(622, 227), (622, 290), (737, 290), (737, 350)], dashed=True)
     s.label(370, 560, "Defence in depth: no single control is the security boundary.", 260, size=12)
+    return s
+
+
+def identity_two_directories(mode: str) -> Svg:
+    s = Svg(W, 640, mode, "Two directories in hybrid identity", "Active Directory Domain Services handles on-premises Windows identity, while Microsoft Entra ID handles cloud identity and token-based cloud application sign-in. Connect Sync or Cloud Sync synchronises users and groups between them.")
+    p = s.p
+    left = s.panel(45, 60, 360, 500, "On-premises: Active Directory Domain Services", "panel_sub")
+    right = s.panel(595, 60, 360, 500, "Cloud: Microsoft Entra ID", "panel_ms")
+    c1 = s.card(75, 115, 150, 112, "domain-services", "DCs", "Kerberos, NTLM, LDAP.", number=1, parent=left, body_size=11)
+    c2 = s.card(235, 115, 150, 112, "policy", "Group Policy", "Computer and user policy", parent=left, body_size=11)
+    c3 = s.card(75, 280, 150, 100, "vm", "Computer accounts", "Domain-joined devices", parent=left)
+    c4 = s.card(235, 280, 150, 100, "application-group", "Windows apps", "Windows auth", parent=left)
+    e1 = s.card(625, 115, 150, 112, "entra-id", "Entra ID", "OIDC, OAuth, SAML", number=3, parent=right, body_size=11)
+    e2 = s.card(785, 115, 150, 100, "policy", "Conditional Access", "Sign-in policy", parent=right)
+    e3 = s.card(625, 280, 150, 100, "groups", "Device objects", "Joined or registered", parent=right)
+    e4 = s.card(785, 280, 150, 100, "intune", "Microsoft Intune", "Device management", parent=right)
+    e5 = s.card(705, 430, 150, 100, "application-group", "Cloud apps", "Microsoft 365 and SaaS", parent=right)
+    sync = s.card(425, 250, 150, 120, "entra-id-official", "Sync", "Connect Sync or Cloud Sync", number=2, title_size=12)
+    s.arrow([(150, 380), (150, 405), (500, 405), (500, 370)], source=c3, target=sync, label="2")
+    s.arrow([(575, 330), (625, 330)], source=sync, target=e3, label="3")
+    s.arrow([(150, 227), (150, 250), (310, 250), (310, 280)], source=c1, target=c4, label="1")
+    return s
+
+
+def identity_join_models(mode: str) -> Svg:
+    s = Svg(W, 640, mode, "Device join models and directory objects", "Four Microsoft identity join models showing whether the device has an object in Active Directory, Microsoft Entra ID or both.")
+    p = s.p
+    ad = s.panel(45, 65, 910, 150, "Active Directory", "panel_sub")
+    entra = s.panel(45, 485, 910, 150, "Microsoft Entra ID", "panel_ms")
+    ad_obj = s.card(400, 95, 200, 100, "domain-services", "AD computer accounts", "Kerberos TGT and Group Policy", parent=ad, title_size=12)
+    entra_obj = s.card(395, 515, 210, 100, "entra-id", "Entra device objects", "PRT and cloud SSO", parent=entra, title_size=12)
+    models = [
+        (60, "Entra registered", "BYOD. Entra object. Not a session host.", "users", False, True),
+        (285, "Entra joined", "Entra object only. PRT. Intune. North Star hosts.", "vm", False, True),
+        (510, "Hybrid joined", "AD and Entra. TGT and PRT.", "vm", True, True),
+        (735, "AD DS joined", "AD computer only. TGT. Group Policy.", "domain-services", True, False),
+    ]
+    for i, (x, title, body, icon, to_ad, to_entra) in enumerate(models, 1):
+        card = s.card(x, 260, 185, 120, icon, title, body, number=i, title_size=12.2)
+        if to_ad:
+            s.arrow([(x + 92, 260), (x + 92, 205), (500, 205), (500, 195)], source=card, target=ad_obj, label=f"{i}-ad")
+        if to_entra:
+            s.arrow([(x + 92, 380), (x + 92, 470), (500, 470), (500, 515)], source=card, target=entra_obj, label=f"{i}-entra")
+    return s
+
+
+def identity_tokens_on_device(mode: str) -> Svg:
+    # One row per credential: the issuer on the left, the credential on the session host in the middle,
+    # and what uses it on the right. Every arrow is straight, so no two lines share a path.
+    s = Svg(W, 720, mode, "Credentials on a signed-in session host", "A Microsoft Entra joined session host holds a Primary Refresh Token and a partial TGT from Microsoft Entra ID, access tokens for cloud apps, a Microsoft Entra Kerberos ticket for Azure Files, and a full TGT from a domain controller for on-premises resources.")
+    centre = s.panel(320, 60, 360, 615, "Microsoft Entra joined session host", "panel_sub")
+    entra = s.card(40, 110, 230, 110, "entra-id", "Microsoft Entra ID", "Issues the PRT and a partial TGT")
+    prt = s.card(350, 110, 300, 110, "entra-id", "Primary Refresh Token", "Plus a partial TGT for AD DS", parent=centre)
+    access = s.card(350, 255, 300, 110, "application-group", "Access tokens", "One per app, from the PRT", parent=centre)
+    m365 = s.card(730, 255, 230, 110, "application-group", "Microsoft 365", "Cloud apps accept the tokens")
+    ticket = s.card(350, 400, 300, 110, "files", "Azure Files ticket", "From Microsoft Entra Kerberos", parent=centre)
+    files = s.card(730, 400, 230, 110, "files", "Azure Files", "FSLogix profile share")
+    dc = s.card(40, 545, 230, 110, "domain-services", "Domain controller", "Trades the partial TGT for a full TGT")
+    tgt = s.card(350, 545, 300, 110, "domain-services", "Full TGT", "Gets service tickets from the domain controller", parent=centre)
+    app = s.card(730, 545, 230, 110, "storage-account", "On-premises app", "Accepts the service ticket")
+    s.arrow([(270, 165), (350, 165)], source=entra, target=prt, label="1")
+    s.arrow([(500, 220), (500, 255)], source=prt, target=access, label="2")
+    s.arrow([(650, 310), (730, 310)], source=access, target=m365, label="2-use")
+    s.arrow([(155, 220), (155, 455), (350, 455)], source=entra, target=ticket, label="3")
+    s.arrow([(650, 455), (730, 455)], source=ticket, target=files, label="3-use")
+    s.arrow([(270, 600), (350, 600)], source=dc, target=tgt, label="4")
+    s.arrow([(650, 600), (730, 600)], source=tgt, target=app, label="5")
+    s.badge(295, 165, "1")
+    s.badge(500, 237.5, "2")
+    s.badge(155, 335, "3")
+    s.badge(295, 600, "4")
+    s.badge(705, 600, "5")
+    return s
+
+
+def identity_onprem_access(mode: str) -> Svg:
+    # The session host is the actor: it collects the partial TGT, trades it at a domain controller and presents
+    # the service ticket. Machine authentication is a separate, blocked path.
+    s = Svg(W, 700, mode, "On-premises access from an Entra joined session host", "A Microsoft Entra joined session host gets a partial TGT from Microsoft Entra ID, trades it at a domain controller for a full TGT and service tickets, and reaches on-premises apps as the user. Machine authentication isn't supported because the host has no AD computer account.")
+    p = s.p
+    host = s.card(40, 110, 250, 440, "vm", "Entra joined session host", "User signed in with single sign-on. No AD computer account.")
+    entra = s.card(380, 110, 280, 100, "entra-id", "Microsoft Entra ID", "Issues a partial TGT with the PRT")
+    dc = s.card(380, 250, 280, 100, "domain-services", "Domain controller", "Trades it for a full TGT and issues service tickets")
+    app = s.card(380, 390, 280, 100, "storage-account", "File share or app", "Works as the user, with Kerberos")
+    blocked = s.card(380, 560, 280, 100, "domain-services", "Machine authentication", "Not supported: no AD computer account", kind="card_alt")
+    hybrid = s.card(740, 560, 220, 100, "host-pools", "Hybrid joined pool", "For apps that need it", kind="card_alt")
+    s.label(740, 255, "Needs a Kerberos server object and line of sight to a domain controller.", 220, size=12)
+    s.arrow([(290, 160), (380, 160)], source=host, target=entra, label="1")
+    s.arrow([(290, 300), (380, 300)], source=host, target=dc, label="2")
+    s.arrow([(290, 440), (380, 440)], source=host, target=app, label="3")
+    s.arrow([(165, 550), (165, 610), (380, 610)], dashed=True, colour=p["danger"], source=host, target=blocked, label="blocked")
+    s.arrow([(660, 610), (740, 610)], dashed=True, colour=p["danger"], source=blocked, target=hybrid, label="blocked")
+    s.badge(335, 160, "1")
+    s.badge(335, 300, "2")
+    s.badge(335, 440, "3")
     return s
 
 
@@ -510,6 +618,10 @@ DIAGRAMS = [
     ("scaling-lifecycle", scaling_lifecycle, "docs/scaling/index.md", "How it fits", "Dynamic autoscaling lifecycle for ephemeral OS disk pooled hosts, showing create, use, drain and delete.", ["Scaling plan", "Read session host configuration", "Create hosts", "Serve users", "Drain and delete", "Observe diagnostics"], [LEARN["autoscale"], LEARN["ephemeral"], LEARN["host_pool_management"]]),
     ("monitoring-flow", monitoring_flow, "docs/monitoring/index.md", "How it fits", "Monitoring data flow from AVD diagnostic settings and Azure Monitor Agent to Log Analytics, AVD Insights and alerts.", ["AVD diagnostics source", "Diagnostic settings", "Session hosts", "Azure Monitor Agent and DCR", "Log Analytics", "AVD Insights", "Alerts"], [LEARN["diagnostics"], LEARN["insights"], LEARN["ama"]]),
     ("security-layers", security_layers, "docs/security/index.md", "Control map", "Defence-in-depth layers for identity, session controls, host protection, storage, networking, monitoring and administration.", None, [LEARN["security"], LEARN["mfa"], LEARN["private_link"], LEARN["managed_identity"]]),
+    ("identity-two-directories", identity_two_directories, "docs/demystified/two-directories.md", "Identity demystified", "Active Directory Domain Services and Microsoft Entra ID shown as two directories, with users and groups synchronised by Microsoft Entra Connect Sync or Cloud Sync.", ["Sign in on-premises with Kerberos or NTLM", "Synchronise users and groups", "Sign in to the cloud with tokens"], [LEARN["hybrid_identity"], LEARN["entra_what_is"], LEARN["cloud_sync"], LEARN["ad_ds"], LEARN["identity_platform"]]),
+    ("identity-join-models", identity_join_models, "docs/demystified/device-join-models.md", "Identity demystified", "Four device join models showing whether the device has an object in Active Directory, Microsoft Entra ID or both.", ["Registered device has an Entra object", "Entra joined device has an Entra object and PRT", "Hybrid joined device has AD and Entra objects", "AD DS joined device has an AD computer account"], [LEARN["device_overview"], LEARN["device_registered"], LEARN["concept_join"], LEARN["hybrid_join"], LEARN["prt"]]),
+    ("identity-tokens-on-a-device", identity_tokens_on_device, "docs/demystified/tokens-and-tickets.md", "Identity demystified", "Credentials on a signed-in Microsoft Entra joined session host: a Primary Refresh Token and a partial TGT from Microsoft Entra ID, access tokens for Microsoft 365, a Microsoft Entra Kerberos ticket for the Azure Files profile share, and a full TGT from a domain controller that gets service tickets for on-premises apps.", ["Microsoft Entra ID issues the Primary Refresh Token and, with a Kerberos server object, a partial TGT", "The PRT gets access tokens that cloud apps such as Microsoft 365 accept", "Microsoft Entra Kerberos issues the ticket for the Azure Files profile share", "A domain controller trades the partial TGT for a full TGT", "The full TGT gets service tickets for on-premises apps"], [LEARN["sso"], LEARN["prt"], LEARN["device_sso_onprem"], LEARN["kerberos_files"], LEARN["cloud_kerberos_trust"], LEARN["passwordless_onprem"]]),
+    ("identity-onprem-access", identity_onprem_access, "docs/demystified/application-authentication.md", "Identity demystified", "On-premises access from a Microsoft Entra joined session host: Microsoft Entra ID issues a partial TGT, a domain controller trades it for a full TGT and issues service tickets, and the user reaches file shares and apps with Kerberos. Machine authentication isn't supported because the host has no AD computer account, so those apps use a hybrid joined pool.", ["The session host gets a partial TGT from Microsoft Entra ID, with the PRT", "The session host trades the partial TGT at a domain controller for a full TGT, then gets service tickets", "The session host presents the service ticket and reaches the file share or app as the user"], [LEARN["sso"], LEARN["device_sso_onprem"], LEARN["kerberos_files"], LEARN["cloud_kerberos_trust"], LEARN["passwordless_onprem"], "https://learn.microsoft.com/entra/identity/devices/device-join-plan#understand-considerations-for-applications-and-resources"]),
 ]
 
 

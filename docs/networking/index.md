@@ -12,7 +12,28 @@ description: Network design for Azure Virtual Desktop connections, storage, priv
     - Bypass proxies for Azure Virtual Desktop traffic where policy allows; Microsoft Learn says proxies can affect stability and performance.
     - Keep round-trip latency from the client network to the Azure region under 150 ms where possible.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Azure Virtual Desktop networking is the road system between the user's device, the Azure Virtual Desktop service, the session host and the storage the desktop needs. A good road system gives users a short, reliable path. A poor one sends traffic through unnecessary checkpoints and makes the desktop feel slow.
+
+The North Star uses outbound connections from session hosts, private endpoints for storage, and User Datagram Protocol paths for Remote Desktop Protocol where possible. That keeps hosts protected while still giving the user a responsive session.
+
+This diagram shows the four main roads.
+
+```mermaid
+flowchart TB
+    C["Client"] --> S["AVD service"]
+    S --> H["Session host"]
+    C --> H
+    H --> F["File shares"]
+    H --> M["Microsoft endpoints"]
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 Azure Virtual Desktop networking is the set of paths that lets a client discover a workspace, authenticate, connect to a session host, mount user profiles, attach applications, send telemetry, and reach required Microsoft services. The North Star design is Microsoft Entra joined, Intune managed, and cloud first, but it still depends on deliberate network design.
 
@@ -34,15 +55,15 @@ The connection starts with Azure Virtual Desktop reverse connect. The RDP Shortp
 From the session host's side, these are the flows it needs:
 
 ```mermaid
-flowchart LR
-    C["Windows App client"] --> AVD["Azure Virtual Desktop service"]
-    AVD --> H["Session host subnet"]
-    C -. "UDP STUN or TURN" .-> H
-    H --> F["Azure Files private endpoint"]
-    H --> M["Azure Monitor"]
-    H --> I["Microsoft Entra ID"]
-    H --> N["NAT Gateway or Azure Firewall"]
-    N --> MS["Required Microsoft endpoints"]
+flowchart TB
+    C["Windows App"] --> A["AVD service"]
+    A --> H["Host subnet"]
+    C -. "UDP" .-> H
+    H --> F["Azure Files"]
+    H --> M["Monitor"]
+    H --> E["Entra ID"]
+    H --> N["NAT or firewall"]
+    N --> R["Required endpoints"]
 ```
 
 Use a hub-and-spoke model. Put shared connectivity, DNS forwarding, firewalling and inspection decisions in the hub. Put host pools, private endpoints and workload subnets in spokes. Keep profile storage and App Attach storage close to the session hosts. Use [networking](index.md), [identity](../identity/index.md), [host pools](../host-pools/index.md), [profiles](../profiles/index.md), [app attach](../app-attach/index.md) and [security](../security/index.md) as one design, not separate decisions.
@@ -58,6 +79,8 @@ Enable RDP Shortpath and design the network so UDP works. Use TURN as the expect
 
 ## Design decisions
 
+<span class="level l300">Level 300</span>
+
 | Decision | North Star choice | Why |
 | --- | --- | --- |
 | RDP transport | Reverse connect plus RDP Shortpath | Reverse connect gives compatibility; UDP Shortpath improves reliability and latency where allowed ([RDP Shortpath](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)). |
@@ -66,6 +89,31 @@ Enable RDP Shortpath and design the network so UDP works. Use TURN as the expect
 | Topology | Hub-and-spoke | Centralises DNS, inspection and egress while keeping host pool spokes isolated. |
 | Outbound internet | Explicit outbound with NAT Gateway or firewall | Learn says default outbound access gives an implicit outbound public IP and recommends explicit outbound connectivity instead ([Default outbound access in Azure](https://learn.microsoft.com/azure/virtual-network/ip-services/default-outbound-access)). |
 | Proxy | Bypass AVD traffic | Learn recommends bypassing proxies for Azure Virtual Desktop traffic ([Proxy server guidelines](https://learn.microsoft.com/azure/virtual-desktop/proxy-server-support)). |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+RDP Shortpath starts after the TCP reverse connect path is established. Learn says all connections begin by establishing TCP reverse connect over the Azure Virtual Desktop Gateway, then the client and session host exchange capabilities and try to establish User Datagram Protocol transport ([RDP Shortpath for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)).
+
+This sequence shows the high-level transport negotiation.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant G as Gateway
+    participant H as Host
+    participant T as TURN
+    C->>G: TCP 443
+    H->>G: Reverse connect
+    C->>H: Try STUN UDP
+    C->>T: Try TURN UDP
+    C-->>H: Use best path
+```
+
+For public networks, STUN discovers a direct User Datagram Protocol path by finding the public-facing address and port. If that fails, TURN relays the traffic through a known relay address. Learn lists the Azure public cloud TURN relay range as `51.5.0.0/16` on UDP 3478, and STUN as `51.5.0.0/16` on UDP 1024-65535 with default 49152-65535 ([Use RDP Multipath to improve connection reliability to Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/rdp-multipath)).
+
+Required endpoint checks also have a Level 400 diagnostic path. Learn says the Azure Virtual Desktop Agent URL Tool validates required FQDNs and endpoints, and for agent traffic without wildcards you can inspect the event log for **event ID 3701** to find region-specific FQDNs ([Required FQDNs and endpoints for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint)).
 
 ## In this section
 

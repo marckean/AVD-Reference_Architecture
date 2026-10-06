@@ -12,7 +12,27 @@ description: Build lean Azure Virtual Desktop images with Azure Image Builder, s
     - Build images with Azure Image Builder or Azure Virtual Desktop custom image templates, then publish versioned images to Azure Compute Gallery.
     - Roll image versions through rings with session host update, and use Microsoft's Windows update methodology guidance for what should be image-based versus patched in place.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+An image is like the master recipe for every session host. If the recipe is clean and repeatable, every host comes out the same. If the recipe contains old leftovers, every host inherits them.
+
+The North Star keeps the recipe lean. Put the operating system and universal agents in the image. Deliver applications with App Attach where possible and manage settings with Intune.
+
+This diagram shows the image supply chain.
+
+```mermaid
+flowchart TB
+    M["Marketplace"] --> B["Image build"]
+    B --> G["Compute Gallery"]
+    G --> H["Host pool"]
+    H --> U["User session"]
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 An image is the source used to create session host virtual machines. In Azure Virtual Desktop, image quality directly affects sign-in time, security posture, application compatibility, supportability, and the success of dynamic scaling. If every host is rebuilt from a known image, the host pool becomes a replaceable compute layer instead of a collection of hand-maintained servers.
 
@@ -49,6 +69,8 @@ Use Azure Compute Gallery for production image distribution because Microsoft sa
 
 ## Design decisions
 
+<span class="level l300">Level 300</span>
+
 | Decision | North Star choice | Why |
 |---|---|---|
 | Source image | Azure Marketplace Windows 11 Enterprise multi-session | Marketplace images are a supported source for custom image templates and Azure Image Builder, per [Custom image templates](https://learn.microsoft.com/azure/virtual-desktop/custom-image-templates#creation-process). |
@@ -77,6 +99,22 @@ Use Azure Compute Gallery for production image distribution because Microsoft sa
 
 === "Intune"
     Put policy, certificates, scripts, security settings, and supported application deployment into Microsoft Intune. Microsoft recommends using Intune to manage Azure Virtual Desktop and states that Intune can manage Microsoft Entra joined and Microsoft Entra hybrid joined session hosts in [Manage the operating system of session hosts](https://learn.microsoft.com/azure/virtual-desktop/management).
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Azure Compute Gallery is the distribution system. Microsoft lists limits of **100 galleries**, **1,000 image definitions**, and **10,000 image versions** per subscription per region, plus a maximum **100 replicas per image version** ([Azure Compute Gallery](https://learn.microsoft.com/azure/virtual-machines/azure-compute-gallery#limits)).
+
+Session host update is the rollout system. Microsoft says it first updates one **initial** host, then updates the rest in batches, and that only one update can run or be scheduled in a single host pool at a time ([Session host update](https://learn.microsoft.com/azure/virtual-desktop/session-host-update#update-process)).
+
+```mermaid
+flowchart TB
+    B["Builder publishes<br/>version"] --> G["Gallery stores<br/>version"]
+    G --> C["Configuration<br/>selects image"]
+    C --> U["Update<br/>is scheduled"]
+    U --> H["Hosts replaced<br/>in batches"]
+```
 
 ## In this section
 

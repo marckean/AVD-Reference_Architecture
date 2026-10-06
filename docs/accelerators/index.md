@@ -11,6 +11,22 @@ description: Tools in the repository that take an organisation from zero to a wo
     - The tools live in the [GitHub repository](https://github.com/marckean/AVD-Reference_Architecture), not on this website. Clone or download it to use them.
     - Everything is generic and grounded in Microsoft Learn. Read each tool's notes on what has and hasn't been tested before you rely on it.
 
+
+<span class="level l200">Level 200</span>
+
+Accelerators are shortcuts for common work, not magic. They help you discover, deploy, configure, package and explain faster, while the design owner still reviews and tests the outcome.
+
+This flow shows how the accelerators fit together.
+
+```mermaid
+flowchart TB
+    D["Discover"] --> P["Deploy pilot"]
+    P --> I["Apply policy"]
+    P --> A["Attach apps"]
+    I --> V["Validate"]
+    A --> V
+```
+
 ## From zero to a working pilot
 
 <div class="grid cards" markdown>
@@ -76,3 +92,9 @@ The discovery questionnaire runs right here on the site, in your browser.
 
 !!! warning "Use them as a starting point"
     These are community accelerators, not Microsoft products. The scripts that change Azure resources or Intune policies haven't been run against every kind of tenant. Run them with `-WhatIf` first, test in a non-production environment, and review everything with the people who own it.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Each accelerator has a different trust boundary. The questionnaire runs in the browser, the Deploy to Azure template changes Azure resources, the Intune tool changes Microsoft Graph policy objects, and the App Attach scripts change packages and assignments. Use `-WhatIf` where the scripts support it, and review generated parameters before deployment.

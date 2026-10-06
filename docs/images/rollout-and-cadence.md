@@ -5,6 +5,10 @@ description: Rolling images out in rings with session host update, how often to 
 
 # Rollout and cadence
 
+<span class="level l300">Level 300</span>
+
+Rollout is how an image becomes a production host. Rings keep the blast radius small while you prove the image, the update process, and the rollback path.
+
 ## Rolling images out in rings
 
 Use rings to reduce blast radius:
@@ -31,6 +35,15 @@ Use a monthly cadence for normal quality and security updates unless the organis
 
 Do not let hosts drift for months and then attempt to reconcile them. The North Star treats pooled hosts as replaceable.
 
+This diagram shows a simple ring model.
+
+```mermaid
+flowchart TB
+    R0["Ring 0<br/>build test"] --> R1["Ring 1<br/>IT users"]
+    R1 --> R2["Ring 2<br/>small pilot"]
+    R2 --> R3["Ring 3<br/>production"]
+```
+
 ## Requirements and limitations
 
 - Azure Image Builder uses a user-assigned managed identity when creating and distributing a custom image from a custom image template, per [Custom image templates](https://learn.microsoft.com/azure/virtual-desktop/custom-image-templates#creation-process).
@@ -38,6 +51,14 @@ Do not let hosts drift for months and then attempt to reconcile them. The North 
 - Session host update can use images from Azure Marketplace, an existing Azure Compute Gallery shared image, or an existing managed image, per [Session host update](https://learn.microsoft.com/azure/virtual-desktop/session-host-update#virtual-machines-and-management-tools).
 - Session host configurations do not currently support accessing an Azure Compute Gallery shared image in a different Azure subscription than the host pool, per [Session host update](https://learn.microsoft.com/azure/virtual-desktop/session-host-update#azure-compute-gallery-shared-image-limitations).
 - App Attach package storage must be accessible by the session hosts, and application assignment requires the application to be assigned to the host pool, the user to be allowed into the application group, and the application to be assigned to the user, per [App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview#how-a-user-gets-an-application).
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Microsoft's Windows update methodology guidance maps **Session host update** and **Azure Compute Gallery** to image-based servicing, and recommends both for pooled Windows client multi-session monthly updates and feature updates ([Windows update management methodologies for session hosts](https://learn.microsoft.com/azure/virtual-desktop/windows-update-management-methodologies-session-hosts)).
+
+Session host update should be tested on a test host pool aligned to production, and Autoscale should be disabled during the update because an enabled scaling plan can cause a runtime error ([Session host update](https://learn.microsoft.com/azure/virtual-desktop/session-host-update#important)).
 
 ---
 

@@ -12,7 +12,27 @@ description: Design pooled Azure Virtual Desktop host pools that create, update,
     - Use ephemeral OS disks for stateless pooled session hosts where the documented requirements and limitations fit.
     - Roll images and configuration through session host update instead of manually patching individual hosts.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Think of a host pool like a staffed service desk. The workspace is the front door, the application group is the menu of services, and the session hosts are the people doing the work. Users ask for a desktop or app, and Azure Virtual Desktop sends them to a suitable session host.
+
+The North Star cares because the host pool is where user experience, cost, identity, and operations meet. If the pool is built from a single repeatable configuration, you can replace broken hosts instead of nursing them.
+
+This diagram shows the simplest relationship between the user-facing objects and the compute.
+
+```mermaid
+flowchart TB
+    U["User"] --> W["Workspace"]
+    W --> A["Application<br/>group"]
+    A --> P["Host pool"]
+    P --> H["Session hosts"]
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 An Azure Virtual Desktop host pool is a collection of Azure virtual machines registered to Azure Virtual Desktop as session hosts. Microsoft recommends that all session hosts in a host pool are sourced from the same image for a consistent user experience. Users are assigned to application groups, and each application group is associated with a workspace so the published desktop or applications appear in an Azure Virtual Desktop client. These terms are defined in [Azure Virtual Desktop terminology](https://learn.microsoft.com/azure/virtual-desktop/terminology).
 
@@ -22,17 +42,11 @@ A session host is the virtual machine that actually runs the user session. In a 
 
 ```mermaid
 flowchart TD
-    A["Azure Marketplace image"] --> B["Azure Image Builder"]
-    B --> C["Azure Compute Gallery image version"]
-    C --> D["Host pool with session host configuration"]
-    D --> E["Session host management policy"]
-    D --> F["Session host 0"]
-    D --> G["Session host 1"]
-    D --> H["Session host 2"]
-    I["Application group"] --> J["Workspace"]
-    F --> I
-    G --> I
-    H --> I
+    A["Image"] --> B["Host pool<br/>configuration"]
+    B --> C["Session<br/>hosts"]
+    C --> D["Application<br/>group"]
+    D --> E["Workspace"]
+    E --> F["User feed"]
 ```
 
 The host pool is the control boundary. The session host configuration is the desired state for hosts in that pool. The session host management policy defines how hosts are created and updated. Application groups decide what users see. The workspace is the feed users subscribe to.
@@ -48,6 +62,8 @@ For the North Star, create a **Pooled** host pool with **Session host configurat
 
 ## Design decisions
 
+<span class="level l300">Level 300</span>
+
 | Decision | North Star choice | Why |
 |---|---|---|
 | Host pool type | Pooled | Pooled host pools can load balance user sessions across session hosts and are the documented fit for shared desktops and RemoteApp workloads in the [terminology article](https://learn.microsoft.com/azure/virtual-desktop/terminology#host-pools). |
@@ -60,6 +76,24 @@ For the North Star, create a **Pooled** host pool with **Session host configurat
 | OS disk | Ephemeral OS disk | It avoids persistent OS disk state and supports fast reimage for stateless pooled hosts, per [Azure VM ephemeral OS disks](https://learn.microsoft.com/azure/virtual-machines/ephemeral-os-disks). |
 | Applications | App Attach first | App Attach dynamically attaches applications to a user session without installing them locally on the session host image, per [App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview). |
 | Profiles | FSLogix profile containers | Users in pooled host pools can connect to different hosts, so Microsoft recommends FSLogix profile containers for profile roaming in [FSLogix profile containers](https://learn.microsoft.com/azure/virtual-desktop/fslogix-profile-containers). |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The key internal boundary is the session host configuration. Microsoft says the host pool management approach *"can't be changed later"* and that a host pool without a session host configuration cannot have one added afterwards ([Host pool management approaches](https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches)). That makes host pool creation a design decision, not a deployment detail.
+
+The service-owned lifecycle is also different from a registration-token pool. With session host configuration, Microsoft says you *"can't retrieve a registration token to add session hosts created outside of Azure Virtual Desktop"* ([Host pool management approaches](https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches#compare-host-pool-management-approaches)). Dynamic Autoscale and session host update both depend on that service-owned lifecycle.
+
+This sequence shows the service-owned path from configuration to usable host.
+
+```mermaid
+flowchart TB
+    A["Admin creates<br/>SHC pool"] --> B["Desired state<br/>stored"]
+    B --> C["AVD service<br/>reads state"]
+    C --> D["Service creates<br/>session host"]
+    D --> E["Host registers<br/>to pool"]
+```
 
 ## In this section
 

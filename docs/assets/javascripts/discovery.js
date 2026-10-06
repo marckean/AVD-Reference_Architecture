@@ -91,6 +91,16 @@
     };
   }
 
+  function smallestSubnetPrefix(addressesNeeded) {
+    const needed = Math.max(0, Math.ceil(toNumber(addressesNeeded, 0)));
+    for (let prefix = 32; prefix >= 0; prefix -= 1) {
+      if ((2 ** (32 - prefix)) >= needed) {
+        return `/${prefix}`;
+      }
+    }
+    return "/0";
+  }
+
   function getValidationMessage(question, value) {
     if (!question.validation || value === undefined || value === null || value === "") {
       return "";
@@ -215,6 +225,13 @@
     const headroom = Math.max(0, toNumber(answers.headroomPercent, 0));
     const baseHosts = Math.ceil(peak / sessionsPerHost);
     const hostsWithHeadroom = Math.ceil(baseHosts * (1 + headroom / 100));
+    const maxHosts = Math.max(hostsWithHeadroom, toNumber(answers.maxHosts, hostsWithHeadroom));
+    const updateBatch = Math.max(0, toNumber(answers.sessionHostUpdateBatchSize, 0));
+    const vmSize = getAnswer(answers, "sessionHostVmSize", "Standard_D8ads_v5");
+    const vcpusPerHost = toNumber((assumptions.vmSizeVcpus || {})[vmSize], 8);
+    const maximumHostsPlusUpdate = maxHosts + updateBatch;
+    const estimatedVcpuQuota = maximumHostsPlusUpdate * vcpusPerHost;
+    const subnetAddresses = maxHosts + updateBatch + toNumber(assumptions.azureReservedSubnetAddresses, 5);
     const fsSteady = peak * assumptions.fslogixSteadyIopsPerUser;
     const fsSignIn = peak * assumptions.fslogixSignInIopsPerUser;
     const profileTier = answers.profileStorageTier || "ssd-v2";
@@ -223,8 +240,10 @@
       : assumptions.azureFilesSsdProvisionedV2MaxIops;
     const sharesForSteady = Math.max(1, Math.ceil(fsSteady / maxIops));
     const sharesForSignIn = Math.max(1, Math.ceil(fsSignIn / maxIops));
-    const appSteady = peak * assumptions.appAttachSteadyIopsPerUser;
-    const appSignIn = peak * assumptions.appAttachBootSignInIopsPerUser;
+    const appAttachImagesPerHost = Math.max(0, toNumber(answers.appAttachImagesPerHost, 0));
+    const appAttachMounts = hostsWithHeadroom * appAttachImagesPerHost;
+    const appSteady = appAttachMounts * assumptions.appAttachSteadyIopsPerImagePerHost;
+    const appSignIn = appAttachMounts * assumptions.appAttachBootSignInIopsPerImagePerHost;
 
     return {
       sessionHosts: {
@@ -242,25 +261,43 @@
       fslogixSignIn: {
         label: "Estimated FSLogix sign-in IOPS",
         value: fsSignIn,
-        formula: `${peak} users * ${assumptions.fslogixSignInIopsPerUser} sign-in IOPS per user`,
-        source: data.learnSources.fslogixStorage
+        formula: `conservative first pass: ${peak} peak concurrent users as the sign-in wave * ${assumptions.fslogixSignInIopsPerUser} sign-in IOPS per user. Use the sizing page to replace this with a measured sign-in wave.`,
+        source: data.learnSources.sizingEstimates
       },
       azureFilesShares: {
-        label: "Estimated Azure Files shares or storage accounts",
+        label: "Estimated Azure Files storage account IOPS partitions",
         value: Math.max(sharesForSteady, sharesForSignIn),
-        formula: `ceil(required IOPS / ${maxIops} IOPS per ${profileTier === "hdd-v2" ? "HDD provisioned v2" : "SSD provisioned v2"} share or storage account)`,
+        formula: `ceil(required profile IOPS / ${maxIops} IOPS per ${profileTier === "hdd-v2" ? "HDD provisioned v2" : "SSD provisioned v2"} storage account). Shares in the same storage account share account IOPS and throughput limits.`,
         source: `${data.learnSources.azureFilesScale} and ${data.learnSources.azureFilesBilling}`
+      },
+      vcpuQuota: {
+        label: "Estimated vCPU quota",
+        value: estimatedVcpuQuota,
+        formula: `(${maxHosts} maximum session hosts + ${updateBatch} session host update batch headroom) * ${vcpusPerHost} vCPUs per ${vmSize}`,
+        source: data.learnSources.sizingEstimates
+      },
+      subnetAddresses: {
+        label: "Estimated subnet addresses",
+        value: `${subnetAddresses} addresses, smallest subnet ${smallestSubnetPrefix(subnetAddresses)}`,
+        formula: `${maxHosts} maximum session host network interfaces + ${updateBatch} session host update batch headroom + ${assumptions.azureReservedSubnetAddresses} Azure-reserved subnet addresses`,
+        source: data.learnSources.sizingEstimates
       },
       appAttachSteady: {
         label: "Estimated App Attach steady-state share IOPS",
         value: appSteady,
-        formula: `${peak} users * ${assumptions.appAttachSteadyIopsPerUser} steady-state IOPS per user`,
+        formula: `${hostsWithHeadroom} estimated session hosts * ${appAttachImagesPerHost} images per host * ${assumptions.appAttachSteadyIopsPerImagePerHost} steady-state IOPS per image per host`,
         source: data.learnSources.appAttach
       },
       appAttachSignIn: {
         label: "Estimated App Attach boot or sign-in share IOPS",
         value: appSignIn,
-        formula: `${peak} users * ${assumptions.appAttachBootSignInIopsPerUser} boot or sign-in IOPS per user`,
+        formula: `${hostsWithHeadroom} estimated session hosts * ${appAttachImagesPerHost} images per host * ${assumptions.appAttachBootSignInIopsPerImagePerHost} boot or sign-in IOPS per image per host`,
+        source: data.learnSources.appAttach
+      },
+      appAttachOpenHandles: {
+        label: "Estimated App Attach open handles per image",
+        value: hostsWithHeadroom,
+        formula: `${hostsWithHeadroom} estimated session hosts * 1 open handle per image per host`,
         source: data.learnSources.appAttach
       }
     };
@@ -636,7 +673,7 @@
       ]));
     });
     table.appendChild(body);
-    return table;
+    return el("div", { className: "dq-table-wrap" }, [table]);
   }
 
   function renderSizingTable(sizing) {
@@ -658,7 +695,7 @@
       ]));
     });
     table.appendChild(body);
-    return table;
+    return el("div", { className: "dq-table-wrap" }, [table]);
   }
 
   function buildDeploymentCommands(data, answers, parameters) {

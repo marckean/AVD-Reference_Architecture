@@ -11,6 +11,22 @@ description: How the repository helps GitHub Copilot work on Azure Virtual Deskt
     - AI shortens research, scripting, drafting and explaining. It doesn't replace testing with real users, code signing, change approval or ownership.
     - Follow your organisation's policy on AI tools, and never paste secrets or confidential data into a tool that isn't approved for it.
 
+
+<span class="level l200">Level 200</span>
+
+AI is useful when the work is repetitive, explainable and reviewable. Keep people in charge of design decisions, change approval, production access and user testing.
+
+This diagram shows the safe loop.
+
+```mermaid
+flowchart TB
+    P["Prompt"] --> G["Generate draft"]
+    G --> C["Cite Learn"]
+    C --> R["Human review"]
+    R --> T["Test"]
+    T --> A["Approve"]
+```
+
 ## What's in the repository
 
 | File | What it does |
@@ -65,3 +81,9 @@ If your organisation uses Microsoft Security Copilot, Copilot in Intune can expl
 
 !!! warning "Treat generated output as a draft"
     Run every script with `-WhatIf` first, against a test group or non-production environment, and have a person review generated templates and policy before anything reaches production. If the assistant says it hasn't verified something, verify it before you rely on it.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The repository points agents at the Microsoft Learn MCP Server. Microsoft describes the server as a way for AI agents to access official Microsoft documentation ([Microsoft Learn MCP Server](https://learn.microsoft.com/training/support/mcp)). Treat its output as grounding, not as approval to skip review.

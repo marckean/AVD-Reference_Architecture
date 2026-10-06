@@ -5,6 +5,24 @@ description: Stand up a pilot North Star environment from zero with one button -
 
 # Deploy to Azure
 
+
+<span class="level l300">Level 300</span>
+
+The deployment button is a lab accelerator. It creates a small North Star pilot so you can learn the moving parts and test dependencies, then delete it cleanly.
+
+This diagram shows the deployment path.
+
+```mermaid
+flowchart TB
+    Q["Questionnaire"] --> W["Portal wizard"]
+    W --> T["ARM template"]
+    T --> R["Resource group"]
+    R --> H["Host pool"]
+    R --> S["Storage"]
+    R --> M["Monitoring"]
+```
+
+
 !!! abstract "At a glance"
     - One button opens the Azure portal with a guided wizard. Each step explains what the component is and why the North Star uses it, then collects the values it needs.
     - It deploys a pilot-sized North Star into one resource group: a pooled host pool with a session host configuration, Microsoft Entra joined session hosts on ephemeral OS disks, dynamic autoscaling, Azure Files for profiles and App Attach, Key Vault, networking and monitoring.
@@ -135,6 +153,13 @@ Both prompt for the local admin password, which is never written to the paramete
 ## Clean up
 
 Delete the resource group to remove the pilot. The subscription-scope role assignments sit outside the resource group, so remove those separately.
+
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The portal button passes a remote template URI and a `createUIDefinitionUri` to the Azure portal. Microsoft documents that deployment button pattern for remote templates ([Deploy to Azure button](https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-to-azure-button)). Use the wizard for a pilot, then move production into your own pipeline.
 
 ---
 

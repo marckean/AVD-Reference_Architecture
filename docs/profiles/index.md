@@ -12,7 +12,26 @@ description: Design FSLogix profile containers on Azure Files for Microsoft Entr
     - Session hosts need the **Kerberos/CloudKerberosTicketRetrievalEnabled** policy set to `1`.
     - Cloud Cache is an option for specific resilience needs, but it adds complexity and can affect sign-in and sign-out behaviour.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+A pooled desktop is like a shared desk. You do not own the desk, but you expect your documents, settings and shortcuts to be there when you sit down. FSLogix provides that personal storage layer.
+
+FSLogix stores the user profile in a virtual hard disk file on a file share. When the user signs in, the file is attached to the session host, so Windows sees the profile as if it was local.
+
+This diagram shows the simple idea.
+
+```mermaid
+flowchart TB
+    U["User"] --> H["Any pooled host"]
+    P["Profile container"] --> H
+    H --> D["Personal desktop"]
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 FSLogix profile containers roam a user's Windows profile in a virtual desktop environment. Microsoft Learn says Azure Virtual Desktop offers FSLogix profile containers as the recommended user profile solution, and that at sign-in the container is dynamically attached using VHD or VHDX so the profile appears like a native user profile ([Storage options for FSLogix profile containers in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/store-fslogix-profile)).
 
@@ -35,18 +54,12 @@ In a pooled host pool, session hosts are non-persistent. With ephemeral OS disks
 The same sign-in as a sequence:
 
 ```mermaid
-sequenceDiagram
-    participant User as User
-    participant Host as Entra joined session host
-    participant Entra as Microsoft Entra ID
-    participant Files as Azure Files SMB share
-    participant Profile as FSLogix profile container
-    User->>Host: "Sign in"
-    Host->>Entra: "Retrieve Kerberos ticket"
-    Entra-->>Host: "Kerberos ticket"
-    Host->>Files: "SMB access with ticket"
-    Files->>Profile: "Open VHDX"
-    Profile-->>Host: "Attach profile"
+flowchart TB
+    U["User signs in"] --> H["Session host"]
+    H --> E["Get ticket"]
+    E --> F["Open SMB share"]
+    F --> P["Attach VHDX"]
+    P --> D["Profile ready"]
 ```
 
 The North Star uses Azure Files because Microsoft Learn recommends Azure Files for most Azure Virtual Desktop FSLogix profile container deployments, and because Azure Files is an Azure-native SMB platform service with LRS, ZRS, GRS and GZRS redundancy options ([Storage options for FSLogix profile containers in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/store-fslogix-profile), [Container storage options](https://learn.microsoft.com/fslogix/concepts-container-storage-options)).
@@ -64,6 +77,8 @@ Use Azure Files SMB shares with Microsoft Entra Kerberos authentication. Keep st
 
 ## Design decisions
 
+<span class="level l300">Level 300</span>
+
 | Decision | North Star choice | Why |
 | --- | --- | --- |
 | Profile technology | FSLogix profile containers | Recommended profile solution for Azure Virtual Desktop ([Store FSLogix profile containers](https://learn.microsoft.com/azure/virtual-desktop/store-fslogix-profile)). |
@@ -71,6 +86,26 @@ Use Azure Files SMB shares with Microsoft Entra Kerberos authentication. Keep st
 | Identity | Microsoft Entra Kerberos | Supports Microsoft Entra joined clients and FSLogix profiles without domain controller connectivity for authentication ([Azure Files identity overview](https://learn.microsoft.com/azure/storage/files/storage-files-active-directory-overview)). |
 | Network exposure | Private endpoints | Azure Files private endpoints provide private IP access inside a virtual network ([Configure network endpoints for Azure file shares](https://learn.microsoft.com/azure/storage/files/storage-files-networking-endpoints)). |
 | Sharding | Multiple shares and storage accounts by IOPS | Azure Files scale targets apply at both storage account and share levels ([Azure Files scale targets](https://learn.microsoft.com/azure/storage/files/storage-files-scale-targets)). |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+An FSLogix profile container is a VHD or VHDX file. The FSLogix terminology page defines a **Container** as the virtual hard disk file that contains all the data for the given container type, and **VHD(x)** as a virtual hard disk that provides a disk-in-a-file abstraction ([FSLogix Terminology](https://learn.microsoft.com/fslogix/concepts-fslogix-terminology)).
+
+At sign-in, the host needs both identity and storage access. Microsoft Entra Kerberos issues the Kerberos ticket for Azure Files SMB access, then Azure Files uses that ticket for authorisation without receiving the user's access credentials ([Overview of Azure Files identity-based authentication for SMB access](https://learn.microsoft.com/azure/storage/files/storage-files-active-directory-overview)). For the full sign-in chain, see [AVD sign-in end to end](../demystified/avd-sign-in-end-to-end.md) and [Tokens and tickets](../demystified/tokens-and-tickets.md).
+
+This diagram shows the storage attach path.
+
+```mermaid
+flowchart TB
+    A["Sign in"] --> B["Get ticket"]
+    B --> C["Open Azure Files"]
+    C --> D["Locate VHDX"]
+    D --> E["Attach profile"]
+```
+
+Cloud Cache changes the lifecycle. Learn says Cloud Cache stores a local cache under `C:\ProgramData\FSLogix\Cache`, hydrates missing data from remote providers, writes changes to local cache, and flushes changes to remote providers asynchronously. If providers are unhealthy, the local cache can continue to grow up to **SizeInMBs**, and sign-out can be delayed until providers are at the same sequence ([Cloud Cache Overview](https://learn.microsoft.com/fslogix/concepts-fslogix-cloud-cache)).
 
 ## In this section
 

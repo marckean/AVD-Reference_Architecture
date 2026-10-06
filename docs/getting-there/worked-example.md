@@ -11,6 +11,22 @@ description: How a large organisation with a mature virtual desktop estate adopt
     - It ends up with several host pools built from three reference patterns, and runs two image tracks in parallel during the proof of concept.
     - The hardest work isn't the platform. It's applications, legacy authentication, users on networks Contoso doesn't control, and a small team with a deadline.
 
+
+<span class="level l300">Level 300</span>
+
+The example is deliberately generic. Use it to recognise patterns in a mature estate without copying its numbers or timeline.
+
+This diagram shows Contoso's migration shape.
+
+```mermaid
+flowchart TB
+    CUR["Current estate"] --> POC["Two-track POC"]
+    POC --> NS["North Star pool"]
+    POC --> LEG["Legacy pool"]
+    NS --> WAVES["Migration waves"]
+    LEG --> EXIT["Exit plan"]
+```
+
 ## The starting point
 
 Contoso runs a large virtual desktop service that has evolved over many years. It works, but it depends on a few specialists, a complex image with years of applications and policy layered into it, and a third-party control plane that's hard to scale down commercially.
@@ -27,6 +43,8 @@ There's also a large number of **dedicated desktops** for developers and special
 Contoso's goal isn't to rebuild the old estate feature for feature. It wants a simpler, native operating model that its own team can run, with the user experience its business relies on.
 
 ## The constraints
+
+For identity background, see [Device join models](../demystified/device-join-models.md), [Application authentication](../demystified/application-authentication.md) and [Kerberos and NTLM](../demystified/kerberos-and-ntlm.md).
 
 - Thousands of users depend on the service every day, and some of them connect from partner networks Contoso can't change.
 - Some applications rely on Active Directory machine authentication or old NTLM behaviour, so they can't run on Microsoft Entra joined session hosts ([Device join plan](https://learn.microsoft.com/entra/identity/devices/device-join-plan#understand-considerations-for-applications-and-resources)).
@@ -77,3 +95,9 @@ Everything is built as code. A session host configuration fixes the host pool's 
 - **Partner networks and secure web gateways can decide the user experience.** Test from real user locations early.
 - **Telling users that capacity is starting can matter as much as making it start faster.** Design the experience at the morning peak, not just the platform.
 - **Cost evidence has to be per persona.** A blended average hides the workloads that cost the most.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Contoso's hard split is identity. Applications that rely on machine authentication cannot be proven by a user sign-in test alone. Use [Application authentication](../demystified/application-authentication.md) and [Kerberos and NTLM](../demystified/kerberos-and-ntlm.md) to separate user Kerberos, NTLM fallback and device or computer account dependency.

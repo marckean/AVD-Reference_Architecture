@@ -5,6 +5,21 @@ description: Setting recovery time and recovery point objectives, and testing fa
 
 # Recovery objectives and testing
 
+<span class="level l300">Level 300</span>
+
+Recovery objectives turn "we need it back" into measurable targets. Testing proves the targets before an outage does.
+
+This diagram shows the test loop.
+
+```mermaid
+flowchart TB
+    P["Plan"] --> D["Deploy secondary"]
+    D --> T["Test user"]
+    T --> M["Measure RTO"]
+    M --> F["Fix gaps"]
+    F --> P
+```
+
 ## RTO and RPO
 
 | Layer | RTO consideration | RPO consideration |
@@ -30,6 +45,14 @@ Test failover quarterly or after major platform changes:
 !!! tip
 
     Capture the image version, storage restore point, package version, policy state, elapsed time and any manual step that must be removed before production.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+For image recovery tests, check Azure Compute Gallery replication before starting the failover exercise. Learn says image version replication time depends on the image size and the number of target regions, and recommends keeping the image small and source and target regions close for best results [Store and share images in an Azure Compute Gallery](https://learn.microsoft.com/azure/virtual-machines/shared-image-galleries).
+
+For profile recovery tests, capture the Azure Files restore point used, whether the restore came from snapshot or vaulted backup, and the time from restore start to a successful FSLogix sign-in.
 
 ---
 

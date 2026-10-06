@@ -5,6 +5,10 @@ description: Source images, Azure Image Builder, custom image templates and Micr
 
 # Building images
 
+<span class="level l300">Level 300</span>
+
+Image building turns a supported Marketplace source into an organisation-ready base image. Keep it deterministic: same source, same scripts, same output location.
+
 ## Source images
 
 Use a supported Azure Virtual Desktop operating system. The prerequisites article lists supported operating systems and licences in [Prerequisites for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/prerequisites#operating-systems-and-licenses). For the North Star, select Windows 11 Enterprise multi-session, which Microsoft describes as exclusive to Azure Virtual Desktop on Azure in [Using Azure Virtual Desktop multi-session with Microsoft Intune](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session).
@@ -33,6 +37,16 @@ Built-in scripts in custom image templates include:
 - Add or remove Microsoft Office applications.
 - Apply Windows Updates.
 
+This diagram shows the image build flow.
+
+```mermaid
+flowchart TB
+    A["Marketplace<br/>source"] --> B["Custom image<br/>template"]
+    B --> C["Azure Image<br/>Builder"]
+    C --> D["Sysprep"]
+    D --> E["Gallery image<br/>version"]
+```
+
 ## Golden image guidance
 
 Microsoft's golden image guidance matters because cloning the wrong state can break identity, enrolment, and Azure Virtual Desktop registration.
@@ -46,6 +60,14 @@ Follow these documented rules from [Create an Azure Virtual Desktop golden image
 - Do not create a new base VM from an existing custom image. Microsoft says it is better to start with a brand-new source VM.
 
 For Microsoft Entra joined and Intune-enrolled session hosts, also avoid cloning an already enrolled machine. Microsoft Intune states that it does not support using a cloned image of a computer that is already enrolled, including physical and virtual devices such as Azure Virtual Desktop, because replicated device enrolment or identity tokens cause enrolment or sync failures in [Using Azure Virtual Desktop multi-session with Microsoft Intune](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session#limitations).
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Azure Virtual Desktop custom image templates are JSON definitions that include source image, distribution targets, build properties, and customisations. Azure Image Builder generalises the image with sysprep during creation ([Custom image templates](https://learn.microsoft.com/azure/virtual-desktop/custom-image-templates#creation-process)).
+
+The build uses a user-assigned managed identity and creates temporary resources such as a build VM, Key Vault, storage account, and a resource group named in the `IT_<ResourceGroupName>_<TemplateName>_<GUID>` format ([Custom image templates](https://learn.microsoft.com/azure/virtual-desktop/custom-image-templates#resources)).
 
 ---
 

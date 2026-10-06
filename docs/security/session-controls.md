@@ -5,6 +5,22 @@ description: Screen capture protection, watermarking, clipboard controls, contex
 
 # Session controls
 
+<span class="level l300">Level 300</span>
+
+Session controls decide what the user can see, copy, redirect or expose during a remote session. They are the data-loss prevention layer closest to the user's desktop.
+
+This diagram shows the main control points.
+
+```mermaid
+flowchart TB
+    U[User session] --> SCP[Screen capture<br/>protection]
+    U --> WM[Watermarking]
+    U --> CL[Clipboard<br/>rules]
+    U --> DR[Device<br/>redirection]
+    CL --> CTX[Context rules<br/>preview]
+    DR --> CTX
+```
+
 ## Screen capture protection
 
 **Status:** Generally available, including support for web connections as of August 2026 [What's new in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/whats-new#august-2026).
@@ -62,7 +78,7 @@ Display Protection helps protect sensitive content by securing the display path 
 
 ## Device and resource redirection
 
-Redirection lets a remote session use local resources such as clipboard, webcams, USB devices and printers [Peripheral redirection](https://learn.microsoft.com/azure/virtual-desktop/redirection-remote-desktop-protocol). The security stance is deny by default:
+Redirection lets a remote session use local resources such as clipboard, webcams, USB devices and printers [Peripheral redirection](https://learn.microsoft.com/azure/virtual-desktop/configure-device-redirections). The security stance is deny by default:
 
 | Resource | RDP property | North Star |
 | --- | --- | --- |

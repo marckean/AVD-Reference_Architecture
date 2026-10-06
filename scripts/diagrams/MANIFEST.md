@@ -117,12 +117,12 @@ All diagrams are generic and use Contoso only where an organisation name would o
   4. **Host pool type** - Pooled or personal.
   5. **Management approach** - Standard or SHC.
   6. **Domain join type** - One type per pool.
-  7. **Session host config** - MI and Key Vault.
+  7. **Host config** - MI and Key Vault.
   8. **Session update** - Batch replace.
   9. **Dynamic autoscale** - Create and delete.
   10. **Ephemeral OS disks** - Create and delete only.
   11. **Single sign-on** - Entra auth.
-  12. **FSLogix profiles** - SMB, RBAC, NTFS.
+  12. **FSLogix profiles** - SMB and RBAC.
   13. **App Attach** - Share and SP roles.
   14. **Intune policy** - Settings catalog.
   15. **Legacy auth** - Use a hybrid pool.
@@ -265,3 +265,76 @@ All diagrams are generic and use Contoso only where an organisation name would o
   - https://learn.microsoft.com/azure/virtual-desktop/set-up-mfa
   - https://learn.microsoft.com/azure/virtual-desktop/private-link-overview
   - https://learn.microsoft.com/azure/virtual-desktop/configure-managed-identity
+
+## identity-two-directories
+
+- Files: `docs/assets/images/identity-two-directories-light.svg`, `docs/assets/images/identity-two-directories-dark.svg`
+- Intended page: docs/demystified/two-directories.md
+- Intended section: Identity demystified
+- Alt text: Active Directory Domain Services and Microsoft Entra ID shown as two directories, with users and groups synchronised by Microsoft Entra Connect Sync or Cloud Sync.
+- Numbered-step text:
+  1. Sign in on-premises with Kerberos or NTLM
+  2. Synchronise users and groups
+  3. Sign in to the cloud with tokens
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/entra/identity/hybrid/whatis-hybrid-identity
+  - https://learn.microsoft.com/entra/fundamentals/whatis
+  - https://learn.microsoft.com/entra/identity/hybrid/cloud-sync/what-is-cloud-sync
+  - https://learn.microsoft.com/windows-server/identity/ad-ds/get-started/virtual-dc/active-directory-domain-services-overview
+  - https://learn.microsoft.com/entra/identity-platform/v2-overview
+
+## identity-join-models
+
+- Files: `docs/assets/images/identity-join-models-light.svg`, `docs/assets/images/identity-join-models-dark.svg`
+- Intended page: docs/demystified/device-join-models.md
+- Intended section: Identity demystified
+- Alt text: Four device join models showing whether the device has an object in Active Directory, Microsoft Entra ID or both.
+- Numbered-step text:
+  1. Registered device has an Entra object
+  2. Entra joined device has an Entra object and PRT
+  3. Hybrid joined device has AD and Entra objects
+  4. AD DS joined device has an AD computer account
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/entra/identity/devices/overview
+  - https://learn.microsoft.com/entra/identity/devices/concept-device-registration
+  - https://learn.microsoft.com/entra/identity/devices/concept-directory-join
+  - https://learn.microsoft.com/entra/identity/devices/concept-hybrid-join
+  - https://learn.microsoft.com/entra/identity/devices/concept-primary-refresh-token
+
+## identity-tokens-on-a-device
+
+- Files: `docs/assets/images/identity-tokens-on-a-device-light.svg`, `docs/assets/images/identity-tokens-on-a-device-dark.svg`
+- Intended page: docs/demystified/tokens-and-tickets.md
+- Intended section: Identity demystified
+- Alt text: Credentials on a signed-in Microsoft Entra joined session host: a Primary Refresh Token and a partial TGT from Microsoft Entra ID, access tokens for Microsoft 365, a Microsoft Entra Kerberos ticket for the Azure Files profile share, and a full TGT from a domain controller that gets service tickets for on-premises apps.
+- Numbered-step text:
+  1. Microsoft Entra ID issues the Primary Refresh Token and, with a Kerberos server object, a partial TGT
+  2. The PRT gets access tokens that cloud apps such as Microsoft 365 accept
+  3. Microsoft Entra Kerberos issues the ticket for the Azure Files profile share
+  4. A domain controller trades the partial TGT for a full TGT
+  5. The full TGT gets service tickets for on-premises apps
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on
+  - https://learn.microsoft.com/entra/identity/devices/concept-primary-refresh-token
+  - https://learn.microsoft.com/entra/identity/devices/device-sso-to-on-premises-resources
+  - https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable
+  - https://learn.microsoft.com/windows/security/identity-protection/hello-for-business/deploy/hybrid-cloud-kerberos-trust
+  - https://learn.microsoft.com/entra/identity/authentication/howto-authentication-passwordless-security-key-on-premises
+
+## identity-onprem-access
+
+- Files: `docs/assets/images/identity-onprem-access-light.svg`, `docs/assets/images/identity-onprem-access-dark.svg`
+- Intended page: docs/demystified/application-authentication.md
+- Intended section: Identity demystified
+- Alt text: On-premises access from a Microsoft Entra joined session host: Microsoft Entra ID issues a partial TGT, a domain controller trades it for a full TGT and issues service tickets, and the user reaches file shares and apps with Kerberos. Machine authentication isn't supported because the host has no AD computer account, so those apps use a hybrid joined pool.
+- Numbered-step text:
+  1. The session host gets a partial TGT from Microsoft Entra ID, with the PRT
+  2. The session host trades the partial TGT at a domain controller for a full TGT, then gets service tickets
+  3. The session host presents the service ticket and reaches the file share or app as the user
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on
+  - https://learn.microsoft.com/entra/identity/devices/device-sso-to-on-premises-resources
+  - https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable
+  - https://learn.microsoft.com/windows/security/identity-protection/hello-for-business/deploy/hybrid-cloud-kerberos-trust
+  - https://learn.microsoft.com/entra/identity/authentication/howto-authentication-passwordless-security-key-on-premises
+  - https://learn.microsoft.com/entra/identity/devices/device-join-plan#understand-considerations-for-applications-and-resources

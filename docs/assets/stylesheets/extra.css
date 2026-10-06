@@ -95,6 +95,28 @@
   color: #ffd88a;
 }
 
+/* Reading levels: Level 100 (introductory) to Level 400 (expert) */
+.md-typeset .level {
+  display: inline-block;
+  padding: 0.12em 0.7em;
+  border-radius: 1em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.md-typeset .level.l100 { background: #dff6dd; color: #0e700e; }
+.md-typeset .level.l200 { background: #deecf9; color: #0f5ea8; }
+.md-typeset .level.l300 { background: #ece6f9; color: #5b3fa8; }
+.md-typeset .level.l400 { background: #fde7e9; color: #a4262c; }
+
+[data-md-color-scheme="slate"] .md-typeset .level.l100 { background: #173d1a; color: #9fdc9f; }
+[data-md-color-scheme="slate"] .md-typeset .level.l200 { background: #11324f; color: #9ccbf5; }
+[data-md-color-scheme="slate"] .md-typeset .level.l300 { background: #2e2450; color: #c7b6f5; }
+[data-md-color-scheme="slate"] .md-typeset .level.l400 { background: #4a1c20; color: #f5a9ae; }
+
 /* Home page hero */
 .md-typeset .hero {
   padding: 2.2rem 2rem 1.8rem;

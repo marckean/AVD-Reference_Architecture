@@ -12,9 +12,30 @@ description: Defence-in-depth security controls for a Microsoft Entra joined Azu
     - Use Private Link and private endpoints for service access where the design requires private connectivity.
     - Assign the least-privilege Azure Virtual Desktop built-in roles instead of broad subscription roles.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Security for Azure Virtual Desktop is like securing a shared office. You control who can enter, what they can carry in or out, how the rooms are built, who has master keys, and how you investigate if something looks wrong.
+
+No single setting is enough. Conditional Access checks the person and device. Session controls reduce data leakage. Host hardening protects the virtual machines. Azure role-based access control limits administrators. Monitoring shows what happened.
+
+This diagram shows the security layers from sign-in to operations.
+
+```mermaid
+flowchart TB
+    I[Identity] --> S[Session<br/>controls]
+    S --> H[Host<br/>hardening]
+    H --> N[Private<br/>networking]
+    N --> M[Monitoring]
+    M --> A[Admin<br/>roles]
+```
+
 ## What it is
 
-Azure Virtual Desktop is a managed virtual desktop service, but the security boundary is shared. Microsoft secures the Azure Virtual Desktop service. You secure identity, Conditional Access, session host configuration, storage, networking, monitoring and administrator access. Microsoft Learn frames this as securing both the Azure Virtual Desktop deployment and the surrounding Azure infrastructure and management plane [Security recommendations for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/security-recommendations).
+<span class="level l200">Level 200</span>
+
+Azure Virtual Desktop is a managed virtual desktop service, but the security boundary is shared. Microsoft secures the Azure Virtual Desktop service. You secure identity, Conditional Access, session host configuration, storage, networking, monitoring and administrator access. Microsoft Learn frames this as securing both the Azure Virtual Desktop deployment and the surrounding Azure infrastructure and management plane [Security recommendations for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/security-guide).
 
 The North Star uses:
 
@@ -31,6 +52,8 @@ The North Star uses:
 Use Conditional Access to decide who can connect. Use RDP properties and Intune to decide what can leave the session. Use host security and Defender controls to protect the session host. Use least-privilege RBAC and private networking to reduce management and network exposure.
 
 ## Design decisions
+
+<span class="level l300">Level 300</span>
 
 | Decision | North Star choice | Why |
 | --- | --- | --- |
@@ -63,7 +86,7 @@ No single control is the security boundary. Each layer below covers a different 
 | Context-based redirections | Conditional Access authentication context and host pool RDP properties | Use for pilot scenarios that require device compliance or location-aware redirection | **Status:** Preview | [Context-based redirections](https://learn.microsoft.com/azure/virtual-desktop/context-based-redirections-avd) |
 | Drive redirection | Host pool RDP properties, Intune or Group Policy | Disabled unless required | **Status:** Generally available | [Supported RDP properties](https://learn.microsoft.com/azure/virtual-desktop/rdp-properties) |
 | Printer redirection | Host pool RDP properties, Intune or Group Policy | Disabled or tightly scoped | **Status:** Generally available | [Supported RDP properties](https://learn.microsoft.com/azure/virtual-desktop/rdp-properties) |
-| USB redirection | Host pool RDP properties, Intune or Group Policy | Disabled by default | **Status:** Generally available | [Peripheral redirection](https://learn.microsoft.com/azure/virtual-desktop/redirection-remote-desktop-protocol) |
+| USB redirection | Host pool RDP properties, Intune or Group Policy | Disabled by default | **Status:** Generally available | [Peripheral redirection](https://learn.microsoft.com/azure/virtual-desktop/configure-device-redirections) |
 | Trusted Launch | Azure VM configuration and image pipeline | Enabled | **Status:** Generally available | [What's new](https://learn.microsoft.com/azure/virtual-desktop/whats-new#july-2023) |
 | Display Protection | Host pool configuration and supported endpoints | Track for high-risk desktop use cases | **Status:** Preview | [Display Protection](https://learn.microsoft.com/windows-365/enterprise/windows-cloud-display-protection) |
 | Windows Cloud Keyboard Input Protection | Supported endpoint and session configuration | Track for sensitive input scenarios | **Status:** Preview | [Input protection](https://learn.microsoft.com/windows-365/enterprise/windows-cloud-input-protection) |
@@ -71,6 +94,29 @@ No single control is the security boundary. Each layer below covers a different 
 | FSLogix antivirus exclusions | Microsoft Defender Antivirus policy | Exclude documented FSLogix paths and processes | **Status:** Generally available, documented without preview label | [FSLogix prerequisites](https://learn.microsoft.com/fslogix/overview-prerequisites#configure-antivirus-file-and-folder-exclusions) |
 | Private endpoints | Azure networking | Use where service private connectivity is required | **Status:** Generally available, documented without preview label | [Azure Private Link with Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/private-link-overview) |
 | Intune security baselines | Intune Settings Catalog | Review and configure settings for multi-session | **Status:** Generally available for Windows Enterprise multi-session support | [Windows Enterprise multi-session](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session#security-baselines) |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Redirection controls have two layers. The host pool RDP property can allow or block a redirection type, and the session host policy can further restrict behaviour. Learn warns that the most restrictive clipboard setting is the resultant behaviour [Configure clipboard redirection over the Remote Desktop Protocol](https://learn.microsoft.com/azure/virtual-desktop/redirection-configure-clipboard). That means you need to test the effective result, not just the portal value.
+
+The most important exact RDP properties are **redirectclipboard**, **redirectprinters**, **redirectsmartcards**, **camerastoredirect**, **audiocapturemode**, **drivestoredirect** and **usbdevicestoredirect** [Supported RDP properties](https://learn.microsoft.com/azure/virtual-desktop/rdp-properties). Context-based redirections add a preview layer that maps Conditional Access authentication context to clipboard, drive, printer and USB redirection decisions [Context-based redirections](https://learn.microsoft.com/azure/virtual-desktop/context-based-redirections-avd).
+
+This diagram shows the effective-control order.
+
+```mermaid
+flowchart TB
+    C[Client request] --> R[Host pool<br/>RDP property]
+    R --> P[Session host<br/>policy]
+    P --> X[Context rule<br/>preview]
+    X --> E[Effective<br/>redirection]
+```
+
+1. The client asks for a redirection capability, such as clipboard or drive redirection.
+2. The host pool RDP property decides whether that redirection is broadly allowed.
+3. Intune or Group Policy on the session host can restrict it further.
+4. Context-based redirection can add a preview conditional layer for selected redirection types.
 
 ## In this section
 
@@ -106,12 +152,12 @@ No single control is the security boundary. Each layer below covers a different 
 
 ## Microsoft Learn
 
-- [Security recommendations for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/security-recommendations)
+- [Security recommendations for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/security-guide)
 - [Enable screen capture protection in Azure Virtual Desktop and Windows 365](https://learn.microsoft.com/azure/virtual-desktop/screen-capture-protection)
 - [Watermarking in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/watermarking)
 - [Configure clipboard redirection over the Remote Desktop Protocol](https://learn.microsoft.com/azure/virtual-desktop/redirection-configure-clipboard)
 - [Configure the clipboard transfer direction and data types that can be copied in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/clipboard-transfer-direction-data-types)
-- [Peripheral and resource redirection over the Remote Desktop Protocol](https://learn.microsoft.com/azure/virtual-desktop/redirection-remote-desktop-protocol)
+- [Peripheral and resource redirection over the Remote Desktop Protocol](https://learn.microsoft.com/azure/virtual-desktop/configure-device-redirections)
 - [Supported RDP properties](https://learn.microsoft.com/azure/virtual-desktop/rdp-properties)
 - [Trusted Launch for Azure virtual machines](https://learn.microsoft.com/azure/virtual-machines/trusted-launch)
 - [Onboard non-persistent VDI devices to Microsoft Defender for Endpoint](https://learn.microsoft.com/defender-endpoint/configure-endpoints-vdi)

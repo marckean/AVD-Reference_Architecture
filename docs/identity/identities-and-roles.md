@@ -5,6 +5,20 @@ description: Supported user identities, the host pool managed identity, the role
 
 # Identities and roles
 
+<span class="level l300">Level 300</span>
+
+Identity and role design answers three questions: which users can use the service, which Azure resource identity the host pool uses, and which administrators can manage each layer.
+
+This diagram separates the user, host pool and administrator identities.
+
+```mermaid
+flowchart TB
+    U[User identity] --> AG[Application<br/>group]
+    AG --> VM[Session host<br/>sign-in]
+    HP[Host pool<br/>identity] --> ARM[Azure Resource<br/>Manager]
+    AD[Administrator] --> RBAC[AVD roles]
+```
+
 ## Supported user identity types
 
 **Status:** Generally available for AVD external identities as of November 2025, and generally available for FSLogix support for cloud-only and external identities as of May 2026 [What's new in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/whats-new#november-2025), [What's new in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/whats-new#may-2026).

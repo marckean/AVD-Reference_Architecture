@@ -27,6 +27,9 @@ Appx
 Autoscale
 :   The native Azure Virtual Desktop service that scales session hosts according to a scaling plan's schedules and the capacity in use. [Autoscale glossary](https://learn.microsoft.com/azure/virtual-desktop/autoscale-glossary)
 
+AVD Insights
+:   Azure Monitor workbook for understanding an Azure Virtual Desktop environment: connections, hosts, sign-in performance and more. [AVD Insights](https://learn.microsoft.com/azure/virtual-desktop/insights)
+
 Azure Compute Gallery
 :   Azure service for managing, versioning and replicating VM images through image definitions and image versions. [Azure Compute Gallery](https://learn.microsoft.com/azure/virtual-machines/azure-compute-gallery)
 
@@ -38,9 +41,6 @@ Azure Image Builder
 
 Azure Monitor Agent
 :   The agent that collects guest operating system data from virtual machines for Azure Monitor. [Azure Monitor Agent](https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-overview)
-
-AVD Insights
-:   Azure Monitor workbook for understanding an Azure Virtual Desktop environment: connections, hosts, sign-in performance and more. [AVD Insights](https://learn.microsoft.com/azure/virtual-desktop/insights)
 
 ## B to C
 
@@ -59,6 +59,9 @@ Cloud Cache
 Conditional Access
 :   Microsoft Entra policies applied at sign-in, such as requiring MFA. With single sign-on, target both **Azure Virtual Desktop** and **Windows Cloud Login**. [Enforce MFA with Conditional Access](https://learn.microsoft.com/azure/virtual-desktop/set-up-mfa)
 
+Context-based redirections
+:   Preview feature that turns clipboard, drive, printer and USB redirection on or off for a session, based on a Conditional Access authentication context. [Context-based redirections](https://learn.microsoft.com/azure/virtual-desktop/context-based-redirections-avd)
+
 Custom image template
 :   Azure Virtual Desktop feature, built on Azure Image Builder, that defines a source image, customisations and where the built image goes. [Custom image templates](https://learn.microsoft.com/azure/virtual-desktop/custom-image-templates)
 
@@ -72,6 +75,9 @@ Depth-first
 
 Desktop Virtualization User
 :   Built-in role that lets users use the desktop or applications in an application group. [Built-in roles for AVD](https://learn.microsoft.com/azure/virtual-desktop/rbac#desktop-virtualization-user)
+
+dsregcmd
+:   Windows command whose **/status** option shows a device's join state and the state of its Primary Refresh Token and Kerberos tickets. [Troubleshoot devices by using dsregcmd](https://learn.microsoft.com/entra/identity/devices/troubleshoot-device-dsregcmd)
 
 Dynamic autoscaling
 :   Scaling method that powers session hosts on and off and also creates and deletes them. It can only be used for pooled host pools with a session host configuration. [Autoscale glossary](https://learn.microsoft.com/azure/virtual-desktop/autoscale-glossary)
@@ -90,6 +96,9 @@ FSLogix profile container
 Golden image
 :   A prepared source image used to create session hosts. [Create a golden image](https://learn.microsoft.com/azure/virtual-desktop/set-up-golden-image)
 
+Group managed service account (gMSA)
+:   A domain account for running services. Windows manages its password automatically, and several servers can use it. [Group managed service accounts](https://learn.microsoft.com/windows-server/security/group-managed-service-accounts/group-managed-service-accounts-overview)
+
 Host pool
 :   A collection of Azure virtual machines registered to Azure Virtual Desktop as session hosts. Pooled host pools share hosts between users. Personal host pools give each user their own. [AVD terminology](https://learn.microsoft.com/azure/virtual-desktop/terminology#host-pools)
 
@@ -98,16 +107,31 @@ Host pool
 Image definition and image version
 :   Azure Compute Gallery objects. A definition describes an image family, and a version is a specific build you deploy. [Azure Compute Gallery](https://learn.microsoft.com/azure/virtual-machines/azure-compute-gallery)
 
+Kerberos
+:   The default authentication protocol for Windows domains. A user gets a ticket-granting ticket at sign-in, then uses it to get a service ticket for each service. [Kerberos authentication overview](https://learn.microsoft.com/windows-server/security/kerberos/kerberos-authentication-overview)
+
+Kerberos constrained delegation (KCD)
+:   Lets a trusted service get Kerberos service tickets on a user's behalf, for specific back-end services only. Microsoft Entra application proxy uses it for on-premises apps that use integrated Windows authentication. [Single sign-on with Kerberos constrained delegation](https://learn.microsoft.com/entra/identity/app-proxy/how-to-configure-sso-with-kcd)
+
 Kerberos server object
 :   An object created in Active Directory Domain Services so that Entra joined and hybrid joined session hosts using single sign-on can get Kerberos tickets for on-premises resources. [Create a Kerberos server object](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on#create-a-kerberos-server-object)
 
 Kerberos/CloudKerberosTicketRetrievalEnabled
 :   The policy setting that lets session hosts retrieve Microsoft Entra Kerberos tickets for Azure Files. Set it to `1` through the Intune settings catalog. [Enable Microsoft Entra Kerberos for Azure Files](https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable)
 
+Key Distribution Center (KDC)
+:   The Kerberos service on each domain controller that issues ticket-granting tickets and service tickets. [Kerberos authentication overview](https://learn.microsoft.com/windows-server/security/kerberos/kerberos-authentication-overview)
+
+LAN Manager authentication level
+:   The security policy, stored as the **LmCompatibilityLevel** registry value, that sets which LM, NTLM and NTLMv2 responses a computer sends and a domain controller accepts. [Network security: LAN Manager authentication level](https://learn.microsoft.com/windows/security/threat-protection/security-policy-settings/network-security-lan-manager-authentication-level)
+
 Log on blocking registration
 :   App Attach registration mode where assigned applications are fully registered during sign-in. [App Attach in AVD](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)
 
 ## M
+
+Machine authentication
+:   An application or service authenticating with the device's Active Directory computer account rather than as the signed-in user. Microsoft Entra joined devices have no computer account, so on-premises apps that rely on it aren't supported there. [Plan your Microsoft Entra join deployment](https://learn.microsoft.com/entra/identity/devices/device-join-plan#understand-considerations-for-applications-and-resources)
 
 Managed identity (host pool)
 :   An identity on the host pool that Azure Virtual Desktop uses for session host configuration, autoscale and Start VM on Connect. [Configure managed identity](https://learn.microsoft.com/azure/virtual-desktop/configure-managed-identity)
@@ -115,11 +139,26 @@ Managed identity (host pool)
 Max session limit
 :   The maximum number of sessions a session host accepts. Autoscale needs a custom value, not the default. [Configure host pool load balancing](https://learn.microsoft.com/azure/virtual-desktop/configure-host-pool-load-balancing)
 
+Microsoft Entra application proxy
+:   Publishes on-premises web apps through Microsoft Entra ID, and can sign users in to apps that use integrated Windows authentication by using Kerberos constrained delegation. [Single sign-on with Kerberos constrained delegation](https://learn.microsoft.com/entra/identity/app-proxy/how-to-configure-sso-with-kcd)
+
+Microsoft Entra Connect Sync and Cloud Sync
+:   The tools that synchronise users and groups from Active Directory Domain Services to Microsoft Entra ID, creating hybrid identities. [What is hybrid identity?](https://learn.microsoft.com/entra/identity/hybrid/whatis-hybrid-identity)
+
+Microsoft Entra Domain Services
+:   A managed domain in Azure that provides domain join, Group Policy, LDAP and Kerberos or NTLM authentication without running your own domain controllers. App Attach doesn't support it. [What is Microsoft Entra Domain Services?](https://learn.microsoft.com/entra/identity/domain-services/overview), [App Attach identity providers](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview#identity-providers)
+
+Microsoft Entra hybrid joined
+:   A device joined to on-premises Active Directory and also registered in Microsoft Entra ID, so it has both an AD computer account and a Microsoft Entra device object. [Microsoft Entra hybrid joined devices](https://learn.microsoft.com/entra/identity/devices/concept-hybrid-join)
+
 Microsoft Entra joined session host
 :   A session host joined directly to Microsoft Entra ID instead of Active Directory Domain Services. [Microsoft Entra joined session hosts](https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts)
 
 Microsoft Entra Kerberos
 :   Lets Microsoft Entra ID issue Kerberos tickets for SMB access to Azure Files, so Entra joined hosts can reach profile shares. [Azure Files identity-based access](https://learn.microsoft.com/azure/storage/files/storage-files-active-directory-overview)
+
+Microsoft Entra registered
+:   A personal or bring-your-own device where a user has added a work account. It has a Microsoft Entra device object but isn't joined to the organisation. [Microsoft Entra registered devices](https://learn.microsoft.com/entra/identity/devices/concept-device-registration)
 
 Minimum percentage of active hosts
 :   The percentage of the minimum host pool size that autoscale keeps available in a phase. Learn recommends 100% for host pools with ephemeral OS disks. [Ephemeral OS disks on AVD](https://learn.microsoft.com/azure/virtual-desktop/deploy/session-hosts/ephemeral-os-disks)
@@ -135,14 +174,29 @@ Multimedia redirection
 
 ## N to R
 
+Negotiate
+:   The Windows security package that selects Kerberos unless it can't be used, and otherwise falls back to NTLM. [Microsoft Negotiate](https://learn.microsoft.com/windows/win32/secauthn/microsoft-negotiate)
+
 NTLMv1
 :   A legacy authentication protocol version, removed from Windows 11 version 24H2 and Windows Server 2025. [Removed features](https://learn.microsoft.com/windows/whats-new/removed-features)
+
+NTLMv2
+:   The NTLM version that still works now NTLMv1 is removed, starting in Windows 11 version 24H2 and Windows Server 2025. All NTLM versions are deprecated. [Removed features](https://learn.microsoft.com/windows/whats-new/removed-features), [Deprecated features](https://learn.microsoft.com/windows/whats-new/deprecated-features)
 
 On-demand registration
 :   App Attach registration mode where full registration of an application is deferred until it's launched. [App Attach in AVD](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)
 
+Open handles (Azure Files)
+:   Azure Files limits how many handles can be open at once on a file, a directory and a share's root directory. FSLogix and App Attach both hold handles. [Azure Files scale targets](https://learn.microsoft.com/azure/storage/files/storage-files-scale-targets#file-scale-targets)
+
+Partial TGT
+:   A Kerberos ticket-granting ticket for an on-premises Active Directory domain, issued by Microsoft Entra ID and holding only the user's SID. The device trades it at a domain controller for a full TGT. It needs a Kerberos server object. [Passwordless sign-in to on-premises resources](https://learn.microsoft.com/entra/identity/authentication/howto-authentication-passwordless-security-key-on-premises)
+
 Power management autoscaling
 :   Scaling method that powers existing session hosts on and off. Use it with standard management host pools. [Autoscale glossary](https://learn.microsoft.com/azure/virtual-desktop/autoscale-glossary)
+
+Primary Refresh Token (PRT)
+:   A token that Microsoft Entra ID issues to a user on a registered, joined or hybrid joined device, used for single sign-on to apps on that device. [What is a Primary Refresh Token?](https://learn.microsoft.com/entra/identity/devices/concept-primary-refresh-token)
 
 Private endpoint
 :   A private IP address inside a virtual network for reaching an Azure service, such as Azure Files. [Azure Files network endpoints](https://learn.microsoft.com/azure/storage/files/storage-files-networking-endpoints)
@@ -155,6 +209,9 @@ RDP properties
 
 RDP Shortpath
 :   A UDP-based transport between the client and the session host, which improves on the default TCP connection. On public networks it uses STUN for direct paths and TURN for relayed ones. [RDP Shortpath](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)
+
+Recovery Services vault
+:   The Azure Backup container that holds backup configuration and backup data, including vaulted backups of Azure file shares. [About Azure Files backup](https://learn.microsoft.com/azure/backup/azure-file-share-backup-overview)
 
 Regional host pool
 :   A host pool whose metadata is stored in the selected Azure region rather than in a geographical database shared across regions. [Regional host pools](https://learn.microsoft.com/azure/virtual-desktop/regional-host-pools)
@@ -169,6 +226,12 @@ Scaling plan
 
 Screen capture protection
 :   Stops remote content being captured in screenshots or screen sharing on supported clients. [Screen capture protection](https://learn.microsoft.com/azure/virtual-desktop/screen-capture-protection)
+
+Service principal name (SPN)
+:   The name that identifies a service instance to Kerberos, so a client can request a service ticket for it. [Service principal names](https://learn.microsoft.com/windows/win32/ad/service-principal-names)
+
+Service ticket
+:   A Kerberos ticket for one service, which a domain controller issues when the client presents its ticket-granting ticket. [Kerberos authentication overview](https://learn.microsoft.com/windows-server/security/kerberos/kerberos-authentication-overview)
 
 Session host
 :   A virtual machine that runs users' desktops or applications. [AVD terminology](https://learn.microsoft.com/azure/virtual-desktop/terminology#host-pools)
@@ -199,8 +262,14 @@ STUN and TURN
 
 ## T to Z
 
+Ticket-granting ticket (TGT)
+:   The Kerberos ticket a user gets at sign-in and then uses to request service tickets without entering credentials again. [Kerberos authentication overview](https://learn.microsoft.com/windows-server/security/kerberos/kerberos-authentication-overview)
+
 Trusted launch
 :   An Azure VM security type that uses Secure Boot and a virtual TPM. [Trusted launch](https://learn.microsoft.com/azure/virtual-machines/trusted-launch)
+
+Vaulted backup
+:   An Azure Files backup tier that copies backup data to a Recovery Services vault, away from the storage account. [About Azure Files backup](https://learn.microsoft.com/azure/backup/azure-file-share-backup-overview)
 
 Virtual Machine User Login
 :   Built-in role that lets users sign in to Microsoft Entra joined virtual machines where the host pool requires it. [Microsoft Entra joined session hosts](https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts#assign-user-access-to-host-pools)
@@ -219,6 +288,9 @@ Windows LAPS
 
 Workspace
 :   A logical grouping of application groups that users subscribe to. [AVD terminology](https://learn.microsoft.com/azure/virtual-desktop/terminology#workspaces)
+
+WVDAutoscaleEvaluationPooled
+:   Log Analytics table with each autoscale evaluation for a pooled host pool, showing what autoscale decided and why. [Monitor autoscale operations with Insights](https://learn.microsoft.com/azure/virtual-desktop/autoscale-monitor-operations-insights)
 
 WVDConnections, WVDErrors and WVDConnectionNetworkData
 :   Azure Virtual Desktop log tables in Log Analytics for connections, errors, and estimated round-trip time and bandwidth. [Diagnostics with Log Analytics](https://learn.microsoft.com/azure/virtual-desktop/diagnostics-log-analytics)

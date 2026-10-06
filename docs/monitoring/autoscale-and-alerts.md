@@ -5,6 +5,21 @@ description: Autoscale diagnostics and the alerts worth setting up.
 
 # Autoscale and alerts
 
+<span class="level l300">Level 300</span>
+
+Autoscale is the feedback loop that adds or removes session host capacity. Alerts are the point where monitoring becomes action.
+
+This diagram shows the autoscale observation loop.
+
+```mermaid
+flowchart TB
+    SP["Scaling plan"] --> AS["Autoscale"]
+    AS --> HP["Host pool"]
+    HP --> E["Evaluation data"]
+    E --> LA["Log Analytics"]
+    LA --> AL["Alert"]
+```
+
 ## Autoscale diagnostics
 
 Autoscale is part of the capacity control loop. Microsoft Learn describes two scaling methods: **Power management autoscaling**, which powers session hosts on and off, and **Dynamic autoscaling**, which powers on and off and also creates and deletes session hosts for pooled host pools with session host configuration [Autoscale scaling plans and example scenarios in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/autoscale-scenarios). The June 2026 entry in [What's new in Azure Virtual Desktop?](https://learn.microsoft.com/azure/virtual-desktop/whats-new) states that **Automated Host Pools**, **Dynamic Autoscaling** and **Ephemeral OS Disks** are now available.
@@ -30,6 +45,21 @@ Recommended alert intents:
 - **No available capacity** - use Insights capacity data and connection failures to detect when available sessions are exhausted.
 - **Session hosts unavailable** - alert when registered hosts stop sending data or show as unavailable in Insights.
 - **Service-impacting Azure events** - Azure Service Health provides Azure Status, Service Health and Resource Health, and Service Health alerts notify through your chosen channels about issues affecting your resources [What is Azure Service Health?](https://learn.microsoft.com/azure/service-health/overview).
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Autoscale writes evaluation data to `WVDAutoscaleEvaluationPooled`. Learn says the table includes actions Autoscale took on session hosts, such as starting or deallocating them, and why it took those actions. It also states that entries beginning with `Config` contain scaling plan configuration values and that failed evaluations can be joined to `WVDErrors` by `CorrelationId` [Monitor Autoscale operations with Insights in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/autoscale-monitor-operations-insights).
+
+This Learn-documented query summarises capacity pressure by day, host pool, schedule and phase:
+
+```kusto
+WVDAutoscaleEvaluationPooled
+| where ResultType == "Succeeded"
+| summarize max(SessionOccupancyPercent), max(SessionCount), max(ActiveSessionHostsPercent), max(ActiveSessionHostCount) by _ResourceId, bin(TimeGenerated, 1d), ConfigScheduleName, ConfigSchedulePhase
+| order by _ResourceId asc, TimeGenerated asc, ConfigScheduleName, ConfigSchedulePhase asc
+```
 
 ---
 

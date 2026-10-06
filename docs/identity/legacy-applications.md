@@ -5,6 +5,13 @@ description: What works and what doesn't for legacy applications on Microsoft En
 
 # Legacy application authentication
 
+<span class="level l300">Level 300</span>
+
+This page is the AVD-specific summary. It helps you decide whether an application can run on the Entra-only North Star pool or needs the hybrid-joined stepping-stone pool.
+
+!!! tip "Go deeper"
+    For the deeper explanation of Kerberos, NTLM, user authentication and computer authentication, see [Kerberos and NTLM](../demystified/kerberos-and-ntlm.md) and [Application authentication](../demystified/application-authentication.md). For join model background, see [Device join models](../demystified/device-join-models.md).
+
 ## Application authentication considerations
 
 Microsoft Entra joined session hosts change the machine identity. User authentication to AD DS-backed resources can still work where the user has line of sight to a domain controller and the protocol supports user Kerberos or NTLM. Learn states that AD DS and line of sight are needed to access on-premises resources from Microsoft Entra joined VMs [Microsoft Entra joined session hosts](https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts#accessing-on-premises-resources).
@@ -17,6 +24,20 @@ Applications that authenticate users themselves need attention too. Learn says t
 
 !!! warning "Test every legacy application"
     The NetBIOS name format is easy to miss, because the same application works on domain-joined hosts. Include it in application testing, and route any application that can't change to the hybrid joined stepping-stone pool until it's fixed.
+
+This diagram shows the decision path for legacy authentication.
+
+```mermaid
+flowchart TB
+    A[Legacy app] --> U{User auth?}
+    U -->|Yes| L[Line of sight<br/>to DC]
+    U -->|No| M[Machine auth]
+    L --> T[Test on<br/>Entra pool]
+    M --> H[Hybrid pool]
+    T --> P{Passes?}
+    P -->|Yes| N[North Star]
+    P -->|No| H
+```
 
 ---
 

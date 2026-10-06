@@ -11,6 +11,21 @@ description: Ready-to-adapt Intune settings catalog policy examples for Microsof
     - [Deploy-IntunePolicy.ps1](https://github.com/marckean/AVD-Reference_Architecture/blob/main/tools/intune/Deploy-IntunePolicy.ps1) resolves every setting against your tenant's settings catalog through Microsoft Graph before it creates anything, and stops with the settings picker path if it can't.
     - Policies are created unassigned. Run offline validation, then `-WhatIf`, then a test device group, then production.
 
+<span class="level l300">Level 300</span>
+
+The examples are not magic templates. They are readable policy definitions that resolve real settings in your tenant before anything is created.
+
+This diagram shows the safe deployment path.
+
+```mermaid
+flowchart TB
+    J[Policy JSON] --> O[Offline<br/>validation]
+    O --> W[WhatIf<br/>resolution]
+    W --> C[Create<br/>unassigned]
+    C --> T[Test group]
+    T --> P[Production<br/>assignment]
+```
+
 ## Why examples help
 
 An organisation that has never configured Intune for multi-session session hosts starts from an empty settings catalog. The [required policies](policies.md) page explains what each host needs and why. These examples turn that list into files you can review with your security and operations teams, adapt, and deploy in minutes rather than days. They live in [tools/intune](https://github.com/marckean/AVD-Reference_Architecture/tree/main/tools/intune) in the repository, outside the website.

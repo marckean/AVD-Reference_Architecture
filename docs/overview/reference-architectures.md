@@ -11,6 +11,22 @@ description: The reference architecture patterns at a glance - the North Star, p
     - The other five cover what the North Star doesn't do on its own: applications that need Active Directory, dedicated desktops, published applications, regional resilience and private networks.
     - The [discovery questionnaire](../accelerators/discovery-questionnaire.md) tells you which patterns your answers point to. The [dependency map](dependency-map.md) shows which choices you can't change later.
 
+
+<span class="level l200">Level 200</span>
+
+Use this page as a pattern catalogue. Start with the North Star, then add only the extra pattern needed for a specific constraint such as a legacy application, a dedicated desktop or regional recovery.
+
+This diagram shows how the patterns compose.
+
+```mermaid
+flowchart TB
+    NS["North Star"] --> ADD["Add pattern"]
+    ADD --> LEG["Legacy pool"]
+    ADD --> RA["RemoteApp"]
+    ADD --> DR["Recovery"]
+    ADD --> PERS["Personal desktop"]
+```
+
 ## Which pattern, when
 
 | Pattern | Use it when | What to know first |
@@ -73,3 +89,19 @@ North Star session hosts are disposable, so resilience is about state, not hosts
 ![Private connectivity: managed network users reach Azure Virtual Desktop through Private Link and session hosts over ExpressRoute or VPN with RDP Shortpath, internet users take the public path, and session hosts in a spoke virtual network reach Azure Files through a private endpoint.](../assets/images/private-connectivity-dark.svg#only-dark)
 
 Session hosts never accept inbound connections: they reverse connect to the service. On top of that, Azure Virtual Desktop Private Link keeps the service traffic on private networks ([Private Link with Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/private-link-overview)), and RDP Shortpath for managed networks lets clients on ExpressRoute or VPN connect straight to session hosts over UDP ([RDP Shortpath](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)). Users on the internet take the public path, with STUN or TURN for UDP. [Networking](../networking/index.md) covers the flows, the endpoints and the connection paths.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The patterns split because some decisions are host-pool scoped. Microsoft says a host pool type cannot change after creation, and session hosts in a host pool should have the same identity provider ([FAQ](https://learn.microsoft.com/azure/virtual-desktop/faq#can-i-change-from-pooled-to-personal-host-pools), [Add session hosts](https://learn.microsoft.com/azure/virtual-desktop/add-session-hosts-host-pool#prerequisites)).
+
+```mermaid
+flowchart TB
+    HP["Host pool"] --> TYPE["Pool type"]
+    HP --> JOIN["Join type"]
+    HP --> MGMT["Management"]
+    TYPE --> NEW["New pool"]
+    JOIN --> NEW
+    MGMT --> NEW
+```

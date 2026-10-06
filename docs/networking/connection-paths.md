@@ -5,6 +5,24 @@ description: Reverse connect, RDP Shortpath, RDP Multipath, latency, bandwidth a
 
 # Connection paths and quality
 
+<span class="level l300">Level 300</span>
+
+This page explains which path the user's Remote Desktop Protocol traffic takes, and why the same deployment can use different paths depending on the client network.
+
+This diagram shows the fallback order: start compatible, then use User Datagram Protocol when it works.
+
+```mermaid
+flowchart TB
+    A["Start session"] --> B["TCP reverse connect"]
+    B --> C["Try STUN"]
+    C --> D{"Direct UDP works"}
+    D -->|Yes| E["Use direct UDP"]
+    D -->|No| F["Try TURN"]
+    F --> G{"Relay works"}
+    G -->|Yes| H["Use relay UDP"]
+    G -->|No| I["Stay on TCP"]
+```
+
 ## Connection paths
 
 RDP Shortpath has two modes. For **managed networks**, Learn describes direct connectivity between client and session host over private connectivity such as ExpressRoute or site-to-site VPN; a UDP listener is enabled on session hosts, with port **3390** by default unless changed ([RDP Shortpath for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)). For **public networks**, Learn describes direct UDP using **STUN** first, then relayed UDP using **TURN** if direct connectivity is not possible, falling back to TCP reverse connect if UDP is blocked ([RDP Shortpath for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)).
@@ -19,9 +37,19 @@ For interactive desktop use, design for less than 150 ms round-trip time. The Az
 
 Connection graphics data, which Learn marks as preview, uses a different measure: end-to-end delay per frame. It treats less than 150 ms as good and 150 ms to 300 ms as "Okay" ([Analyze connection quality in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/connection-latency)). Frame delay and round-trip time aren't the same thing, so set targets against round-trip time and use frame delay to diagnose.
 
+For consolidated IOPS, bandwidth, latency, subnet and quota figures, see [Sizing estimates](../overview/sizing-estimates.md).
+
 For Teams, use media optimisation. Learn says Teams on Azure Virtual Desktop supports calling and meeting functionality by redirecting it to the local device when using Windows App or Remote Desktop client on supported platforms ([Use Microsoft Teams on Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/teams-on-avd)). For browser video and calls, Multimedia redirection redirects video playback and calls from the remote session to the local device for processing ([Multimedia redirection for video playback and calls in a remote session](https://learn.microsoft.com/azure/virtual-desktop/multimedia-redirection-video-playback-calls)).
 
 **Status:** Multimedia redirection call redirection is generally available according to the Azure Virtual Desktop What's new page for October 2024 ([What's new in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/whats-new)). Connection Graphics Data Logs are preview, as marked by Learn ([Analyze connection quality in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/connection-latency)).
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+RDP Shortpath uses Interactive Connectivity Establishment concepts. Learn says the client stores STUN-discovered public IP and port information in a candidate table as a **reflexive candidate**. It also says when both managed and public Shortpath are available, Azure Virtual Desktop uses a first-found algorithm and the user uses whichever connection is established first for that session ([RDP Shortpath for Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/rdp-shortpath)).
+
+RDP Multipath adds path resilience. Learn says each active user session can establish up to five outbound transport paths: up to three User Datagram Protocol ports for Shortpath and Multipath, and up to two Transmission Control Protocol ports for reverse connect, including redundant TCP transport paths ([Use RDP Multipath to improve connection reliability to Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/rdp-multipath)).
 
 ---
 

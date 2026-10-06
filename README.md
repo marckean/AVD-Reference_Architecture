@@ -18,7 +18,8 @@ Every recommendation links back to Microsoft Learn.
 
 | Step | Accelerator | Where |
 | --- | --- | --- |
-| **Learn** | The reference architecture: the North Star, reference architecture patterns, a master dependency map, twelve areas in depth, a dependency checklist, stepping stones and a worked example | [The website](https://marckean.github.io/AVD-Reference_Architecture/) |
+| **Learn** | The reference architecture: the North Star, reference architecture patterns, a master dependency map, sizing estimates, twelve areas in depth, a dependency checklist, stepping stones and a worked example. Every area runs from Level 100 (in plain terms) to Level 400 (under the hood) | [The website](https://marckean.github.io/AVD-Reference_Architecture/) |
+| **Go deeper** | Identity demystified: Active Directory and Microsoft Entra ID, Kerberos tickets and the Primary Refresh Token, the device join models, Kerberos, NTLM and Negotiate, and how legacy and modern applications authenticate | [Identity demystified](https://marckean.github.io/AVD-Reference_Architecture/demystified/) |
 | **Discover** | An interactive discovery questionnaire you fill in with the customer. It recommends patterns, flags fixed-at-creation decisions, estimates sizing, and writes a parameters file for the pilot. Answers never leave the browser | [Discovery questionnaire](https://marckean.github.io/AVD-Reference_Architecture/accelerators/discovery-questionnaire/) |
 | **Deploy** | A Deploy to Azure template with a guided portal wizard that explains each component: an automated host pool, dynamic autoscaling, ephemeral OS disks, Microsoft Entra join, Azure Files and Key Vault | [deploy/](deploy/) |
 | **Configure** | Intune settings catalog policy examples for multi-session session hosts, and a script that resolves every setting against your tenant before it creates anything | [tools/intune/](tools/intune/) |

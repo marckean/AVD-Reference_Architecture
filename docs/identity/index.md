@@ -12,7 +12,28 @@ description: Identity design for a Microsoft Entra joined Azure Virtual Desktop 
     - Use Conditional Access policies that target both **Azure Virtual Desktop** and **Windows Cloud Login** when single sign-on is enabled.
     - Keep a small hybrid-joined stepping-stone host pool only for applications that need AD DS machine authentication or other domain-joined behaviour.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Think of identity as the front desk, the building pass and the room key for the virtual desktop service. The user signs in once, Conditional Access checks whether the sign-in is trusted, Azure Virtual Desktop shows only the desktops and apps that user is allowed to use, and the session host gets the right tokens or tickets to open profile storage and applications.
+
+The North Star keeps the session host itself joined to Microsoft Entra ID, not Active Directory Domain Services. That makes the pooled host pool easier to rebuild, enrol in Intune and scale dynamically. Applications that still need a classic domain-joined computer go to a small hybrid-joined stepping-stone pool instead of pulling the whole platform backwards.
+
+This diagram shows the simple version of the identity model.
+
+```mermaid
+flowchart TB
+    U[User] --> CA[Conditional<br/>Access]
+    CA --> AVD[Azure Virtual<br/>Desktop]
+    AVD --> H[Entra joined<br/>session host]
+    H --> P[FSLogix profile<br/>on Azure Files]
+    H --> L[Legacy apps<br/>by exception]
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 Identity is the control plane for who can discover an Azure Virtual Desktop resource, who can sign in to a session host, and which downstream resources they can use once inside the session. In this North Star, session hosts are [Microsoft Entra joined virtual machines](https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts), not Active Directory Domain Services joined machines. Microsoft Learn states that Microsoft Entra joined VMs remove the need for line of sight from the VM to a domain controller for deployment and access, and can be automatically enrolled in Intune for management.
 
@@ -37,22 +58,13 @@ This does not mean AD DS disappears from every environment. If the user needs to
 The same sign-in as a sequence:
 
 ```mermaid
-sequenceDiagram
-    participant User as User
-    participant Client as Windows App or Remote Desktop client
-    participant AVD as Azure Virtual Desktop service
-    participant WCL as Windows Cloud Login
-    participant Host as Microsoft Entra joined session host
-    participant Files as Azure Files profiles
-    User->>Client: "Open workspace"
-    Client->>AVD: "Authenticate and request feed"
-    AVD->>Client: "Return authorised desktops and apps"
-    User->>Client: "Launch desktop"
-    Client->>AVD: "Request connection"
-    AVD->>WCL: "Single sign-on evaluation"
-    WCL->>Host: "Issue Microsoft Entra token for host sign-in"
-    Host->>Files: "Retrieve profile with Microsoft Entra Kerberos"
-    Host->>User: "Desktop session"
+flowchart TB
+    U[User] --> C[Client]
+    C --> A[AVD feed]
+    A --> R[Assigned<br/>resources]
+    R --> H[Session host]
+    H --> F[Profile<br/>share]
+    H --> D[Desktop]
 ```
 
 With single sign-on enabled, Microsoft Learn says users authenticate to Windows using a Microsoft Entra ID token, enabling passwordless authentication and third-party identity providers that federate with Microsoft Entra ID when connecting to a session host [Configure single sign-on](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on).
@@ -74,6 +86,8 @@ The North Star pattern is:
 
 ## Design decisions
 
+<span class="level l300">Level 300</span>
+
 | Decision | North Star choice | Why |
 | --- | --- | --- |
 | Session host join type | Microsoft Entra joined | Removes domain join from the pooled host layer and aligns with Intune management [Microsoft Entra joined session hosts](https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts). |
@@ -82,6 +96,33 @@ The North Star pattern is:
 | User assignment | **Desktop Virtualization User** on application groups | This role allows users to use an application on a session host from an application group [Built-in Azure RBAC roles](https://learn.microsoft.com/azure/virtual-desktop/rbac#desktop-virtualization-user). |
 | VM sign-in role | **Virtual Machine User Login** on session host VMs or resource group when required | Required for Microsoft Entra joined VMs in host pools without a session host configuration [Microsoft Entra joined session hosts](https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts#assign-user-access-to-host-pools). |
 | Legacy dependencies | Small hybrid-joined stepping-stone pool | Microsoft Entra joined devices do not support on-premises applications that rely on machine authentication [Device join plan](https://learn.microsoft.com/entra/identity/devices/device-join-plan#understand-considerations-for-applications-and-resources). |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Single sign-on adds **Windows Cloud Login** to the connection path. Learn names the app ID as `270efc09-cd0d-444b-a71f-39af4910ec45`, and says it handles session host sign-in when single sign-on is enabled [Enforce Microsoft Entra multifactor authentication for Azure Virtual Desktop using Conditional Access](https://learn.microsoft.com/azure/virtual-desktop/set-up-mfa). The Azure Virtual Desktop app handles feed subscription and gateway authentication, while Windows Cloud Login handles the session host sign-in.
+
+When troubleshooting repeated prompts, check the sign-in logs for both applications. Learn provides a Kusto query against **AADNonInteractiveUserSignInLogs** for Microsoft Entra joined VM sign-in issues, including the app ID `372140e0-b3b7-4226-8ef9-d57986796201` for Azure Windows VM Sign-In [Troubleshoot connections to Microsoft Entra joined VMs](https://learn.microsoft.com/troubleshoot/azure/virtual-desktop/troubleshoot-azure-ad-connections).
+
+This diagram shows the two identity checkpoints in the path.
+
+```mermaid
+flowchart TB
+    C[Client] --> A[AVD app]
+    A --> L[Sign-in<br/>logs]
+    C --> W[Windows Cloud<br/>Login]
+    W --> H[Session host]
+    W --> L
+```
+
+1. The client authenticates to the Azure Virtual Desktop app for workspace discovery and gateway access.
+2. The client authenticates to Windows Cloud Login for session host sign-in when single sign-on is enabled.
+3. Conditional Access can evaluate both application sign-ins.
+4. Troubleshooting needs both interactive and non-interactive sign-in logs.
+
+!!! tip "Go deeper"
+    For the deeper identity model, see [Identity demystified](../demystified/index.md), [Tokens and tickets](../demystified/tokens-and-tickets.md), [Device join models](../demystified/device-join-models.md) and [AVD sign-in end to end](../demystified/avd-sign-in-end-to-end.md).
 
 ## In this section
 

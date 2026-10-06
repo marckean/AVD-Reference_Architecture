@@ -5,6 +5,10 @@ description: Scaling plan phases, the roles autoscale needs, Start VM on Connect
 
 # Scaling plans
 
+<span class="level l300">Level 300</span>
+
+A scaling plan is the timetable and rulebook for Autoscale. It tells Azure Virtual Desktop what phase of the day it is in, how much capacity must stay active, and when to add or remove hosts.
+
 ## Scaling plan phases
 
 A scaling plan schedule for pooled host pools has four phases, documented in [Autoscale scaling plans and example scenarios](https://learn.microsoft.com/azure/virtual-desktop/autoscale-scenarios#how-a-scaling-plan-works):
@@ -17,6 +21,16 @@ A scaling plan schedule for pooled host pools has four phases, documented in [Au
 For pooled host pools, key settings include **Start time**, **Load balancing algorithm**, **Minimum percentage of hosts** or **Minimum percentage of active hosts (%)**, and **Capacity threshold**. Microsoft defines **Capacity threshold** in [Create and assign an autoscale scaling plan](https://learn.microsoft.com/azure/virtual-desktop/autoscale-create-assign-scaling-plan?tabs=portal%2Cintune&pivots=power-management).
 
 The **Peak hours** phase inherits the capacity threshold from **Ramp-up**. The **Off-peak hours** phase inherits the capacity threshold from **Ramp-down**, and Microsoft recommends **depth-first** for off-peak so the pool can gradually reduce the number of running hosts in [Create and assign an autoscale scaling plan](https://learn.microsoft.com/azure/virtual-desktop/autoscale-create-assign-scaling-plan?tabs=portal%2Cintune&pivots=power-management).
+
+This diagram shows the daily phase model.
+
+```mermaid
+flowchart TB
+    R["Ramp-up"] --> P["Peak"]
+    P --> D["Ramp-down"]
+    D --> O["Off-peak"]
+    O --> R
+```
 
 ## Permissions and roles
 
@@ -41,6 +55,14 @@ Autoscale respects capacity threshold and minimum host settings when consolidati
 If you do not force sign-out, you must choose whether ramp-down can act when **VMs have no active or disconnected sessions** or when **VMs have no active sessions**, per the same [scaling plan article](https://learn.microsoft.com/azure/virtual-desktop/autoscale-create-assign-scaling-plan?tabs=portal%2Cintune&pivots=power-management).
 
 Use an exclusion tag for maintenance. The portal field is **Exclusion tag**, and Microsoft gives **excludeFromScaling** as an example. Microsoft also warns that tagged session hosts are still considered in the minimum percentage calculation, and that sensitive information such as user principal names should not be included in exclusion tag values, in [Create and assign an autoscale scaling plan](https://learn.microsoft.com/azure/virtual-desktop/autoscale-create-assign-scaling-plan?tabs=portal%2Cintune&pivots=power-management).
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+For Dynamic Autoscaling, assign **Desktop Virtualization Power On Off Contributor** and **Desktop Virtualization Virtual Machine Contributor** to the Azure Virtual Desktop service principal at subscription scope. Microsoft says assigning at a lower scope prevents Autoscale from working properly ([Create and assign an autoscale scaling plan](https://learn.microsoft.com/azure/virtual-desktop/autoscale-create-assign-scaling-plan?tabs=portal%2Cintune&pivots=dynamic#assign-permissions-to-the-azure-virtual-desktop-service-principal)).
+
+Tagged hosts are still counted in minimum percentage calculations. The exclusion tag stops start, stop, and drain-mode changes on that host, but it does not remove the host from capacity maths ([Create and assign an autoscale scaling plan](https://learn.microsoft.com/azure/virtual-desktop/autoscale-create-assign-scaling-plan?tabs=portal%2Cintune&pivots=power-management)).
 
 ---
 

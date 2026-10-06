@@ -11,6 +11,11 @@ description: What an organisation must have in place, layer by layer, before the
     - Each item names the team that usually owns it and links to the Microsoft Learn article it comes from.
     - Use it two ways: as the build checklist for the North Star, and to mark which items an existing image or platform already covers.
 
+
+<span class="level l300">Level 300</span>
+
+This checklist turns the architecture into owned prerequisites. Work through it with the teams that own identity, endpoint management, network, storage, applications and operations.
+
 ## How to use this checklist
 
 !!! tip "See the map first"
@@ -130,3 +135,9 @@ The full policy set is on the [Intune policies](../intune/index.md) page.
 - [ ] Alerts and action groups exist for the conditions that matter, alongside Azure Service Health alerts ([Log search alerts](https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-create-log-alert-rule), [Azure Service Health](https://learn.microsoft.com/azure/service-health/overview)).
 - [ ] Cost allocation tags are applied and inherited ([Tag inheritance](https://learn.microsoft.com/azure/cost-management-billing/costs/enable-tag-inheritance)).
 - [ ] Everything above is deployed through infrastructure as code ([Cloud Adoption Framework for AVD](https://learn.microsoft.com/azure/cloud-adoption-framework/scenarios/azure-virtual-desktop/enterprise-scale-landing-zone)).
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Identity dependencies are often the longest pole. For deeper explanation, see [Device join models](../demystified/device-join-models.md), [Application authentication](../demystified/application-authentication.md) and [Kerberos and NTLM](../demystified/kerberos-and-ntlm.md). Use those pages when an application owner says an app needs the domain, because user authentication and machine authentication are different design problems.

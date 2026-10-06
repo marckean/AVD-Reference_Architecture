@@ -5,6 +5,22 @@ description: Using existing App-V packages with App Attach, and a phased route f
 
 # From App-V to App Attach
 
+<span class="level l300">Level 300</span>
+
+App-V is not the long-term packaging destination, but existing App-V packages can be a practical bridge into Azure Virtual Desktop.
+
+This diagram shows the migration path: keep what works, convert what should move, and build the MSIX capability over time.
+
+```mermaid
+flowchart TB
+    A["App-V estate"] --> B["Test as App Attach"]
+    B --> C["Bridge packages"]
+    B --> D["Convert to MSIX"]
+    C --> E["AVD users"]
+    D --> E
+    E --> F["MSIX destination"]
+```
+
 ## Using existing App-V packages
 
 App Attach can deliver App-V packages directly. Learn lists App-V as a supported package type with `.appv` file format, and the add and manage article shows adding an App-V package as an App Attach package ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview), [Add and manage App Attach applications](https://learn.microsoft.com/azure/virtual-desktop/app-attach-setup)).
@@ -27,6 +43,14 @@ For App-V packages delivered through App Attach, Learn says you can use App-V Dy
 
 !!! warning "Validate every package"
     Microsoft Learn confirms the supported formats and the App-V dynamic configuration behaviour, but it doesn't guarantee that every existing App-V package works through App Attach. Test each package in a representative host pool before you rely on it.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The App-V distinction is client-side versus server-side. The App-V support policy says the **App-V client and sequencer** have moved to fixed extended support and are no longer deprecated, while the **App-V server components** remain deprecated and support ended in April 2026. The same page says **App-V app attach** lets you use App-V packages with Azure Virtual Desktop without running your own server ([App-V in Windows support policy](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy)).
+
+For package behaviour, App Attach automatically detects standard App-V Dynamic Configuration files when the file names match the package name and sit beside the `.appv` file. Learn names the patterns `filename_UserConfig.xml` and `filename_DeploymentConfig.xml`; it also notes that user configuration is only supported on desktop connections, not RemoteApp connections ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)).
 
 ---
 

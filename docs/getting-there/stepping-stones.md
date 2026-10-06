@@ -11,27 +11,32 @@ description: Patterns for the parts of an estate that can't move straight to the
     - Run stepping stones as separate host pools alongside the North Star, so they never compromise it.
     - Every stepping stone needs an owner and exit criteria from the day it's created.
 
+
+<span class="level l300">Level 300</span>
+
+A stepping stone is not a compromise hidden in the target design. It is a separate, named path for workloads that need more time, with an owner and an exit date.
+
 ## Choosing a stepping stone
 
 ```mermaid
 flowchart TB
-    Q1{"Does the application need computer authentication or other AD DS dependencies?"}
-    Q2{"Is the existing image needed for speed?"}
-    Q3{"Must existing tooling keep managing the hosts?"}
-    Q4{"Does the user need a dedicated, persistent desktop?"}
+    Q1{"AD DS need?"}
+    Q2{"Existing image?"}
+    Q3{"Keep tooling?"}
+    Q4{"Dedicated desktop?"}
     NS["North Star pooled host pool"]
     S1["Hybrid joined pool"]
     S2["Existing image track"]
     S3["Standard management host pool"]
-    S4["Personal host pool or Windows 365"]
-    Q1 -- "Yes" --> S1
-    Q1 -- "No" --> Q2
-    Q2 -- "Yes" --> S2
-    Q2 -- "No" --> Q3
-    Q3 -- "Yes" --> S3
-    Q3 -- "No" --> Q4
-    Q4 -- "Yes" --> S4
-    Q4 -- "No" --> NS
+    S4["Personal desktop"]
+    Q1 -->|Yes| S1
+    Q1 -->|No| Q2
+    Q2 -->|Yes| S2
+    Q2 -->|No| Q3
+    Q3 -->|Yes| S3
+    Q3 -->|No| Q4
+    Q4 -->|Yes| S4
+    Q4 -->|No| NS
 ```
 
 ## Hybrid joined pool for legacy applications
@@ -109,3 +114,9 @@ flowchart TB
 | Each one has a named owner and an exit date | Without them, the stepping stone becomes the platform |
 | Each one is reviewed at the same cadence as the migration plan | Exits get planned, not forgotten |
 | Each one uses the same success criteria as the North Star | Results compare on evidence |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+A stepping stone should have a measurable exit. For identity exceptions, split the evidence into device join, user authentication and protocol dependency. The background is in [Device join models](../demystified/device-join-models.md), [Application authentication](../demystified/application-authentication.md) and [Kerberos and NTLM](../demystified/kerberos-and-ntlm.md).

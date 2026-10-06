@@ -5,6 +5,21 @@ description: The Intune policies an Entra joined multi-session host needs, with 
 
 # Required policies
 
+<span class="level l300">Level 300</span>
+
+Required policies are the minimum settings that let an Entra joined multi-session host sign users in, load profiles, apply security controls and behave consistently.
+
+This diagram groups the required policy areas.
+
+```mermaid
+flowchart TB
+    H[Session host] --> ID[Identity<br/>and Kerberos]
+    ID --> PR[FSLogix<br/>profiles]
+    PR --> SEC[Defender<br/>and LAPS]
+    SEC --> UX[Teams and<br/>OneDrive]
+    UX --> RD[Redirection<br/>controls]
+```
+
 | Policy area | Setting | Value | Why | Learn link |
 | --- | --- | --- | --- | --- |
 | Microsoft Entra Kerberos for Azure Files | **Kerberos/CloudKerberosTicketRetrievalEnabled** | **1** | Allows Microsoft Entra joined hosts to retrieve Microsoft Entra Kerberos tickets for Azure Files FSLogix profiles. Learn says use Settings Catalog instead of OMA-URI for AVD multi-session. Device-scoped. | [Azure Files Microsoft Entra Kerberos](https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable#configure-the-clients-to-retrieve-kerberos-tickets) |

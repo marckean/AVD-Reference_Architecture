@@ -12,7 +12,28 @@ description: Use Autoscale scaling plans to balance user experience, cost, and o
     - Segment host pools by usage pattern, time zone, application set, and capacity behaviour before tuning thresholds.
     - Enable Autoscale diagnostics and use Azure Virtual Desktop Insights to review decisions, not just VM power state.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Autoscale is like opening and closing checkout lanes in a supermarket. When more shoppers arrive, you open more lanes. When the store is quiet, you close lanes so staff are not idle.
+
+In Azure Virtual Desktop, the "lanes" are session hosts. Power management Autoscale starts and stops existing hosts. Dynamic Autoscaling can also create and delete hosts, which is why it fits ephemeral OS disk pools.
+
+This diagram shows the basic scaling loop.
+
+```mermaid
+flowchart TB
+    A["Users arrive"] --> B["Capacity check"]
+    B --> C["Add hosts"]
+    C --> D["Sessions run"]
+    D --> E["Users leave"]
+    E --> F["Remove hosts"]
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 Autoscale is the Azure Virtual Desktop service feature that adjusts session host capacity in a host pool according to schedules and demand. A scaling plan defines the schedules and settings for the host pools it is assigned to. Microsoft Learn states that you can assign one scaling plan to multiple host pools, but each host pool can have only one scaling plan assigned in [Autoscale scaling plans and example scenarios](https://learn.microsoft.com/azure/virtual-desktop/autoscale-scenarios#how-a-scaling-plan-works).
 
@@ -58,6 +79,8 @@ For pools with ephemeral OS disks, use a configuration that creates and deletes 
 
 ## Design decisions
 
+<span class="level l300">Level 300</span>
+
 | Decision | North Star choice | Why |
 |---|---|---|
 | Scaling authority | Azure Virtual Desktop Autoscale only | Microsoft says not to combine Autoscale with other scaling tools on the same host pool in [Autoscale scenarios](https://learn.microsoft.com/azure/virtual-desktop/autoscale-scenarios). |
@@ -66,6 +89,21 @@ For pools with ephemeral OS disks, use a configuration that creates and deletes 
 | Host pool segmentation | Separate by usage pattern and time zone | Scaling plans operate in one configured time zone and Microsoft says you need to understand usage patterns before defining schedules in [Autoscale scenarios](https://learn.microsoft.com/azure/virtual-desktop/autoscale-scenarios#how-a-scaling-plan-works). |
 | Load balancing | Breadth-first during ramp-up, depth-first during off-peak | Microsoft recommends breadth-first in ramp-up and depth-first in off-peak in the [create scaling plan article](https://learn.microsoft.com/azure/virtual-desktop/autoscale-create-assign-scaling-plan?tabs=portal%2Cintune&pivots=power-management). |
 | Operations evidence | Autoscale diagnostics and Insights | Microsoft recommends using Autoscale diagnostic data integrated with Insights for pooled host pools in [Autoscale diagnostics](https://learn.microsoft.com/azure/virtual-desktop/autoscale-diagnostics). |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Autoscale evaluates host pool capacity by comparing session count with the host pool's available capacity. The diagnostic table exposes the values: `SessionCount`, `MaxSessionLimitPerSessionHost`, `SessionOccupancyPercent`, `ActiveSessionHostCount`, `ConfigCapacityThresholdPercent`, and `ConfigMinActiveSessionHostsPercent` in `WVDAutoscaleEvaluationPooled` ([Monitor Autoscale operations with Insights](https://learn.microsoft.com/azure/virtual-desktop/autoscale-monitor-operations-insights#wvdautoscaleevaluationpooled-schema)).
+
+When `ResultType` is not `Succeeded`, Microsoft says to join `WVDAutoscaleEvaluationPooled` to `WVDErrors` by `CorrelationId` ([Monitor Autoscale operations with Insights](https://learn.microsoft.com/azure/virtual-desktop/autoscale-monitor-operations-insights#failed-evaluations-with-wvderrors)).
+
+```kusto
+WVDAutoscaleEvaluationPooled
+| where ResultType != "Succeeded"
+| join kind=leftouter WVDErrors on CorrelationId
+| order by _ResourceId asc, TimeGenerated asc
+```
 
 ## In this section
 

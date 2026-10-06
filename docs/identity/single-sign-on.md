@@ -5,6 +5,13 @@ description: Microsoft Entra authentication for RDP, the host pool property that
 
 # Single sign-on
 
+<span class="level l300">Level 300</span>
+
+Single sign-on lets the user launch a desktop without typing a second password into Windows. Azure Virtual Desktop uses Microsoft Entra authentication for Remote Desktop Protocol to make that work.
+
+!!! tip "Go deeper"
+    For the full sign-in path, see [AVD sign-in end to end](../demystified/avd-sign-in-end-to-end.md). For how tokens and Kerberos tickets differ, see [Tokens and tickets](../demystified/tokens-and-tickets.md).
+
 ## Enable Microsoft Entra authentication for RDP
 
 **Status:** Generally available. Microsoft Learn documents the configuration without a preview label [Configure single sign-on](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on).
@@ -12,6 +19,21 @@ description: Microsoft Entra authentication for RDP, the host pool property that
 Before SSO can work, Microsoft Entra authentication for RDP must be enabled in the tenant. Learn says this sets the `isRemoteDesktopProtocolEnabled` property to true on the service principal's `remoteDesktopSecurityConfiguration` object for **Windows Cloud Login**, app ID `270efc09-cd0d-444b-a71f-39af4910ec45` [Configure single sign-on](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on#enable-microsoft-entra-authentication-for-rdp).
 
 Required Microsoft Entra roles for this tenant configuration are **Application Administrator** or **Cloud Application Administrator**, or equivalent [Configure single sign-on](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on#prerequisites).
+
+This diagram shows what changes when single sign-on is enabled.
+
+```mermaid
+flowchart TB
+    C[Client] --> A[AVD service]
+    A --> W[Windows Cloud<br/>Login]
+    W --> T[Entra token]
+    T --> H[Session host]
+    H --> D[Desktop ready]
+```
+
+1. The client launches a desktop from the Azure Virtual Desktop feed.
+2. Windows Cloud Login handles the session host authentication.
+3. The session host receives a Microsoft Entra sign-in token instead of prompting for a second password.
 
 ## Configure the host pool RDP property
 

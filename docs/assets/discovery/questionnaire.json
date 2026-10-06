@@ -15,15 +15,26 @@
     "appAttach": "https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview",
     "deployCli": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-cli#deploy-remote-template",
     "deployPowerShell": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-powershell#deploy-remote-template",
-    "deployPortal": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-portal#deploy-resources-from-custom-template"
+    "deployPortal": "https://learn.microsoft.com/azure/azure-resource-manager/templates/deploy-portal#deploy-resources-from-custom-template",
+    "sizingEstimates": "../overview/sizing-estimates/"
   },
   "sizingAssumptions": {
     "fslogixSteadyIopsPerUser": 10,
     "fslogixSignInIopsPerUser": 50,
     "azureFilesSsdProvisionedV2MaxIops": 102400,
     "azureFilesHddProvisionedV2MaxIops": 50000,
-    "appAttachSteadyIopsPerUser": 1,
-    "appAttachBootSignInIopsPerUser": 10
+    "appAttachSteadyIopsPerImagePerHost": 1,
+    "appAttachBootSignInIopsPerImagePerHost": 10,
+    "azureReservedSubnetAddresses": 5,
+    "vmSizeVcpus": {
+      "Standard_D4ads_v5": 4,
+      "Standard_D8ads_v5": 8,
+      "Standard_D16ads_v5": 16,
+      "Standard_D4ds_v5": 4,
+      "Standard_D8ds_v5": 8,
+      "Standard_D16ds_v5": 16,
+      "Standard_E8ads_v5": 8
+    }
   },
   "parameterMap": {
     "note": "Current mapping for deploy/main.bicep and deploy/azuredeploy.json as read on 2026-10-06. Keep this section in sync when the template parameter list changes.",
@@ -665,6 +676,16 @@
           "whyHref": "../app-attach/packages/"
         },
         {
+          "id": "appAttachImagesPerHost",
+          "section": "applications",
+          "label": "How many App Attach images will each session host mount?",
+          "type": "number",
+          "default": 10,
+          "required": true,
+          "why": "Learn gives App Attach performance requirements per 1 GB image or App-V package per session host, and image handles are opened per session host rather than per user.",
+          "whyHref": "https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview#performance"
+        },
+        {
           "id": "installedApps",
           "section": "applications",
           "label": "Number of installed applications in the current image",
@@ -1053,6 +1074,16 @@
           "required": true,
           "why": "The maximum host pool size caps dynamic scale-out during the pilot.",
           "whyHref": "../scaling/scaling-plans/"
+        },
+        {
+          "id": "sessionHostUpdateBatchSize",
+          "section": "hostPools",
+          "label": "Session host update batch size",
+          "type": "number",
+          "default": 1,
+          "required": true,
+          "why": "Session host update needs temporary capacity for the update batch, so quota and subnet estimates add this batch to the maximum host count.",
+          "whyHref": "../overview/sizing-estimates/#subnet-quota-and-service-limits"
         },
         {
           "id": "offPeakMinHosts",

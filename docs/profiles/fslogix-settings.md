@@ -5,6 +5,21 @@ description: The key FSLogix settings, Cloud Cache and backup.
 
 # FSLogix settings and resilience
 
+<span class="level l300">Level 300</span>
+
+This page turns the profile design into settings. The goal is simple: enable profile containers, point them at the right SMB paths, keep identity roaming off for Microsoft Entra joined hosts, and use Cloud Cache only when its trade-offs are understood.
+
+This diagram shows the difference between the basic container path and Cloud Cache.
+
+```mermaid
+flowchart TB
+    H["Session host"] --> V["VHDLocations"]
+    V --> S["SMB profile share"]
+    H --> C["Cloud Cache"]
+    C --> L["Local cache"]
+    C --> R["Remote providers"]
+```
+
 ## Configuration
 
 Configure FSLogix profile settings under `HKEY_LOCAL_MACHINE\SOFTWARE\FSLogix\Profiles` or through policy. These are the North Star defaults to start from:
@@ -35,6 +50,16 @@ Use Cloud Cache only when you have a clear resilience or locality requirement th
 Use Azure Backup for Azure Files. Learn describes Azure Files backup as a native cloud solution and says it supports **snapshot** and **vaulted** backups for Azure file shares ([About Azure Files backup](https://learn.microsoft.com/azure/backup/azure-file-share-backup-overview)).
 
 Also design operational recovery. Backup protects the share, but profile recovery still needs runbooks for accidental deletion, corrupt containers, locked VHDX files, and user restore requests. Align those runbooks with [business continuity and disaster recovery](../bcdr/index.md).
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Cloud Cache uses **CCDLocations**, not **VHDLocations**, and the locations are ordered. Learn says Cloud Cache uses storage providers based on the order of entries in `CCDLocations`, uses a locally mounted container for periodic updates to remote providers, and adds performance and storage requirements to the virtual machine for local cache I/O ([Cloud Cache Overview](https://learn.microsoft.com/fslogix/concepts-fslogix-cloud-cache)).
+
+Cloud Cache also uses queue, index, proxy, lock and meta files. Learn says `*.queue` files track `*.index` files that have not flushed, `*.index` files contain batches of block-level changes, the proxy file represents the registered container, the lock file determines which virtual machine has the I/O lock, and the meta file tracks container state and sequence ([Cloud Cache Overview](https://learn.microsoft.com/fslogix/concepts-fslogix-cloud-cache)).
+
+At sign-out, Cloud Cache can delay the user if one or more providers do not contain all updates. Learn says the delay depends on **HealthyProvidersRequiredForUnregister** and **CcdUnregisterTimeout** ([Cloud Cache Overview](https://learn.microsoft.com/fslogix/concepts-fslogix-cloud-cache), [Configuration Setting Reference](https://learn.microsoft.com/fslogix/reference-configuration-settings)).
 
 ---
 

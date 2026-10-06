@@ -5,6 +5,21 @@ description: How Microsoft Entra joined session hosts enrol in Intune, and how t
 
 # Enrolment and targeting
 
+<span class="level l300">Level 300</span>
+
+Targeting is how Intune knows which settings go to which session hosts. For multi-session, scope matters: device settings go to devices, and user settings go to users.
+
+This diagram shows the targeting model.
+
+```mermaid
+flowchart TB
+    HP[Host pool] --> H[Session hosts]
+    H --> DG[Device group]
+    DG --> DP[Device policies]
+    U[Users] --> UG[User group]
+    UG --> UP[User policies]
+```
+
 ## Targeting session hosts
 
 Use Microsoft Entra device groups for session hosts. When creating a Settings Catalog profile, Learn says to add a settings filter with:

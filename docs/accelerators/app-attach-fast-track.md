@@ -12,6 +12,23 @@ description: How a small team with no App Attach experience gets its first appli
     - Applications can't be lifted out of an installed golden image. The reliable route is to inventory the image, then rebuild each application from its source installer.
     - An AI assistant speeds up the reading, drafting and explaining. People still own testing, code signing and approval.
 
+
+<span class="level l300">Level 300</span>
+
+The fast track proves the App Attach platform first, then scales packaging. Start with known packages, learn the flow, and only then tackle the difficult applications.
+
+This diagram shows the application flow.
+
+```mermaid
+flowchart TB
+    INV["Inventory"] --> TRI["Triage"]
+    TRI --> AV["App-V bridge"]
+    TRI --> MSIX["MSIX conversion"]
+    AV --> TEST["User test"]
+    MSIX --> TEST
+    TEST --> RUN["Run service"]
+```
+
 ## Who this is for
 
 Picture a platform team of two or three people. Their virtual desktops run on a golden image that has had applications added to it for years. Some applications are already sequenced as App-V packages, many more are installed straight into the image, and a few are so old that nobody wants to touch them. The team has never used App Attach and has no spare capacity for a long packaging project.
@@ -90,6 +107,13 @@ The repository includes instructions and skills that teach GitHub Copilot this w
 - **Testing:** time from application owners, which is usually the real bottleneck.
 
 The Microsoft Learn training path [Manage user environments and apps for Azure Virtual Desktop](https://learn.microsoft.com/training/paths/manage-user-environments-apps/) covers App Attach and FSLogix, and the [AZ-140 study guide](https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-140) lists the wider skills.
+
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+App Attach scale is not a user-count formula. For VHDX images, Microsoft says the number of VMs multiplied by the number of apps must be less than 10,000, and the number of VMs per app cannot exceed 2,000 ([Virtual desktop workloads](https://learn.microsoft.com/azure/storage/files/virtual-desktop-workloads#app-attach-with-vhdvhdx)). That is why the sizing page calculates App Attach per host per image.
 
 ## Microsoft Learn
 

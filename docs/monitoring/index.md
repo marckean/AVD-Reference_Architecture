@@ -13,7 +13,28 @@ description: Operate Azure Virtual Desktop with diagnostic logs, Azure Virtual D
     - Alert on user-impacting symptoms first: failed connections, unavailable session hosts, exhausted capacity and Azure service health events.
     - Control cost by collecting only the diagnostic categories, counters and event logs that support an operational decision.
 
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Monitoring is the dashboard, flight recorder and alarm bell for Azure Virtual Desktop. If users cannot sign in, sessions feel slow, or the platform runs out of capacity, monitoring tells you where the problem happened and gives you evidence to fix it.
+
+Think of the service like a train network. Azure Virtual Desktop records ticket gates, routing and platform events. Session hosts record engine health. Azure Monitor brings both together so operators can see whether the issue is the route, the train, the passenger load or the wider Azure platform.
+
+This diagram shows the basic monitoring idea.
+
+```mermaid
+flowchart TB
+    U["User session"] --> A["AVD service"]
+    A --> L["Log Analytics"]
+    H["Session host"] --> L
+    L --> I["AVD Insights"]
+    L --> R["Alerts"]
+```
+
 ## What it is
+
+<span class="level l200">Level 200</span>
 
 Monitoring for the [North Star AVD design](../overview/how-it-fits-together.md) has two layers.
 
@@ -40,6 +61,8 @@ In the North Star design, session hosts are disposable because they use [ephemer
 
 ## North Star recommendation
 
+<span class="level l300">Level 300</span>
+
 | Decision | North Star choice | Why |
 | --- | --- | --- |
 | Log destination | One Log Analytics workspace per environment or landing zone | Azure Virtual Desktop diagnostics and Azure Monitor Agent data need a common query surface for Insights and alerts. |
@@ -48,6 +71,33 @@ In the North Star design, session hosts are disposable because they use [ephemer
 | Session host collection | Install Azure Monitor Agent from image build or deployment automation and associate a DCR | Insights requires a DCR, Azure Monitor Agent on all monitored hosts and data sent to Log Analytics. |
 | Workbook | Use Azure Virtual Desktop Insights for daily operations | Learn describes Insights as an Azure Monitor Workbooks dashboard for understanding Azure Virtual Desktop environments. |
 | Alerts | Alert on failed connections, capacity exhaustion, unavailable hosts and Service Health | These alerts map to user impact, not just infrastructure noise. |
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+At Level 400, monitoring is about correlation. Azure Virtual Desktop diagnostics use table names such as `WVDConnections`, `WVDErrors`, `WVDCheckpoints`, `WVDAutoscaleEvaluationPooled`, `WVDConnectionNetworkData` and `WVDAgentHealthStatus` in Log Analytics. Microsoft documents `WVDAutoscaleEvaluationPooled` as the table that contains Autoscale scaling plan evaluations, including actions taken on session hosts and why those actions were taken [Monitor Autoscale operations with Insights in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/autoscale-monitor-operations-insights). It also documents `WVDConnectionNetworkData` queries for `EstRoundTripTimeInMs` and `EstAvailableBandwidthKBps` [Queries for the WVDConnectionNetworkData table](https://learn.microsoft.com/azure/azure-monitor/reference/queries/wvdconnectionnetworkdata).
+
+This sequence shows the diagnostic flow for a failed sign-in.
+
+```mermaid
+flowchart TB
+    U["User starts<br/>connection"] --> A["AVD service<br/>brokers"]
+    A --> H["Session host<br/>responds"]
+    A --> L["Log Analytics<br/>diagnostics"]
+    H --> L
+    L --> O["Operator<br/>queries"]
+```
+
+Useful starting Kusto Query Language queries are documented by Microsoft Learn. For example, this query finds autoscale evaluations that failed and joins to `WVDErrors` for details:
+
+```kusto
+WVDAutoscaleEvaluationPooled
+| where ResultType != "Succeeded"
+| join kind=leftouter WVDErrors
+    on CorrelationId
+| order by _ResourceId asc, TimeGenerated asc, CorrelationId, TimeGenerated1 asc
+```
 
 ## In this section
 

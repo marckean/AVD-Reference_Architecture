@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from html import escape
+import math
 from pathlib import Path
 import re
 from typing import Sequence
@@ -19,6 +20,13 @@ ICONS = HERE / "icons"
 OUT = HERE.parent.parent / "docs" / "assets" / "images"
 
 FONT = "'Segoe UI', 'Segoe UI Variable', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+
+# Breathing room rules enforced by Svg.card() and Svg.lint().
+CARD_BOTTOM_PAD = 12      # last line of card text to the card's bottom edge
+TEXT_EDGE_PAD = 6         # any text to the right or bottom edge of the card it sits in
+CARD_PANEL_PAD = 12       # card to every edge of a panel it sits in
+PANEL_TITLE_GAP = 6       # card to the panel title above it
+BADGE_BORDER_GAP = 2      # flow badge to any panel border
 
 PALETTES = {
     "light": {
@@ -93,7 +101,7 @@ def approx_text_width(text: str, size: float = 12.0, weight: int = 400) -> float
             width += 0.49
     if weight >= 600:
         width *= 1.06
-    return width * size
+    return width * size * 1.08
 
 
 def wrap_text(text: str, max_width: float, size: float = 12.0, weight: int = 400) -> list[str]:
@@ -363,8 +371,20 @@ class Svg:
         top = y + 54 if len(title_lines) == 1 else y + 64
         body_x = tx
         body_width = w - (body_x - x) - 14
-        max_body_lines = max(1, int((h - (top - y) - 4) / (body_size * 1.25)))
-        self.wrapped_text(body_x, top, body, max_width=body_width, size=body_size, colour=str(self.p["text"]), line_height=body_size * 1.25, max_lines=max_body_lines)
+        line_height = body_size * 1.25
+        if isinstance(body, str):
+            body_lines = wrap_text(body, body_width, body_size)
+        else:
+            body_lines = [line for item in body for line in wrap_text(item, body_width, body_size)]
+        # The last body line's descenders must sit at least CARD_BOTTOM_PAD above the card's bottom edge.
+        # A card that's too short raises, so text can never be drawn outside its box.
+        needed = (top - y) + max(0, len(body_lines) - 1) * line_height + body_size * 0.25 + CARD_BOTTOM_PAD
+        if body_lines and h < needed:
+            raise ValueError(
+                f"Card {title!r} is {h:g} px tall but needs {math.ceil(needed)} px: "
+                f"{len(title_lines)} title line(s) and {len(body_lines)} body line(s) at width {w:g}"
+            )
+        self.wrapped_text(body_x, top, body, max_width=body_width, size=body_size, colour=str(self.p["text"]), line_height=line_height)
         return name
 
     def badge(self, cx: float, cy: float, label: str, r: float = 11, size: float = 12.5, role: str = "flow") -> None:
@@ -556,7 +576,48 @@ class Svg:
                     box = self.box_by_name(endpoint_name)
                     if box and _segment_intersects_box(p1, p2, box):
                         errors.append(f"{diagram_name}: arrow {arrow.label} passes through connected card {box.name}")
+        # Text must stay inside the card it starts in, with room to spare on the right and below.
+        for text in [b for b in self.text_boxes if b.kind == "text"]:
+            for card in cards:
+                if card.left <= text.left < card.right and card.top <= text.top < card.bottom:
+                    if text.right > card.right - TEXT_EDGE_PAD or text.bottom > card.bottom - TEXT_EDGE_PAD:
+                        errors.append(f"{diagram_name}: text {text.name} overflows card {card.name}")
+        # A card that touches a panel must sit fully inside it, clear of every edge and of the panel title.
+        titles = [b for b in self.text_boxes if b.kind == "panel-title"]
+        for card in cards:
+            for panel in panels:
+                if card.overlaps(panel) and not panel.contains(card, pad=CARD_PANEL_PAD):
+                    errors.append(f"{diagram_name}: card {card.name} needs {CARD_PANEL_PAD} px clearance inside panel {panel.name}")
+            for title in titles:
+                if card.overlaps(title, pad=-PANEL_TITLE_GAP):
+                    errors.append(f"{diagram_name}: card {card.name} is too close to panel title {title.name}")
+        # Flow badges sit on connectors in open space: never on a card or label, never on a panel border.
+        framed = [b for b in self.boxes if b.kind in {"label", "legend"}]
+        for badge in [b for b in self.badge_boxes if b.kind != "card-badge"]:
+            cx, cy, r = badge.x + badge.w / 2, badge.y + badge.h / 2, badge.w / 2
+            for box in cards + framed:
+                if badge.overlaps(box, pad=-1):
+                    errors.append(f"{diagram_name}: badge {badge.name} overlaps {box.kind} {box.name}")
+            for panel in panels:
+                if _circle_near_border(cx, cy, r + BADGE_BORDER_GAP, panel):
+                    errors.append(f"{diagram_name}: badge {badge.name} sits on the border of panel {panel.name}")
         return errors
+
+
+def _circle_near_border(cx: float, cy: float, radius: float, box: Box) -> bool:
+    """True when a circle comes within `radius` of any of the box's four edges."""
+    edges = [
+        ((box.left, box.top), (box.right, box.top)),
+        ((box.left, box.bottom), (box.right, box.bottom)),
+        ((box.left, box.top), (box.left, box.bottom)),
+        ((box.right, box.top), (box.right, box.bottom)),
+    ]
+    for (x1, y1), (x2, y2) in edges:
+        px = min(max(cx, min(x1, x2)), max(x1, x2))
+        py = min(max(cy, min(y1, y2)), max(y1, y2))
+        if math.hypot(cx - px, cy - py) < radius:
+            return True
+    return False
 
 
 def _point_on_edge(point: tuple[float, float], box: Box, tol: float = 1.0) -> bool:

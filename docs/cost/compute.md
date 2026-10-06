@@ -5,6 +5,21 @@ description: Host capacity and density, autoscale and ephemeral OS disks.
 
 # Compute
 
+<span class="level l300">Level 300</span>
+
+Compute cost is driven by how many session hosts exist, how large they are and how long they run. Use [Sizing estimates](../overview/sizing-estimates.md) for the shared sizing assumptions.
+
+This diagram shows the compute cost loop.
+
+```mermaid
+flowchart TB
+    U["User demand"] --> D["Density target"]
+    D --> VM["VM size"]
+    VM --> AS["Autoscale"]
+    AS --> R["Run time"]
+    R --> C["Compute cost"]
+```
+
 ## Host capacity
 
 Session host compute is usually the dominant cost driver. The North Star design uses pooled Windows 11 Enterprise multi-session because a single VM can serve multiple concurrent users. Microsoft Learn sizing guidance separates workloads into light, medium, heavy and power categories and provides example VM families and minimum vCPU, RAM and profile container storage expectations [Session host virtual machine sizing guidelines for Azure Virtual Desktop and Remote Desktop Services](https://learn.microsoft.com/windows-server/remote/remote-desktop-services/session-host-virtual-machine-sizing-guidelines).
@@ -39,6 +54,12 @@ Ephemeral OS disks are created on local VM storage and are not saved to remote A
 The cost benefit is only safe if the host is stateless. Store user profiles in FSLogix, deliver applications through image and App Attach, and keep all host configuration in Intune, policy or code. If a session host contains unique state, ephemeral OS disks are the wrong model.
 
 For update cost control, align pooled Windows client multi-session hosts to image-based servicing. Learn states that **Session host update** is recommended for monthly security and quality updates and feature updates on Windows client multi-session, and that image-based servicing creates a new image version, deploys updated hosts, then drains and removes the old hosts [Windows update management methodologies for Azure Virtual Desktop session hosts](https://learn.microsoft.com/azure/virtual-desktop/windows-update-management-methodologies-session-hosts). This fits disposable hosts and avoids long-lived patch drift.
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+Ephemeral OS disks affect both cost and operations. Learn states that the operating system is placed on the VM's local storage rather than remote storage and is not preserved in remote Azure Storage [Ephemeral OS disks on Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/deploy/session-hosts/ephemeral-os-disks). The VM cannot be treated as recoverable state. If the host breaks, reimage, restart or delete it, then recreate capacity from the image.
 
 ---
 

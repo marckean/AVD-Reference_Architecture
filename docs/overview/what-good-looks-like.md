@@ -12,6 +12,26 @@ description: What a modern Azure Virtual Desktop platform looks like - the targe
     - The image is lean. Applications arrive with App Attach and profiles roam with FSLogix on Azure Files.
     - Everything on this page is generally available. Each row links to the deep dive and to Microsoft Learn.
 
+
+## In plain terms
+
+<span class="level l100">Level 100</span>
+
+Think of the North Star as a modern apartment building rather than a row of owned houses. People use an apartment when they need it, their belongings are stored separately, and the building manager can add or refresh apartments from a standard plan.
+
+For Azure Virtual Desktop, that means session hosts are disposable, profiles and applications are separate from the operating system, and the platform creates, updates and deletes hosts from a known configuration.
+
+This simple flow shows the target state.
+
+```mermaid
+flowchart TB
+    U["Users"] --> A["AVD service"]
+    A --> H["Pooled hosts"]
+    H --> P["Profiles"]
+    H --> AP["Applications"]
+    H --> M["Monitoring"]
+```
+
 ## The North Star on one page
 
 The table below is the North Star on one page. Each layer has one recommended choice. The deep-dive pages explain the reasoning, the alternatives and the configuration.
@@ -66,6 +86,26 @@ The table below is the North Star on one page. Each layer has one recommended ch
 - **It isn't a design for any one organisation.** It's a reference point. Your design decides how far and how fast to move towards it, and records why.
 - **It isn't all-or-nothing.** Most organisations run part of their estate on a stepping stone, such as a hybrid-joined pool for legacy applications, while the rest moves to the North Star. See [Getting there](../getting-there/index.md).
 - **It isn't static.** As Azure Virtual Desktop changes, the North Star changes with it. Every page links to the Microsoft Learn articles it's based on, and this version reflects Microsoft Learn as at October 2026.
+
+
+## Under the hood
+
+<span class="level l400">Level 400</span>
+
+The North Star depends on a host pool created with the session host configuration management approach. Microsoft says the management approach is set at host pool creation and cannot be changed later ([Host pool management approaches](https://learn.microsoft.com/azure/virtual-desktop/host-pool-management-approaches)). That is why the North Star is a new pool, not a conversion of an old one.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as Designer
+    participant HP as Host pool
+    participant SHC as Config
+    participant AS as Autoscale
+    D->>HP: Create pool
+    HP->>SHC: Fix approach
+    SHC->>AS: Define hosts
+    AS->>HP: Scale pool
+```
 
 ## Next
 
