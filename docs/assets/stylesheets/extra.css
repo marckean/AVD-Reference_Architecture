@@ -1,0 +1,177 @@
+/* AVD North Star - theme overrides for Material for MkDocs */
+
+:root {
+  --md-text-font: "Segoe UI", "Segoe UI Variable", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --md-code-font: "Cascadia Code", "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
+}
+
+/* Brand colours: deep navy header, Fluent blue accent */
+:root > *,
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #0b2a4a;
+  --md-primary-fg-color--light: #1d4f7c;
+  --md-primary-fg-color--dark: #071c33;
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: rgba(255, 255, 255, 0.75);
+  --md-accent-fg-color: #0f6cbd;
+  --md-accent-fg-color--transparent: rgba(15, 108, 189, 0.1);
+  --md-typeset-a-color: #0f6cbd;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #0d2742;
+  --md-primary-fg-color--light: #1d4f7c;
+  --md-primary-fg-color--dark: #06182b;
+  --md-accent-fg-color: #4aa3f0;
+  --md-accent-fg-color--transparent: rgba(74, 163, 240, 0.12);
+  --md-typeset-a-color: #6cb8f6;
+  --md-default-bg-color: #101826;
+  --md-default-bg-color--light: #152033;
+}
+
+/* Typography */
+.md-typeset h1 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset h2 {
+  font-weight: 650;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  padding-bottom: 0.25em;
+}
+
+.md-typeset h3 {
+  font-weight: 650;
+}
+
+/* Tables: tighter, with a branded header row */
+.md-typeset table:not([class]) {
+  font-size: 0.74rem;
+  border-radius: 6px;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-primary-fg-color);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Status pills: <span class="status ga">GA</span> */
+.md-typeset .status {
+  display: inline-block;
+  padding: 0.05em 0.6em;
+  border-radius: 1em;
+  font-size: 0.72em;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.md-typeset .status.ga {
+  background: #dff6dd;
+  color: #0e700e;
+}
+
+.md-typeset .status.preview {
+  background: #fff4ce;
+  color: #8a5300;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .status.ga {
+  background: #173d1a;
+  color: #9fdc9f;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .status.preview {
+  background: #4a3a10;
+  color: #ffd88a;
+}
+
+/* Home page hero */
+.md-typeset .hero {
+  padding: 2.2rem 2rem 1.8rem;
+  margin: 0 0 1.6rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0b2a4a 0%, #0f4c81 55%, #0f6cbd 100%);
+  color: #ffffff;
+}
+
+.md-typeset .hero h1 {
+  color: #ffffff;
+  margin: 0 0 0.4rem;
+  font-size: 2.2em;
+}
+
+.md-typeset .hero p {
+  font-size: 0.95rem;
+  max-width: 46rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.md-typeset .hero .md-button {
+  margin: 0.4rem 0.6rem 0 0;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.md-typeset .hero .md-button--primary {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: #0b2a4a;
+}
+
+.md-typeset .hero .md-button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+.md-typeset .hero .md-button--primary:hover {
+  background-color: #e8f1fb;
+  color: #0b2a4a;
+}
+
+/* Grid cards: subtle lift on hover */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+  border-radius: 10px;
+  transition: border-color 125ms, box-shadow 125ms;
+}
+
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid > .card:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: 0 4px 14px rgba(11, 42, 74, 0.12);
+}
+
+/* Subsection links at the foot of an area card on the home page */
+.md-typeset .grid.cards .covers {
+  font-size: 0.68rem;
+  line-height: 1.5;
+  margin-top: 0.6em;
+  padding-top: 0.5em;
+  border-top: 1px dashed var(--md-default-fg-color--lightest);
+  color: var(--md-default-fg-color--light);
+}
+
+/* Card titles that are links keep the heading colour until hovered */
+.md-typeset .grid.cards > ul > li > p:first-child a {
+  color: inherit;
+}
+
+.md-typeset .grid.cards > ul > li > p:first-child a:hover {
+  color: var(--md-accent-fg-color);
+}
+
+/* Mermaid diagrams: centred with breathing room */
+.md-typeset .mermaid {
+  text-align: center;
+  margin: 1.2em 0;
+}
+
+/* Footer disclaimer */
+.md-copyright {
+  max-width: 48rem;
+}

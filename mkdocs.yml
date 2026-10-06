@@ -1,0 +1,186 @@
+site_name: AVD North Star
+site_description: A reference architecture for Azure Virtual Desktop - what good looks like, how the pieces fit together and how to get there, grounded in Microsoft Learn.
+site_author: Marc Kean
+site_url: https://marckean.github.io/AVD-Reference_Architecture/
+repo_url: https://github.com/marckean/AVD-Reference_Architecture
+repo_name: marckean/AVD-Reference_Architecture
+edit_uri: edit/main/docs/
+copyright: Community reference architecture by Marc Kean. Not official Microsoft guidance - always confirm against the linked Microsoft Learn articles.
+
+theme:
+  name: material
+  language: en
+  font: false
+  logo: assets/images/logo.svg
+  favicon: assets/images/favicon.svg
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to system preference
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+    - content.tooltips
+
+plugins:
+  - search
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/marckean/AVD-Reference_Architecture
+      name: Source on GitHub
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+
+validation:
+  omitted_files: warn
+  absolute_links: info
+  unrecognized_links: warn
+  anchors: info
+
+nav:
+  - Overview:
+      - index.md
+      - What good looks like: overview/what-good-looks-like.md
+      - How it fits together: overview/how-it-fits-together.md
+  - Platform:
+      - Identity and access:
+          - identity/index.md
+          - Single sign-on: identity/single-sign-on.md
+          - Conditional Access: identity/conditional-access.md
+          - Identities and roles: identity/identities-and-roles.md
+          - Legacy application authentication: identity/legacy-applications.md
+      - Host pools:
+          - host-pools/index.md
+          - Session host configuration: host-pools/session-host-configuration.md
+          - Session host update: host-pools/session-host-update.md
+          - Ephemeral OS disks: host-pools/ephemeral-os-disks.md
+          - Sizing and load balancing: host-pools/sizing-and-load-balancing.md
+      - Scaling:
+          - scaling/index.md
+          - Scaling plans: scaling/scaling-plans.md
+          - Dynamic autoscaling: scaling/dynamic-autoscaling.md
+          - Monitoring and checklist: scaling/monitoring-and-checklist.md
+      - Images:
+          - images/index.md
+          - Building images: images/building-images.md
+          - Azure Compute Gallery: images/azure-compute-gallery.md
+          - Rollout and cadence: images/rollout-and-cadence.md
+  - Workloads and data:
+      - Applications with App Attach:
+          - app-attach/index.md
+          - Requirements and file shares: app-attach/requirements.md
+          - Packages and updates: app-attach/packages.md
+          - From App-V to App Attach: app-attach/from-app-v.md
+      - User profiles with FSLogix:
+          - profiles/index.md
+          - Access and permissions: profiles/access-and-permissions.md
+          - Sizing and sharding: profiles/sizing-and-sharding.md
+          - FSLogix settings and resilience: profiles/fslogix-settings.md
+      - Networking:
+          - networking/index.md
+          - Connection paths and quality: networking/connection-paths.md
+          - Required flows and endpoints: networking/required-flows.md
+          - Private and outbound connectivity: networking/private-connectivity.md
+      - Security:
+          - security/index.md
+          - Session controls: security/session-controls.md
+          - Session host hardening: security/host-hardening.md
+          - Least-privilege administration: security/administration.md
+  - Operations:
+      - Intune:
+          - intune/index.md
+          - Enrolment and targeting: intune/targeting.md
+          - Required policies: intune/policies.md
+          - Updates: intune/updates.md
+          - Starting from zero: intune/starting-from-zero.md
+      - Monitoring:
+          - monitoring/index.md
+          - Diagnostics and AVD Insights: monitoring/diagnostics.md
+          - Connection quality and errors: monitoring/connection-quality.md
+          - Autoscale and alerts: monitoring/autoscale-and-alerts.md
+      - Business continuity:
+          - bcdr/index.md
+          - Regional design: bcdr/regional-design.md
+          - Profiles and data: bcdr/profiles-and-data.md
+          - Recovery objectives and testing: bcdr/recovery-and-testing.md
+      - Cost optimisation:
+          - cost/index.md
+          - Compute: cost/compute.md
+          - Licensing and storage: cost/licensing-and-storage.md
+          - Logging, commitments and tags: cost/logging-and-commitments.md
+  - Getting there:
+      - getting-there/index.md
+      - Dependency checklist: getting-there/dependencies.md
+      - Stepping stones: getting-there/stepping-stones.md
+  - Reference:
+      - Glossary: reference/glossary.md
+      - Microsoft Learn index: reference/learn-links.md
+      - About this site: reference/about.md

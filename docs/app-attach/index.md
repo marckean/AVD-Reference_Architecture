@@ -1,0 +1,95 @@
+---
+title: Applications with App Attach
+description: Deliver applications to pooled Azure Virtual Desktop sessions without baking every application into the base image.
+---
+
+# Applications with App Attach
+
+!!! abstract "At a glance"
+    - App Attach dynamically attaches applications to an Azure Virtual Desktop user session from packages stored on an SMB file share.
+    - The North Star keeps the image lean and delivers most applications above the image with App Attach.
+    - Packages are assigned to host pools and to users or groups, so different users on the same multi-session host can receive different applications.
+    - Use CimFS for Windows 11 application images where possible, because Microsoft Learn recommends it for best performance.
+    - Existing App-V packages can be delivered by App Attach as a bridge, but MSIX is the strategic destination for modern Windows application packaging.
+
+## What it is
+
+App Attach is an Azure Virtual Desktop application delivery feature. Microsoft Learn says it "dynamically attach[es] applications from an application package to a user session" and that applications are not installed locally on session hosts or images, which reduces image complexity and operational overhead ([App Attach in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)).
+
+**Status:** Generally available. Microsoft Learn says **MSIX App Attach** came out of preview in April 2021, and the current **App Attach** article documents MSIX, Appx and App-V package support for Azure Virtual Desktop ([What's new in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/whats-new), [App Attach in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)).
+
+The important distinction is operational. In a traditional image model, every broadly used application tends to land in the golden image. That makes image updates slower, increases testing blast radius, and makes application ownership ambiguous. In the North Star, [images](../images/index.md) contain Windows, updates, platform agents and security tooling. Applications sit above the image and are attached at sign-in, which lets application changes move independently from operating system changes.
+
+## How it fits
+
+```mermaid
+flowchart LR
+    A["Azure Image Builder"] --> B["Lean base image"]
+    B --> C["Windows 11 multi-session host"]
+    D["Azure Files app share"] --> E["MSIX Appx App-V packages"]
+    E --> C
+    F["App Attach assignment"] --> C
+    G["User or group"] --> F
+    C --> H["User session with assigned apps"]
+```
+
+App Attach has three gates for a user to receive an application. Learn states that the application must be assigned to the host pool, the user must be able to sign in to session hosts in the host pool, and the application must be assigned to the user or group ([App Attach in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)). For RemoteApp, the App Attach application must also be added to a RemoteApp application group; for a desktop application group, you do not add the App Attach application to the desktop application group ([App Attach in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)).
+
+## North Star recommendation
+
+Use App Attach as the default application delivery layer for pooled Windows 11 Enterprise multi-session host pools. Put only the base platform in the image. Package applications into MSIX or Appx images where practical, keep compatible App-V packages as App-V during transition, and store application images on Azure Files in the same region as the session hosts.
+
+For disk image format, choose **CimFS** for Windows 11 session hosts. Learn says MSIX and Appx images can use **Composite Image File System (CimFS)**, **VHDX**, or **VHD**, but does not recommend VHD, and recommends CimFS for Windows 11 because it mounts and unmounts faster and uses less CPU and memory ([App Attach in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview), [Create an MSIX image to use with App Attach](https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image)).
+
+## Design decisions
+
+| Decision | North Star choice | Why |
+| --- | --- | --- |
+| Application layer | App Attach above a lean image | Learn says applications are not installed locally on session hosts or images, which supports fewer custom images ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)). |
+| Package formats | Prefer MSIX or Appx, accept App-V during transition | Learn lists supported package types as **MSIX and MSIX bundle**, **Appx and Appx bundle**, and **App-V** ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)). |
+| Disk image type | CimFS for Windows 11, VHDX where CimFS is unsuitable, avoid VHD | Learn recommends CimFS for Windows 11 and says VHD is not recommended ([Create an MSIX image](https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image)). |
+| Registration type | **On-demand** | Learn says on-demand is recommended and is the default because it does not affect Azure Virtual Desktop sign-in time ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)). |
+| Storage | Azure Files SMB share in the same region as the session hosts | Learn recommends Azure Files for App Attach and says the file share should be in the same Azure region as the session hosts ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)). |
+| Assignment | Assign to host pools and groups, not individual users where possible | Learn supports groups or user accounts and recommends group assignment in the PowerShell example flow ([Add and manage App Attach applications](https://learn.microsoft.com/azure/virtual-desktop/app-attach-setup)). |
+
+## In this section
+
+<div class="grid cards" markdown>
+
+-   __[Requirements and file shares](requirements.md)__
+
+    ---
+
+    Package formats, disk images, file share requirements and permissions, including for Microsoft Entra joined session hosts.
+
+-   __[Packages and updates](packages.md)__
+
+    ---
+
+    Creating MSIX packages and images, and updating or rolling back applications.
+
+-   __[From App-V to App Attach](from-app-v.md)__
+
+    ---
+
+    Using existing App-V packages with App Attach, and a phased route from an App-V estate to MSIX.
+
+</div>
+
+## Common pitfalls
+
+- Putting too many applications back into the base image. That undermines the North Star image model described in [images](../images/index.md).
+- Using a general-purpose storage account that also contains unrelated data. Learn's service principal warning makes a dedicated App Attach storage account the safer pattern.
+- Ignoring storage IOPS and open handles. Learn states each VHDX or CimFS disk image is mounted using the session host computer account, meaning one handle per session host per disk image, not per user ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)).
+- Using **Log on blocking** registration for every application. Learn warns it fully registers assigned applications during sign-in and might affect sign-in time ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)).
+- Converting applications to MSIX before proving whether App Attach can deliver the existing App-V package directly.
+
+## Microsoft Learn
+
+- [App Attach in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)
+- [Add and manage App Attach applications in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/app-attach-setup)
+- [Create an MSIX image to use with App Attach in Azure Virtual Desktop](https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image)
+- [App-V in Windows support policy](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy)
+- [Feature-based comparison of Application Virtualization and MSIX](https://learn.microsoft.com/windows/msix/comparisonofappvwithmsix)
+- [Prepare to package a desktop application](https://learn.microsoft.com/windows/msix/desktop/desktop-to-uwp-prepare)
+- [What's new in Azure Virtual Desktop?](https://learn.microsoft.com/azure/virtual-desktop/whats-new)
