@@ -6,7 +6,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 # Microsoft Learn index
 
 !!! abstract "At a glance"
-    - Every Microsoft Learn article cited on this site: 186 articles in all.
+    - Every Microsoft Learn article cited on this site: 189 articles in all.
     - Grouped by product, with the pages that cite each article.
     - Article titles come from Microsoft Learn itself, checked when this version was published.
 
@@ -85,6 +85,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 | [Device images](https://learn.microsoft.com/windows-365/enterprise/device-images) | [Applications with App Attach: Azure Virtual Desktop and Windows 365](../app-attach/avd-and-windows-365.md) |
 | [Display Protection for Windows 365 and Azure Virtual Desktop](https://learn.microsoft.com/windows-365/enterprise/windows-cloud-display-protection) | [Security](../security/index.md), [Security: Session controls](../security/session-controls.md) |
 | [Input Protection](https://learn.microsoft.com/windows-365/enterprise/windows-cloud-input-protection) | [Security](../security/index.md), [Security: Session controls](../security/session-controls.md) |
+| [Manage cloud pcs using configuration manager](https://learn.microsoft.com/windows-365/enterprise/manage-cloud-pcs-using-configuration-manager) | [Applications with App Attach](../app-attach/index.md), [Applications with App Attach: Azure Virtual Desktop and Windows 365](../app-attach/avd-and-windows-365.md) |
 | [What is Windows 365 Enterprise?](https://learn.microsoft.com/windows-365/enterprise/overview) | [Reference architectures](../overview/reference-architectures.md), [Stepping stones](../getting-there/stepping-stones.md) |
 
 ## Microsoft Entra ID
@@ -113,6 +114,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 | Article | Cited on |
 | --- | --- |
 | [Create applications - Configuration Manager](https://learn.microsoft.com/intune/configmgr/apps/deploy-use/create-applications) | [App Attach fast track](../accelerators/app-attach-fast-track.md) |
+| [Deploying app v virtual applications](https://learn.microsoft.com/intune/configmgr/apps/get-started/deploying-app-v-virtual-applications) | [Applications with App Attach](../app-attach/index.md), [Applications with App Attach: Azure Virtual Desktop and Windows 365](../app-attach/avd-and-windows-365.md) |
 | [Security Copilot in Intune features overview - Microsoft Intune](https://learn.microsoft.com/intune/copilot) | [Intune: Policy examples](../intune/policy-examples.md), [Working with AI](../accelerators/working-with-ai.md) |
 | [Set up automatic enrollment in Intune - Microsoft Intune](https://learn.microsoft.com/intune/device-enrollment/windows/quickstart-automatic-mdm) | [Dependency checklist](../getting-there/dependencies.md), [Deploy to Azure](../accelerators/deploy-to-azure.md) |
 | [Trusted root profiles](https://learn.microsoft.com/intune/device-configuration/certificates/trusted-root-profiles) | [Applications with App Attach: Signing certificates, demystified](../app-attach/certificates.md), [Glossary](glossary.md) |
@@ -210,6 +212,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 | --- | --- |
 | [App-V in Windows support policy - Microsoft Desktop Optimization Pack](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy) | [Applications with App Attach](../app-attach/index.md), [Applications with App Attach: From App-V to App Attach](../app-attach/from-app-v.md), [Dependency checklist](../getting-there/dependencies.md), [Stepping stones](../getting-there/stepping-stones.md), [App Attach fast track](../accelerators/app-attach-fast-track.md), [Glossary](glossary.md) |
 | [Appv creating and managing virtualized applications](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-creating-and-managing-virtualized-applications) | [Applications with App Attach](../app-attach/index.md) |
+| [Appv enable the app v desktop client](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-enable-the-app-v-desktop-client) | [Applications with App Attach](../app-attach/index.md), [Applications with App Attach: Azure Virtual Desktop and Windows 365](../app-attach/avd-and-windows-365.md) |
 | [Create an msix overview](https://learn.microsoft.com/windows/msix/packaging-tool/create-an-msix-overview) | [Applications with App Attach: Packaging, step by step](../app-attach/packages.md) |
 | [Create app package](https://learn.microsoft.com/windows/msix/packaging-tool/create-app-package) | [Applications with App Attach](../app-attach/index.md), [Applications with App Attach: Packaging, step by step](../app-attach/packages.md) |
 | [Create certificate package signing](https://learn.microsoft.com/windows/msix/package/create-certificate-package-signing) | [Applications with App Attach: Signing certificates, demystified](../app-attach/certificates.md) |

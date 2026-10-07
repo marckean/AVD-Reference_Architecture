@@ -143,8 +143,8 @@ Learn lists these sources and the trust options for each ([App Attach overview](
 
 <span class="level l200">Level 200</span>
 
-![One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. App-V packages are an Azure Virtual Desktop bridge only, so plan MSIX or Win32 apps for Windows 365.](../assets/images/app-attach-two-platforms-light.svg#only-light)
-![One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. App-V packages are an Azure Virtual Desktop bridge only, so plan MSIX or Win32 apps for Windows 365.](../assets/images/app-attach-two-platforms-dark.svg#only-dark)
+![One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. Windows 365 has no App Attach, so App-V packages need the built-in App-V client and a tool such as Configuration Manager, or a move to MSIX.](../assets/images/app-attach-two-platforms-light.svg#only-light)
+![One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. Windows 365 has no App Attach, so App-V packages need the built-in App-V client and a tool such as Configuration Manager, or a move to MSIX.](../assets/images/app-attach-two-platforms-dark.svg#only-dark)
 
 === "Azure Virtual Desktop"
 
@@ -155,7 +155,7 @@ Learn lists these sources and the trust options for each ([App Attach overview](
 === "Windows 365"
 
     - Intune installs the same signed MSIX as a line-of-business app ([Deploy MSIX apps with Microsoft Intune](https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune)).
-    - Windows 365 supports `.intunewin`, MSI, MSIX and AppX application formats, so plan MSIX or Win32 for App-V applications ([Applications in Windows 365](https://learn.microsoft.com/windows-365/enterprise/app-overview)).
+    - There's no App Attach on Windows 365, and Intune's app formats are `.intunewin`, MSI, MSIX and AppX ([Applications in Windows 365](https://learn.microsoft.com/windows-365/enterprise/app-overview)). App-V packages can still run: Windows includes the App-V client, and Cloud PCs can be co-managed with Configuration Manager, which deploys App-V packages ([Enable the App-V in-box client](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-enable-the-app-v-desktop-client), [Manage Cloud PCs with Configuration Manager](https://learn.microsoft.com/windows-365/enterprise/manage-cloud-pcs-using-configuration-manager), [Deploy App-V virtual applications](https://learn.microsoft.com/intune/configmgr/apps/get-started/deploying-app-v-virtual-applications)). MSIX is the simpler long-term path.
     - Cloud PCs run Windows 11 Enterprise, single session.
 
 The packaging work is shared, and so is the image recipe. The details are on [Azure Virtual Desktop and Windows 365](avd-and-windows-365.md).

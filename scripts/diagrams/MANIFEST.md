@@ -237,7 +237,7 @@ All diagrams are generic and use Contoso only where an organisation name would o
 - Files: `docs/assets/images/app-attach-two-platforms-light.svg`, `docs/assets/images/app-attach-two-platforms-dark.svg`
 - Intended page: docs/app-attach/avd-and-windows-365.md
 - Intended section: One package, two platforms
-- Alt text: One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. App-V packages are an Azure Virtual Desktop bridge only, so plan MSIX or Win32 apps for Windows 365.
+- Alt text: One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. Windows 365 has no App Attach, so App-V packages need the built-in App-V client and a tool such as Configuration Manager, or a move to MSIX.
 - Numbered-step text:
   1. Build and sign the MSIX once
   2. AVD: CimFS image on Azure Files, attached by App Attach

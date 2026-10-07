@@ -17,8 +17,8 @@ description: One packaging effort, one signing certificate and one image recipe 
 
 Azure Virtual Desktop and Windows 365 are two ways to deliver a desktop from the cloud. They share more than you might expect: the same applications, the same security agents and the same signing certificate. The difference is how each one receives the applications, and which edition of Windows it runs.
 
-![One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. App-V packages are an Azure Virtual Desktop bridge only, so plan MSIX or Win32 apps for Windows 365.](../assets/images/app-attach-two-platforms-light.svg#only-light)
-![One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. App-V packages are an Azure Virtual Desktop bridge only, so plan MSIX or Win32 apps for Windows 365.](../assets/images/app-attach-two-platforms-dark.svg#only-dark)
+![One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. Windows 365 has no App Attach, so App-V packages need the built-in App-V client and a tool such as Configuration Manager, or a move to MSIX.](../assets/images/app-attach-two-platforms-light.svg#only-light)
+![One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. Windows 365 has no App Attach, so App-V packages need the built-in App-V client and a tool such as Configuration Manager, or a move to MSIX.](../assets/images/app-attach-two-platforms-dark.svg#only-dark)
 
 1. **Build and sign the MSIX once.**
 2. **Azure Virtual Desktop:** MSIXMGR turns it into a CimFS image on an Azure Files share, and App Attach attaches it at sign-in.
@@ -33,7 +33,7 @@ Azure Virtual Desktop and Windows 365 are two ways to deliver a desktop from the
 | **Windows edition** | Windows 11 Enterprise multi-session | Windows 11 Enterprise, single session. Learn says multi-session images aren't supported ([Device images overview](https://learn.microsoft.com/windows-365/enterprise/device-images)) |
 | **How applications arrive** | App Attach attaches them at sign-in. Nothing is installed on the host ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)) | Intune installs them on the Cloud PC ([Applications in Windows 365](https://learn.microsoft.com/windows-365/enterprise/app-overview)) |
 | **MSIX packages** | A CimFS image made from the signed MSIX | The same signed MSIX, as a line-of-business app ([Deploy MSIX apps with Microsoft Intune](https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune)) |
-| **App-V packages** | Supported as they are | Not on the supported list, which is `.intunewin`, MSI, MSIX and AppX. Plan MSIX or Win32 ([Applications in Windows 365](https://learn.microsoft.com/windows-365/enterprise/app-overview)) |
+| **App-V packages** | Supported as they are, through App Attach | No App Attach, and App-V isn't one of Intune's app formats ([Applications in Windows 365](https://learn.microsoft.com/windows-365/enterprise/app-overview)). They can still run through the built-in App-V client, deployed by Configuration Manager on co-managed Cloud PCs ([Enable the App-V in-box client](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-enable-the-app-v-desktop-client), [Deploy App-V virtual applications](https://learn.microsoft.com/intune/configmgr/apps/get-started/deploying-app-v-virtual-applications)). MSIX is the simpler path |
 | **Signing trust** | Intune trusted certificate profile | The same profile |
 | **Profiles** | FSLogix on Azure Files | Learn says Windows 365 custom images can't contain FSLogix components ([Device images overview](https://learn.microsoft.com/windows-365/enterprise/device-images)) |
 
@@ -68,13 +68,15 @@ The Azure Virtual Desktop side is on [Images](../images/index.md).
 flowchart LR
     A["Packaging pipeline"] --> B["App-V fast lane"]
     A --> C["Signed MSIX"]
-    B --> D["AVD proof of concept"]
-    C --> D
-    C --> E["Windows 365 proof of concept"]
+    B -->|"App Attach"| D["AVD proof of concept"]
+    C -->|"App Attach"| D
+    C -->|"Intune"| E["Windows 365 proof of concept"]
+    B -.->|"App-V client, optional"| E
 ```
 
 - **Build the packaging pipeline once** and point both proofs of concept at it.
 - **Start Azure Virtual Desktop with the App-V fast lane** while the first MSIX conversions run. Each MSIX that passes testing then serves Windows 365 as well.
+- **App-V on Windows 365 is possible, but it isn't App Attach.** Windows includes the App-V client, and Cloud PCs can be co-managed with Configuration Manager, which deploys App-V packages ([Enable the App-V in-box client](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-enable-the-app-v-desktop-client), [Manage Cloud PCs with Configuration Manager](https://learn.microsoft.com/windows-365/enterprise/manage-cloud-pcs-using-configuration-manager)). For a clean, Intune-only Windows 365 proof of concept, MSIX is the simpler route.
 - **Create one Intune trusted certificate profile** and assign it to the session host group and the Cloud PC group.
 - **Run the same image scripts twice,** once against each Windows source.
 
