@@ -6,7 +6,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 # Microsoft Learn index
 
 !!! abstract "At a glance"
-    - Every Microsoft Learn article cited on this site: 184 articles in all.
+    - Every Microsoft Learn article cited on this site: 186 articles in all.
     - Grouped by product, with the pages that cite each article.
     - Article titles come from Microsoft Learn itself, checked when this version was published.
 
@@ -209,6 +209,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 | Article | Cited on |
 | --- | --- |
 | [App-V in Windows support policy - Microsoft Desktop Optimization Pack](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy) | [Applications with App Attach](../app-attach/index.md), [Applications with App Attach: From App-V to App Attach](../app-attach/from-app-v.md), [Dependency checklist](../getting-there/dependencies.md), [Stepping stones](../getting-there/stepping-stones.md), [App Attach fast track](../accelerators/app-attach-fast-track.md), [Glossary](glossary.md) |
+| [Appv creating and managing virtualized applications](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-creating-and-managing-virtualized-applications) | [Applications with App Attach](../app-attach/index.md) |
 | [Create an msix overview](https://learn.microsoft.com/windows/msix/packaging-tool/create-an-msix-overview) | [Applications with App Attach: Packaging, step by step](../app-attach/packages.md) |
 | [Create app package](https://learn.microsoft.com/windows/msix/packaging-tool/create-app-package) | [Applications with App Attach](../app-attach/index.md), [Applications with App Attach: Packaging, step by step](../app-attach/packages.md) |
 | [Create certificate package signing](https://learn.microsoft.com/windows/msix/package/create-certificate-package-signing) | [Applications with App Attach: Signing certificates, demystified](../app-attach/certificates.md) |
@@ -216,6 +217,7 @@ description: Every Microsoft Learn article this site is based on, grouped by pro
 | [How to generate a template file for command line conversions - MSIX](https://learn.microsoft.com/windows/msix/packaging-tool/generate-template-file) | [App Attach fast track](../accelerators/app-attach-fast-track.md) |
 | [Managing your msix deployment intune](https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune) | [Applications with App Attach](../app-attach/index.md), [Applications with App Attach: Signing certificates, demystified](../app-attach/certificates.md), [Applications with App Attach: Azure Virtual Desktop and Windows 365](../app-attach/avd-and-windows-365.md), [Glossary](glossary.md) |
 | [Managing your msix deployment mem adminconsole](https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-mem-adminconsole) | [Applications with App Attach: Azure Virtual Desktop and Windows 365](../app-attach/avd-and-windows-365.md) |
+| [Overview](https://learn.microsoft.com/windows/msix/overview) | [Applications with App Attach](../app-attach/index.md) |
 | [Package conversion command line](https://learn.microsoft.com/windows/msix/packaging-tool/package-conversion-command-line) | [Applications with App Attach: Packaging, step by step](../app-attach/packages.md) |
 | [Package support framework overview](https://learn.microsoft.com/windows/msix/psf/package-support-framework-overview) | [Glossary](glossary.md) |
 | [Prepare to package a desktop application (MSIX) - MSIX](https://learn.microsoft.com/windows/msix/desktop/desktop-to-uwp-prepare) | [Applications with App Attach](../app-attach/index.md), [Applications with App Attach: Requirements and file shares](../app-attach/requirements.md), [App Attach fast track](../accelerators/app-attach-fast-track.md) |

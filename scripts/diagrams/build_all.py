@@ -30,6 +30,9 @@ LEARN = {
     "app_attach_setup": "https://learn.microsoft.com/azure/virtual-desktop/app-attach-setup",
     "app_attach_image": "https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image",
     "msix_tool": "https://learn.microsoft.com/windows/msix/packaging-tool/create-app-package",
+    "msix_overview": "https://learn.microsoft.com/windows/msix/overview",
+    "appv_getting_started": "https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-getting-started",
+    "appv_support": "https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy",
     "msix_sign": "https://learn.microsoft.com/windows/msix/package/signing-package-overview",
     "msix_intune": "https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune",
     "w365_apps": "https://learn.microsoft.com/windows-365/enterprise/app-overview",
@@ -431,6 +434,27 @@ def app_attach_flow(mode: str) -> Svg:
     return s
 
 
+def app_attach_formats(mode: str) -> Svg:
+    s = Svg(W, 640, mode, "App-V and MSIX in one minute", "Two package formats side by side. App-V delivers a Win32 application as a virtual application, packaged in a .appv file by the App-V Sequencer; the client and sequencer are still supported and App-V server support ended in April 2026. MSIX is the modern Windows app package format, made with the MSIX Packaging Tool or shipped by the vendor; it runs in a lightweight container with a clean install and uninstall, and must be signed. App Attach delivers both.")
+    rows = [
+        ("images", "What it is", "A Win32 application delivered as a virtual application", "Microsoft's modern Windows app package format"),
+        ("vm", "How it's made", "The App-V Sequencer records the installer into a .appv file", "The MSIX Packaging Tool captures any installer, or the vendor ships one"),
+        ("application-group", "How it runs", "In a virtual environment, as if it were installed locally", "In a lightweight container, with a clean install and uninstall"),
+    ]
+    s.panel(30, 60, 455, 430, "App-V package (.appv): the bridge")
+    s.panel(515, 60, 455, 430, "MSIX package (.msix): the destination")
+    for i, (icon, title, appv, msix) in enumerate(rows):
+        y = 100 + i * 96
+        s.card(48, y, 419, 86, icon, title, appv)
+        s.card(533, y, 419, 86, icon, title, msix)
+    s.card(48, 388, 419, 86, "policy", "Good to know", "The client and sequencer are still supported. App-V server support ended in April 2026", kind="card_alt")
+    s.card(533, 388, 419, 86, "key-vault", "Good to know", "Every MSIX package must be signed before it can be installed", kind="card_alt")
+    s.card(30, 520, 940, 76, "avd", "App Attach delivers both", "App-V: the .appv file goes on the share as it is. MSIX: expanded into a CimFS disk image first.")
+    s.arrow([(257, 490), (257, 520)])
+    s.arrow([(742, 490), (742, 520)])
+    return s
+
+
 def app_attach_signing(mode: str) -> Svg:
     s = Svg(W, 520, mode, "Sign once, trust everywhere", "One code signing certificate signs every MSIX package, with a timestamp. One Intune trusted certificate profile pushes the root and intermediate certificates to AVD session hosts and Windows 365 Cloud PCs. A public CA certificate needs no profile, and App-V packages need no certificate.")
     s.panel(30, 60, 280, 270, "1. Get a certificate, once")
@@ -658,6 +682,7 @@ DIAGRAMS = [
     ("dependency-map", dependency_map, "docs/overview/dependency-map.md", "Master dependency map", "A numbered dependency map showing what must exist first, what is fixed at host pool creation and which relationships are requirements or recommendations.", None, [LEARN["licensing"], LEARN["quotas"], LEARN["host_pool_management"], LEARN["autoscale"], LEARN["session_host_update"], LEARN["ephemeral"], LEARN["entra_hosts"], LEARN["device_join"], LEARN["sso"], LEARN["kerberos_files"], LEARN["intune"], LEARN["managed_identity"], LEARN["app_attach"], LEARN["service_principal"]], DEPENDENCY_NODES),
     ("identity-flow", identity_flow, "docs/identity/index.md", "How it fits", "Identity flow for sign-in, Conditional Access, single sign-on and Microsoft Entra Kerberos access to Azure Files.", ["Authenticate", "Evaluate Conditional Access", "Get feed and broker session", "Sign in with SSO", "Retrieve Kerberos ticket", "Open profile share"], [LEARN["sso"], LEARN["mfa"], LEARN["kerberos_files"], LEARN["entra_hosts"]]),
     ("profiles-fslogix", profiles_flow, "docs/profiles/index.md", "How it fits", "FSLogix profile flow from user sign-in through Microsoft Entra Kerberos to Azure Files, with sharding across storage accounts and shares.", ["User signs in", "Host retrieves Kerberos ticket", "Kerberos authenticates SMB", "Open Azure Files", "Attach profile container", "Shard by IOPS and throughput"], [LEARN["fslogix_store"], LEARN["files_identity"], LEARN["kerberos_files"], LEARN["files_scale"]]),
+    ("app-attach-formats", app_attach_formats, "docs/app-attach/index.md", "App-V and MSIX in one minute", "App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer are still supported, and App-V server support ended in April 2026. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.", ["App-V: a Win32 application delivered as a virtual application", "MSIX: the modern Windows app package format", "App Attach delivers both"], [LEARN["appv_getting_started"], LEARN["appv_support"], LEARN["msix_overview"], LEARN["app_attach"]]),
     ("app-attach-flow", app_attach_flow, "docs/app-attach/index.md", "The whole process on one page", "App Attach end to end. Step 1, package once per application: an existing App-V package takes the fast lane as it is, and everything else is converted to MSIX with the MSIX Packaging Tool, signed with one code signing certificate, and turned into a CimFS disk image with MSIXMGR. Step 2, store it on an Azure Files share in the same region as the session hosts. Step 3, deliver: add it and assign it to a host pool and a user group, and it's attached when the user signs in.", ["Fast lane: use an existing App-V package as it is", "Convert the installer to MSIX with the MSIX Packaging Tool", "Sign it with your code signing certificate", "Create a CimFS disk image with MSIXMGR", "Store it on an Azure Files share", "Add it and assign it to a host pool and a user group", "The user signs in and the app is attached"], [LEARN["app_attach"], LEARN["app_attach_image"], LEARN["msix_tool"], LEARN["app_attach_setup"]]),
     ("app-attach-signing", app_attach_signing, "docs/app-attach/certificates.md", "Sign once, trust everywhere", "Sign once, trust everywhere. Get one code signing certificate from your internal CA or a public CA and sign every MSIX package with it, adding a timestamp. One Intune trusted certificate profile pushes the root and intermediate certificates to AVD session hosts and Windows 365 Cloud PCs; a public CA certificate is already trusted, so it needs no profile. App-V packages need no certificate.", ["Get one code signing certificate", "Sign and timestamp every MSIX package", "Push trust once with an Intune trusted certificate profile", "Every AVD session host and Cloud PC trusts every package"], [LEARN["app_attach"], LEARN["msix_sign"], LEARN["msix_intune"]]),
     ("app-attach-two-platforms", app_attach_two_platforms, "docs/app-attach/avd-and-windows-365.md", "One package, two platforms", "One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. App-V packages are an Azure Virtual Desktop bridge only, so plan MSIX or Win32 apps for Windows 365.", ["Build and sign the MSIX once", "AVD: CimFS image on Azure Files, attached by App Attach", "Windows 365: the same MSIX installed through Intune"], [LEARN["app_attach"], LEARN["msix_intune"], LEARN["w365_apps"], LEARN["w365_images"]]),

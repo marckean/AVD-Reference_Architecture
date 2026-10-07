@@ -12,6 +12,20 @@ description: Package an application once, store it on a file share, and attach i
     - **Package once, use it twice.** The same signed MSIX installs on Windows 365 Cloud PCs through Intune.
     - **Most of the work is scripted.** The [App Attach fast track](../accelerators/app-attach-fast-track.md) automates inventory, triage, image creation and assignment. People decide, test and sign off.
 
+## App-V and MSIX in one minute
+
+<span class="level l100">Level 100</span>
+
+An application package is an application wrapped up so it can be delivered to a desktop without running its installer there. App Attach delivers two kinds.
+
+![App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer are still supported, and App-V server support ended in April 2026. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.](../assets/images/app-attach-formats-light.svg#only-light)
+![App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer are still supported, and App-V server support ended in April 2026. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.](../assets/images/app-attach-formats-dark.svg#only-dark)
+
+- **App-V** (Microsoft Application Virtualization) delivers a Win32 application as a virtual application. The App-V Sequencer records the installer into a `.appv` file ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview), [Creating App-V virtualized applications](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-creating-and-managing-virtualized-applications)).
+- **MSIX** is the modern Windows app package format. It installs and uninstalls cleanly, runs in a lightweight container, and must be signed ([What is MSIX?](https://learn.microsoft.com/windows/msix/overview)).
+- **Appx** is the earlier package format for modern (UWP) apps. App Attach supports it too ([Applications in Windows 365](https://learn.microsoft.com/windows-365/enterprise/app-overview)).
+- **A CimFS disk image** is what App Attach mounts for an MSIX package. MSIXMGR makes it from the `.msix` file ([Create an MSIX image](https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image)).
+
 ## The whole process on one page
 
 <span class="level l100">Level 100</span>

@@ -180,6 +180,22 @@ All diagrams are generic and use Contoso only where an organisation name would o
   - https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable
   - https://learn.microsoft.com/azure/storage/files/storage-files-scale-targets
 
+## app-attach-formats
+
+- Files: `docs/assets/images/app-attach-formats-light.svg`, `docs/assets/images/app-attach-formats-dark.svg`
+- Intended page: docs/app-attach/index.md
+- Intended section: App-V and MSIX in one minute
+- Alt text: App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer are still supported, and App-V server support ended in April 2026. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.
+- Numbered-step text:
+  1. App-V: a Win32 application delivered as a virtual application
+  2. MSIX: the modern Windows app package format
+  3. App Attach delivers both
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-getting-started
+  - https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy
+  - https://learn.microsoft.com/windows/msix/overview
+  - https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview
+
 ## app-attach-flow
 
 - Files: `docs/assets/images/app-attach-flow-light.svg`, `docs/assets/images/app-attach-flow-dark.svg`
