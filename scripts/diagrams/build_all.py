@@ -435,25 +435,24 @@ def app_attach_flow(mode: str) -> Svg:
 
 
 def app_attach_formats(mode: str) -> Svg:
-    s = Svg(W, 640, mode, "App-V and MSIX in one minute", "Two package formats side by side. App-V delivers a Win32 application as a virtual application, packaged in a .appv file by the App-V Sequencer; the client and sequencer are still supported and App-V server support ended in April 2026. MSIX is the modern Windows app package format, made with the MSIX Packaging Tool or shipped by the vendor; it runs in a lightweight container with a clean install and uninstall, and must be signed. App Attach delivers both.")
+    s = Svg(760, 700, mode, "App-V and MSIX in one minute", "Two package formats side by side. App-V delivers a Win32 application as a virtual application, packaged in a .appv file by the App-V Sequencer; the client and sequencer are still supported and App-V server support ended in April 2026. MSIX is the modern Windows app package format, made with the MSIX Packaging Tool or shipped by the vendor; it runs in a lightweight container with a clean install and uninstall, and must be signed. App Attach delivers both.")
     rows = [
         ("images", "What it is", "A Win32 application delivered as a virtual application", "Microsoft's modern Windows app package format"),
         ("vm", "How it's made", "The App-V Sequencer records the installer into a .appv file", "The MSIX Packaging Tool captures any installer, or the vendor ships one"),
         ("application-group", "How it runs", "In a virtual environment, as if it were installed locally", "In a lightweight container, with a clean install and uninstall"),
     ]
-    s.panel(30, 60, 455, 430, "App-V package (.appv): the bridge")
-    s.panel(515, 60, 455, 430, "MSIX package (.msix): the destination")
+    s.panel(20, 60, 345, 490, "App-V package (.appv): the bridge")
+    s.panel(385, 60, 345, 490, "MSIX package (.msix): the destination")
     for i, (icon, title, appv, msix) in enumerate(rows):
-        y = 100 + i * 96
-        s.card(48, y, 419, 86, icon, title, appv)
-        s.card(533, y, 419, 86, icon, title, msix)
-    s.card(48, 388, 419, 86, "policy", "Good to know", "The client and sequencer are still supported. App-V server support ended in April 2026", kind="card_alt")
-    s.card(533, 388, 419, 86, "key-vault", "Good to know", "Every MSIX package must be signed before it can be installed", kind="card_alt")
-    s.card(30, 520, 940, 76, "avd", "App Attach delivers both", "App-V: the .appv file goes on the share as it is. MSIX: expanded into a CimFS disk image first.")
-    s.arrow([(257, 490), (257, 520)])
-    s.arrow([(742, 490), (742, 520)])
+        y = 100 + i * 110
+        s.card(36, y, 313, 100, icon, title, appv)
+        s.card(401, y, 313, 100, icon, title, msix)
+    s.card(36, 430, 313, 100, "policy", "Good to know", "The client and sequencer are still supported. App-V server support ended in April 2026", kind="card_alt")
+    s.card(401, 430, 313, 100, "key-vault", "Good to know", "Every MSIX package must be signed before it can be installed", kind="card_alt")
+    s.card(20, 580, 710, 92, "avd", "App Attach delivers both", "App-V: the .appv file goes on the share as it is. MSIX: expanded into a CimFS disk image first.")
+    s.arrow([(192, 550), (192, 580)])
+    s.arrow([(557, 550), (557, 580)])
     return s
-
 
 def app_attach_signing(mode: str) -> Svg:
     s = Svg(W, 520, mode, "Sign once, trust everywhere", "One code signing certificate signs every MSIX package, with a timestamp. One Intune trusted certificate profile pushes the root and intermediate certificates to AVD session hosts and Windows 365 Cloud PCs. A public CA certificate needs no profile, and App-V packages need no certificate.")
