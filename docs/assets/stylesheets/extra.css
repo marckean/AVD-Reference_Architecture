@@ -203,3 +203,58 @@
 .md-copyright {
   max-width: 48rem;
 }
+
+/* Navigation: set each section heading apart from the pages beneath it */
+:root {
+  --avd-nav-section-fg: #0f6cbd;
+}
+
+[data-md-color-scheme="slate"] {
+  --avd-nav-section-fg: #6cb8f6;
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-nav--primary > .md-nav__list > .md-nav__item--section {
+    margin: 1.1em 0 0;
+    padding-top: 0.9em;
+    border-top: 1px solid var(--md-default-fg-color--lightest);
+  }
+
+  .md-nav--primary > .md-nav__list > .md-nav__item--section:first-child {
+    margin-top: 0.6em;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .md-nav--primary > .md-nav__list > .md-nav__item--section > .md-nav__link,
+  .md-nav--primary > .md-nav__list > .md-nav__item--section > .md-nav__container > .md-nav__link {
+    color: var(--avd-nav-section-fg);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .md-nav--primary > .md-nav__list > .md-nav__item--section > .md-nav__container > .md-nav__link:hover {
+    text-decoration: underline;
+  }
+}
+
+/* Header button that hides and shows the left navigation on wide screens */
+.md-header__button.avd-nav-toggle {
+  display: none;
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-header__button.avd-nav-toggle {
+    display: inline-block;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+  }
+
+  html.avd-nav-hidden .md-sidebar--primary {
+    display: none;
+  }
+}
