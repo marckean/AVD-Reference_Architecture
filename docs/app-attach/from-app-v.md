@@ -23,7 +23,7 @@ flowchart TB
 
 ## Using existing App-V packages
 
-App Attach can deliver App-V packages directly. Learn lists App-V as a supported package type with `.appv` file format, and the add and manage article shows adding an App-V package as an App Attach package ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview), [Add and manage App Attach applications](https://learn.microsoft.com/azure/virtual-desktop/app-attach-setup)).
+App Attach can deliver App-V packages directly. Learn lists App-V as a supported package type with `.appv` file format, and the add and manage article shows adding an App-V package as an App Attach package ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview), [Add and manage App Attach applications](https://learn.microsoft.com/azure/virtual-desktop/app-attach-setup)). There's no repackaging, signing or disk image step: the `.appv` file goes on the share as it is. Learn's certificate requirement covers MSIX and Appx packages (see [Signing certificates, demystified](certificates.md)).
 
 The App-V status needs nuance. The App-V support policy says the **App-V client and sequencer** have moved to fixed extended support, still ship with Windows, and are no longer deprecated. The same policy says the **App-V server components** remain deprecated and support ended in April 2026. It also says **App-V app attach** lets you use App-V packages with Azure Virtual Desktop without running your own server ([App-V in Windows support policy](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy)).
 

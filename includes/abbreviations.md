@@ -36,3 +36,5 @@
 *[SID]: Security identifier
 *[UPN]: User principal name, such as user@contoso.com
 *[PAC]: Privilege Attribute Certificate - the authorisation data inside a Kerberos ticket
+*[PFX]: Personal Information Exchange - a certificate file that includes the private key
+*[OV]: Organization Validation - a type of code signing certificate from a public certificate authority

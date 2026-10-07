@@ -143,9 +143,11 @@ nav:
   - Workloads and data:
       - Applications with App Attach:
           - app-attach/index.md
-          - Requirements and file shares: app-attach/requirements.md
-          - Packages and updates: app-attach/packages.md
+          - Packaging, step by step: app-attach/packages.md
+          - Signing certificates, demystified: app-attach/certificates.md
+          - AVD and Windows 365: app-attach/avd-and-windows-365.md
           - From App-V to App Attach: app-attach/from-app-v.md
+          - Requirements and file shares: app-attach/requirements.md
       - User profiles with FSLogix:
           - profiles/index.md
           - Access and permissions: profiles/access-and-permissions.md

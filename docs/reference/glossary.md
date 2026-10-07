@@ -30,6 +30,9 @@ Autoscale
 AVD Insights
 :   Azure Monitor workbook for understanding an Azure Virtual Desktop environment: connections, hosts, sign-in performance and more. [AVD Insights](https://learn.microsoft.com/azure/virtual-desktop/insights)
 
+Azure Artifact Signing
+:   Microsoft's managed code signing service, formerly called Trusted Signing. Learn recommends it for production MSIX signing. Its Public Trust certificates are currently available to organisations in the USA, Canada, the European Union and the United Kingdom. [Sign an MSIX package](https://learn.microsoft.com/windows/msix/package/signing-package-overview)
+
 Azure Compute Gallery
 :   Azure service for managing, versioning and replicating VM images through image definitions and image versions. [Azure Compute Gallery](https://learn.microsoft.com/azure/virtual-machines/azure-compute-gallery)
 
@@ -55,6 +58,9 @@ CimFS
 
 Cloud Cache
 :   FSLogix capability that writes profile containers to more than one storage location for resilience. [FSLogix business continuity](https://learn.microsoft.com/fslogix/concepts-container-recovery-business-continuity)
+
+Code signing certificate
+:   A certificate with object identifier 1.3.6.1.5.5.7.3.3, used to sign MSIX and Appx packages. The whole certificate chain must be trusted on the device that runs the package. [App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)
 
 Conditional Access
 :   Microsoft Entra policies applied at sign-in, such as requiring MFA. With single sign-on, target both **Azure Virtual Desktop** and **Windows Cloud Login**. [Enforce MFA with Conditional Access](https://learn.microsoft.com/azure/virtual-desktop/set-up-mfa)
@@ -125,6 +131,9 @@ Key Distribution Center (KDC)
 LAN Manager authentication level
 :   The security policy, stored as the **LmCompatibilityLevel** registry value, that sets which LM, NTLM and NTLMv2 responses a computer sends and a domain controller accepts. [Network security: LAN Manager authentication level](https://learn.microsoft.com/windows/security/threat-protection/security-policy-settings/network-security-lan-manager-authentication-level)
 
+Line-of-business app (Intune)
+:   An app you upload to Intune yourself, such as a signed MSIX package. Windows 365 Cloud PCs can receive MSIX packages this way. [Deploy MSIX apps with Microsoft Intune](https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune)
+
 Log on blocking registration
 :   App Attach registration mode where assigned applications are fully registered during sign-in. [App Attach in AVD](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)
 
@@ -189,6 +198,9 @@ On-demand registration
 Open handles (Azure Files)
 :   Azure Files limits how many handles can be open at once on a file, a directory and a share's root directory. FSLogix and App Attach both hold handles. [Azure Files scale targets](https://learn.microsoft.com/azure/storage/files/storage-files-scale-targets#file-scale-targets)
 
+Package Support Framework
+:   Runtime fixes for applications that need help to run in the MSIX container. [Package Support Framework overview](https://learn.microsoft.com/windows/msix/psf/package-support-framework-overview)
+
 Partial TGT
 :   A Kerberos ticket-granting ticket for an on-premises Active Directory domain, issued by Microsoft Entra ID and holding only the user's SID. The device trades it at a domain controller for a full TGT. It needs a Kerberos server object. [Passwordless sign-in to on-premises resources](https://learn.microsoft.com/entra/identity/authentication/howto-authentication-passwordless-security-key-on-premises)
 
@@ -248,6 +260,9 @@ Session host update
 Settings catalog
 :   The Intune profile type used to configure device and user settings on multi-session hosts. [Windows Enterprise multi-session with Intune](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session)
 
+SignTool
+:   Windows SDK command-line tool that signs app packages with a certificate, and can add a timestamp. [Sign an app package using SignTool](https://learn.microsoft.com/windows/msix/package/sign-app-package-using-signtool)
+
 Single sign-on
 :   Signs users in to the session host with Microsoft Entra authentication, so they don't sign in twice. [Configure single sign-on](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on)
 
@@ -264,6 +279,12 @@ STUN and TURN
 
 Ticket-granting ticket (TGT)
 :   The Kerberos ticket a user gets at sign-in and then uses to request service tickets without entering credentials again. [Kerberos authentication overview](https://learn.microsoft.com/windows-server/security/kerberos/kerberos-authentication-overview)
+
+Timestamp (code signing)
+:   A trusted time added when a package is signed, so the signature stays valid after the certificate expires. Learn recommends timestamping App Attach packages. [App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)
+
+Trusted certificate profile (Intune)
+:   An Intune configuration profile that installs a root or intermediate certificate on devices, so they trust certificates issued from it. [Trusted root certificate profiles](https://learn.microsoft.com/intune/device-configuration/certificates/trusted-root-profiles)
 
 Trusted launch
 :   An Azure VM security type that uses Secure Boot and a virtual TPM. [Trusted launch](https://learn.microsoft.com/azure/virtual-machines/trusted-launch)

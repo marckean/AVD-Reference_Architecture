@@ -184,20 +184,53 @@ All diagrams are generic and use Contoso only where an organisation name would o
 
 - Files: `docs/assets/images/app-attach-flow-light.svg`, `docs/assets/images/app-attach-flow-dark.svg`
 - Intended page: docs/app-attach/index.md
-- Intended section: How it fits
-- Alt text: App Attach package, storage and assignment flow from package image to host pool assignment and user session mount.
+- Intended section: The whole process on one page
+- Alt text: App Attach end to end. Step 1, package once per application: an existing App-V package takes the fast lane as it is, and everything else is converted to MSIX with the MSIX Packaging Tool, signed with one code signing certificate, and turned into a CimFS disk image with MSIXMGR. Step 2, store it on an Azure Files share in the same region as the session hosts. Step 3, deliver: add it and assign it to a host pool and a user group, and it's attached when the user signs in.
 - Numbered-step text:
-  1. Package
-  2. Store on SMB share
-  3. Create App Attach object
-  4. Assign to host pool
-  5. Assign to users or groups
-  6. Add to RemoteApp group where required
-  7. Mount in user session
+  1. Fast lane: use an existing App-V package as it is
+  2. Convert the installer to MSIX with the MSIX Packaging Tool
+  3. Sign it with your code signing certificate
+  4. Create a CimFS disk image with MSIXMGR
+  5. Store it on an Azure Files share
+  6. Add it and assign it to a host pool and a user group
+  7. The user signs in and the app is attached
 - Microsoft Learn URLs:
   - https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview
+  - https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image
+  - https://learn.microsoft.com/windows/msix/packaging-tool/create-app-package
   - https://learn.microsoft.com/azure/virtual-desktop/app-attach-setup
-  - https://learn.microsoft.com/azure/virtual-desktop/service-principal-assign-roles
+
+## app-attach-signing
+
+- Files: `docs/assets/images/app-attach-signing-light.svg`, `docs/assets/images/app-attach-signing-dark.svg`
+- Intended page: docs/app-attach/certificates.md
+- Intended section: Sign once, trust everywhere
+- Alt text: Sign once, trust everywhere. Get one code signing certificate from your internal CA or a public CA and sign every MSIX package with it, adding a timestamp. One Intune trusted certificate profile pushes the root and intermediate certificates to AVD session hosts and Windows 365 Cloud PCs; a public CA certificate is already trusted, so it needs no profile. App-V packages need no certificate.
+- Numbered-step text:
+  1. Get one code signing certificate
+  2. Sign and timestamp every MSIX package
+  3. Push trust once with an Intune trusted certificate profile
+  4. Every AVD session host and Cloud PC trusts every package
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview
+  - https://learn.microsoft.com/windows/msix/package/signing-package-overview
+  - https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune
+
+## app-attach-two-platforms
+
+- Files: `docs/assets/images/app-attach-two-platforms-light.svg`, `docs/assets/images/app-attach-two-platforms-dark.svg`
+- Intended page: docs/app-attach/avd-and-windows-365.md
+- Intended section: One package, two platforms
+- Alt text: One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. App-V packages are an Azure Virtual Desktop bridge only, so plan MSIX or Win32 apps for Windows 365.
+- Numbered-step text:
+  1. Build and sign the MSIX once
+  2. AVD: CimFS image on Azure Files, attached by App Attach
+  3. Windows 365: the same MSIX installed through Intune
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview
+  - https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune
+  - https://learn.microsoft.com/windows-365/enterprise/app-overview
+  - https://learn.microsoft.com/windows-365/enterprise/device-images
 
 ## images-pipeline
 

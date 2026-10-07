@@ -54,8 +54,10 @@ App Attach accepts App-V packages directly. The App-V support policy says *"App-
 
 For applications that should become MSIX, the MSIX Packaging Tool captures an installation on a clean machine and produces a package. It can run unattended from a conversion template ([Generate a command line template](https://learn.microsoft.com/windows/msix/packaging-tool/generate-template-file)), which is what lets a small team convert in bulk. Two rules matter from day one:
 
-- **Every package must be signed with a certificate the session hosts trust.** Learn says all MSIX and Appx packages include a certificate, and you're responsible for making sure it's trusted in your environment ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)). If you don't have a code signing process yet, it's on the critical path.
+- **Every package must be signed with a certificate the session hosts trust.** Learn says all MSIX and Appx packages require a valid code signing certificate whose whole chain is trusted on the session hosts ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)). It's a one-off setup: one certificate from the CA you already run, or from a public CA, and one Intune profile to push trust. App-V packages don't need it. See [Signing certificates, demystified](../app-attach/certificates.md).
 - **Use CimFS images.** Learn says: *"We recommend using CIM for best performance, particularly with Windows 11, as it consumes less CPU and memory, with improved mounting and unmounting times"* ([Create an MSIX image](https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image)).
+
+The same signed MSIX packages also install on Windows 365 Cloud PCs through Intune, so this work serves both platforms. See [Azure Virtual Desktop and Windows 365](../app-attach/avd-and-windows-365.md).
 
 ## Starting from a golden image
 

@@ -28,6 +28,12 @@ LEARN = {
     "managed_identity": "https://learn.microsoft.com/azure/virtual-desktop/configure-managed-identity",
     "app_attach": "https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview",
     "app_attach_setup": "https://learn.microsoft.com/azure/virtual-desktop/app-attach-setup",
+    "app_attach_image": "https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image",
+    "msix_tool": "https://learn.microsoft.com/windows/msix/packaging-tool/create-app-package",
+    "msix_sign": "https://learn.microsoft.com/windows/msix/package/signing-package-overview",
+    "msix_intune": "https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune",
+    "w365_apps": "https://learn.microsoft.com/windows-365/enterprise/app-overview",
+    "w365_images": "https://learn.microsoft.com/windows-365/enterprise/device-images",
     "service_principal": "https://learn.microsoft.com/azure/virtual-desktop/service-principal-assign-roles",
     "image_builder": "https://learn.microsoft.com/azure/virtual-machines/image-builder-overview",
     "compute_gallery": "https://learn.microsoft.com/azure/virtual-machines/azure-compute-gallery",
@@ -404,24 +410,63 @@ def profiles_flow(mode: str) -> Svg:
 
 
 def app_attach_flow(mode: str) -> Svg:
-    s = Svg(W, 640, mode, "App Attach package and assignment flow", "Applications are packaged, placed on an SMB share, registered as App Attach applications, assigned to host pools and users or groups, then mounted into user sessions.")
-    p = s.p
-    stages = [
-        (55, 145, "images", "Package", "MSIX, Appx or App-V", 1),
-        (245, 145, "files", "SMB share", "Azure Files share", 2),
-        (435, 145, "application-group", "App", "Data", 3),
-        (625, 145, "host-pools", "Host pool", "Assign to pool", 4),
-        (815, 145, "groups", "User group", "Assign to group", 5),
-    ]
-    for x, y, icon, title, body, n in stages:
-        s.card(x, y, 150, 120, icon, title, body, number=n, title_size=12.2)
-    s.card(310, 385, 175, 105, "workspace", "RemoteApp group", "Add for RemoteApp", number=6)
-    s.card(535, 385, 175, 105, "vm", "User session", "Mounts on demand", number=7)
-    for x in [205, 395, 585, 775]:
-        s.arrow([(x, 205), (x + 40, 205)])
-    s.arrow([(700, 265), (700, 330), (622, 330), (622, 385)])
-    s.arrow([(510, 265), (510, 340), (398, 340), (398, 385)])
-    s.arrow([(485, 438), (535, 438)])
+    s = Svg(W, 600, mode, "App Attach end to end", "Existing App-V packages take a fast lane straight to the file share. Everything else is converted to MSIX, signed and turned into a CimFS disk image. The share feeds App Attach, which assigns the application to a host pool and a user group and attaches it when the user signs in.")
+    s.panel(30, 60, 430, 460, "Step 1: Package, once per application")
+    s.card(48, 100, 394, 84, "images", "Fast lane: an existing App-V package", "Use the .appv file as it is. No repackaging, no signing and no disk image.", kind="card_alt")
+    s.text(48, 211, "MSIX lane, for everything else", size=11.5, weight=600, colour=str(s.p["muted"]))
+    s.card(48, 222, 394, 76, "vm", "Convert the installer to MSIX", "MSIX Packaging Tool, on a clean virtual machine")
+    s.card(48, 322, 394, 76, "key-vault", "Sign it with your certificate", "One code signing certificate signs every package")
+    s.card(48, 422, 394, 76, "disks", "Create a CimFS disk image", "MSIXMGR expands the MSIX into the image")
+    s.arrow([(245, 298), (245, 322)])
+    s.arrow([(245, 398), (245, 422)])
+    s.panel(490, 60, 200, 460, "Step 2: Store")
+    s.card(506, 230, 168, 120, "files", "Azure Files share", "Same Azure region as the session hosts")
+    s.panel(720, 60, 250, 460, "Step 3: Deliver")
+    s.card(736, 130, 218, 96, "host-pools", "Add and assign", "To a host pool and a user group")
+    s.card(736, 300, 218, 120, "users-official", "User signs in", "The app is attached to the session and registers when first opened")
+    s.arrow([(442, 142), (475, 142), (475, 270), (506, 270)])
+    s.arrow([(442, 460), (590, 460), (590, 350)])
+    s.arrow([(674, 290), (705, 290), (705, 178), (736, 178)])
+    s.arrow([(845, 226), (845, 300)])
+    return s
+
+
+def app_attach_signing(mode: str) -> Svg:
+    s = Svg(W, 520, mode, "Sign once, trust everywhere", "One code signing certificate signs every MSIX package, with a timestamp. One Intune trusted certificate profile pushes the root and intermediate certificates to AVD session hosts and Windows 365 Cloud PCs. A public CA certificate needs no profile, and App-V packages need no certificate.")
+    s.panel(30, 60, 280, 270, "1. Get a certificate, once")
+    s.card(48, 100, 244, 100, "key-vault", "Code signing certificate", "From your internal CA, or bought from a public CA")
+    s.card(48, 226, 244, 86, "images", "Sign every package", "Add a timestamp, so it outlasts the certificate")
+    s.arrow([(170, 200), (170, 226)])
+    s.panel(340, 60, 290, 270, "2. Trust it, once")
+    s.card(356, 100, 258, 112, "intune", "Intune trusted certificate profile", "Pushes your root and intermediate certificates to devices")
+    s.card(356, 226, 258, 86, None, "Bought from a public CA?", "Windows already trusts it. Skip this step.", kind="card_alt")
+    s.panel(660, 60, 310, 270, "3. Every device trusts every package")
+    s.card(676, 100, 278, 84, "host-pools", "AVD session hosts", "Microsoft Entra joined")
+    s.card(676, 210, 278, 84, "vm", "Windows 365 Cloud PCs", "Same profile, same packages")
+    s.arrow([(292, 150), (356, 150)])
+    s.arrow([(614, 142), (676, 142)])
+    s.arrow([(614, 185), (645, 185), (645, 252), (676, 252)])
+    s.card(30, 356, 940, 76, "images", "App-V packages skip all of this", "Learn's App Attach certificate requirement covers MSIX and Appx packages, so .appv files go straight to the share", kind="card_alt")
+    return s
+
+
+def app_attach_two_platforms(mode: str) -> Svg:
+    s = Svg(W, 500, mode, "One package, two platforms", "A signed MSIX package is built once. Azure Virtual Desktop uses it as a CimFS image on Azure Files, attached by App Attach to pooled multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. App-V packages are an Azure Virtual Desktop bridge only.")
+    s.panel(30, 60, 250, 370, "Package once")
+    s.card(46, 180, 218, 110, "images", "Signed MSIX package", "Built once by your packaging team")
+    s.panel(310, 60, 660, 170, "Azure Virtual Desktop: attach at sign-in")
+    s.card(326, 110, 196, 100, "files", "Azure Files share", "CimFS image, made by MSIXMGR")
+    s.card(542, 110, 196, 100, "avd", "App Attach", "Assigned to a host pool and group")
+    s.card(758, 110, 196, 100, "host-pools", "Pooled hosts", "Windows 11 Enterprise multi-session")
+    s.panel(310, 260, 660, 170, "Windows 365: install through Intune")
+    s.card(326, 310, 196, 100, "intune", "Intune app", "Line-of-business app, same MSIX")
+    s.card(542, 310, 196, 100, "vm", "Cloud PC", "Windows 11 Enterprise, single session")
+    s.card(758, 310, 196, 100, None, "App-V packages?", "AVD only. Plan MSIX or Win32 apps for Windows 365", kind="card_alt")
+    s.arrow([(264, 200), (295, 200), (295, 160), (326, 160)])
+    s.arrow([(264, 270), (295, 270), (295, 360), (326, 360)])
+    s.arrow([(522, 160), (542, 160)])
+    s.arrow([(738, 160), (758, 160)])
+    s.arrow([(522, 360), (542, 360)])
     return s
 
 
@@ -613,7 +658,9 @@ DIAGRAMS = [
     ("dependency-map", dependency_map, "docs/overview/dependency-map.md", "Master dependency map", "A numbered dependency map showing what must exist first, what is fixed at host pool creation and which relationships are requirements or recommendations.", None, [LEARN["licensing"], LEARN["quotas"], LEARN["host_pool_management"], LEARN["autoscale"], LEARN["session_host_update"], LEARN["ephemeral"], LEARN["entra_hosts"], LEARN["device_join"], LEARN["sso"], LEARN["kerberos_files"], LEARN["intune"], LEARN["managed_identity"], LEARN["app_attach"], LEARN["service_principal"]], DEPENDENCY_NODES),
     ("identity-flow", identity_flow, "docs/identity/index.md", "How it fits", "Identity flow for sign-in, Conditional Access, single sign-on and Microsoft Entra Kerberos access to Azure Files.", ["Authenticate", "Evaluate Conditional Access", "Get feed and broker session", "Sign in with SSO", "Retrieve Kerberos ticket", "Open profile share"], [LEARN["sso"], LEARN["mfa"], LEARN["kerberos_files"], LEARN["entra_hosts"]]),
     ("profiles-fslogix", profiles_flow, "docs/profiles/index.md", "How it fits", "FSLogix profile flow from user sign-in through Microsoft Entra Kerberos to Azure Files, with sharding across storage accounts and shares.", ["User signs in", "Host retrieves Kerberos ticket", "Kerberos authenticates SMB", "Open Azure Files", "Attach profile container", "Shard by IOPS and throughput"], [LEARN["fslogix_store"], LEARN["files_identity"], LEARN["kerberos_files"], LEARN["files_scale"]]),
-    ("app-attach-flow", app_attach_flow, "docs/app-attach/index.md", "How it fits", "App Attach package, storage and assignment flow from package image to host pool assignment and user session mount.", ["Package", "Store on SMB share", "Create App Attach object", "Assign to host pool", "Assign to users or groups", "Add to RemoteApp group where required", "Mount in user session"], [LEARN["app_attach"], LEARN["app_attach_setup"], LEARN["service_principal"]]),
+    ("app-attach-flow", app_attach_flow, "docs/app-attach/index.md", "The whole process on one page", "App Attach end to end. Step 1, package once per application: an existing App-V package takes the fast lane as it is, and everything else is converted to MSIX with the MSIX Packaging Tool, signed with one code signing certificate, and turned into a CimFS disk image with MSIXMGR. Step 2, store it on an Azure Files share in the same region as the session hosts. Step 3, deliver: add it and assign it to a host pool and a user group, and it's attached when the user signs in.", ["Fast lane: use an existing App-V package as it is", "Convert the installer to MSIX with the MSIX Packaging Tool", "Sign it with your code signing certificate", "Create a CimFS disk image with MSIXMGR", "Store it on an Azure Files share", "Add it and assign it to a host pool and a user group", "The user signs in and the app is attached"], [LEARN["app_attach"], LEARN["app_attach_image"], LEARN["msix_tool"], LEARN["app_attach_setup"]]),
+    ("app-attach-signing", app_attach_signing, "docs/app-attach/certificates.md", "Sign once, trust everywhere", "Sign once, trust everywhere. Get one code signing certificate from your internal CA or a public CA and sign every MSIX package with it, adding a timestamp. One Intune trusted certificate profile pushes the root and intermediate certificates to AVD session hosts and Windows 365 Cloud PCs; a public CA certificate is already trusted, so it needs no profile. App-V packages need no certificate.", ["Get one code signing certificate", "Sign and timestamp every MSIX package", "Push trust once with an Intune trusted certificate profile", "Every AVD session host and Cloud PC trusts every package"], [LEARN["app_attach"], LEARN["msix_sign"], LEARN["msix_intune"]]),
+    ("app-attach-two-platforms", app_attach_two_platforms, "docs/app-attach/avd-and-windows-365.md", "One package, two platforms", "One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. App-V packages are an Azure Virtual Desktop bridge only, so plan MSIX or Win32 apps for Windows 365.", ["Build and sign the MSIX once", "AVD: CimFS image on Azure Files, attached by App Attach", "Windows 365: the same MSIX installed through Intune"], [LEARN["app_attach"], LEARN["msix_intune"], LEARN["w365_apps"], LEARN["w365_images"]]),
     ("images-pipeline", images_pipeline, "docs/images/index.md", "How it fits", "Image pipeline from Marketplace source through Azure Image Builder and Azure Compute Gallery to session host configuration and session host update rings.", ["Marketplace source", "Build image", "Publish version", "Reference in session host configuration", "Update in rings"], [LEARN["image_builder"], LEARN["compute_gallery"], LEARN["session_host_update"], LEARN["host_pool_management"]]),
     ("scaling-lifecycle", scaling_lifecycle, "docs/scaling/index.md", "How it fits", "Dynamic autoscaling lifecycle for ephemeral OS disk pooled hosts, showing create, use, drain and delete.", ["Scaling plan", "Read session host configuration", "Create hosts", "Serve users", "Drain and delete", "Observe diagnostics"], [LEARN["autoscale"], LEARN["ephemeral"], LEARN["host_pool_management"]]),
     ("monitoring-flow", monitoring_flow, "docs/monitoring/index.md", "How it fits", "Monitoring data flow from AVD diagnostic settings and Azure Monitor Agent to Log Analytics, AVD Insights and alerts.", ["AVD diagnostics source", "Diagnostic settings", "Session hosts", "Azure Monitor Agent and DCR", "Log Analytics", "AVD Insights", "Alerts"], [LEARN["diagnostics"], LEARN["insights"], LEARN["ama"]]),
