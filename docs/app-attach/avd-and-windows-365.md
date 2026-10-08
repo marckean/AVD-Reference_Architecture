@@ -65,11 +65,11 @@ The Azure Virtual Desktop side is on [Images](../images/index.md).
 <span class="level l300">Level 300</span>
 
 ```mermaid
-flowchart LR
+flowchart TB
     A["Packaging pipeline"] --> B["App-V fast lane"]
     A --> C["Signed MSIX"]
     B -->|"App Attach"| D["AVD proof of concept"]
-    C -->|"App Attach"| D
+    C --> D
     C -->|"Intune"| E["Windows 365 proof of concept"]
     B -.->|"App-V client, optional"| E
 ```
