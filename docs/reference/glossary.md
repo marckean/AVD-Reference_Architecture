@@ -16,7 +16,7 @@ App Attach
 :   Azure Virtual Desktop feature that attaches applications from packages to user sessions, so applications aren't installed on session hosts or in the image. It replaced MSIX app attach, which was deprecated on 1 June 2025. [App Attach in AVD](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview)
 
 App-V
-:   Microsoft Application Virtualization. App Attach can deliver App-V packages to Azure Virtual Desktop without an App-V server. The App-V client and sequencer are in fixed extended support. [App-V support policy](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy)
+:   Microsoft Application Virtualization. App Attach can deliver App-V packages to Azure Virtual Desktop without an App-V server. The App-V client and sequencer follow the lifecycle of their Windows version, and App-V server is in fixed extended support through 9 October 2029. [App-V support policy](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy)
 
 Application group
 :   The object that gives users access to a full desktop or to RemoteApp applications from a host pool. [AVD terminology](https://learn.microsoft.com/azure/virtual-desktop/terminology#application-groups)
@@ -65,6 +65,9 @@ Code signing certificate
 Conditional Access
 :   Microsoft Entra policies applied at sign-in, such as requiring MFA. With single sign-on, target both **Azure Virtual Desktop** and **Windows Cloud Login**. [Enforce MFA with Conditional Access](https://learn.microsoft.com/azure/virtual-desktop/set-up-mfa)
 
+Connection group (App-V)
+:   An App-V feature that groups packages into one virtual environment so their applications can interact. The nearest MSIX equivalent is a shared package container. [App-V and MSIX comparison](https://learn.microsoft.com/windows/msix/comparisonofappvwithmsix)
+
 Context-based redirections
 :   Preview feature that turns clipboard, drive, printer and USB redirection on or off for a session, based on a Conditional Access authentication context. [Context-based redirections](https://learn.microsoft.com/azure/virtual-desktop/context-based-redirections-avd)
 
@@ -87,6 +90,9 @@ dsregcmd
 
 Dynamic autoscaling
 :   Scaling method that powers session hosts on and off and also creates and deletes them. It can only be used for pooled host pools with a session host configuration. [Autoscale glossary](https://learn.microsoft.com/azure/virtual-desktop/autoscale-glossary)
+
+Dynamic configuration (App-V)
+:   Files that customise an App-V package, named `<package>_DeploymentConfig.xml` and `<package>_UserConfig.xml`. App Attach detects them beside the `.appv` file. MSIX has no equivalent file, so their settings move to the manifest or the Package Support Framework. [About App-V dynamic configuration](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-dynamic-configuration)
 
 Ephemeral OS disk
 :   An OS disk created on the VM's local storage instead of in Azure Storage. Session hosts with ephemeral OS disks can't be started and deallocated, so they're created and deleted instead. [Ephemeral OS disks on AVD](https://learn.microsoft.com/azure/virtual-desktop/deploy/session-hosts/ephemeral-os-disks)
@@ -178,6 +184,9 @@ MSIX
 MSIX Packaging Tool and MSIXMGR tool
 :   Microsoft tools for creating MSIX packages, and for turning them into CimFS or VHDX images for App Attach. [Create an MSIX image](https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image)
 
+MSIX Toolkit
+:   An open-source collection of Microsoft tools and scripts for building and managing MSIX packages, including scripts that convert applications in bulk. [MSIX Toolkit](https://learn.microsoft.com/windows/msix/toolkit/msix-toolkit-overview)
+
 Multimedia redirection
 :   Redirects video playback and calls in the browser to the local device for processing. [Multimedia redirection](https://learn.microsoft.com/azure/virtual-desktop/multimedia-redirection-video-playback-calls)
 
@@ -197,6 +206,9 @@ On-demand registration
 
 Open handles (Azure Files)
 :   Azure Files limits how many handles can be open at once on a file, a directory and a share's root directory. FSLogix and App Attach both hold handles. [Azure Files scale targets](https://learn.microsoft.com/azure/storage/files/storage-files-scale-targets#file-scale-targets)
+
+Package Editor
+:   The part of the MSIX Packaging Tool that opens an MSIX package so you can view and edit its contents and properties. Its **PSF Fixups** tab writes the Package Support Framework configuration for you. [Automated PSF config generation](https://learn.microsoft.com/windows/msix/psf/psf-integration-with-mpt)
 
 Package Support Framework
 :   Runtime fixes for applications that need help to run in the MSIX container. [Package Support Framework overview](https://learn.microsoft.com/windows/msix/psf/package-support-framework-overview)
@@ -260,11 +272,17 @@ Session host update
 Settings catalog
 :   The Intune profile type used to configure device and user settings on multi-session hosts. [Windows Enterprise multi-session with Intune](https://learn.microsoft.com/intune/solutions/azure-virtual-desktop-multi-session)
 
+Shared package container
+:   An MSIX feature that gives several packaged apps one shared runtime container, with a merged view of their virtual file systems and registries. It needs Windows 11. [Shared package container](https://learn.microsoft.com/windows/msix/manage/shared-package-container)
+
 SignTool
 :   Windows SDK command-line tool that signs app packages with a certificate, and can add a timestamp. [Sign an app package using SignTool](https://learn.microsoft.com/windows/msix/package/sign-app-package-using-signtool)
 
 Single sign-on
 :   Signs users in to the session host with Microsoft Entra authentication, so they don't sign in twice. [Configure single sign-on](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on)
+
+Staging and registration
+:   The two halves of attaching an MSIX package. Staging and destaging are machine-level operations; registering and deregistering are user-level. [Test MSIX packages for App Attach](https://learn.microsoft.com/azure/virtual-desktop/app-attach-test-msix-packages)
 
 Start VM on Connect
 :   Lets a user's connection start a session host that's turned off. [Start VM on Connect](https://learn.microsoft.com/azure/virtual-desktop/start-virtual-machine-connect)

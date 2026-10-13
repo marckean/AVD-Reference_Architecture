@@ -41,6 +41,8 @@ Offline inventory for `.appv` files. It opens each package as a zip archive, rea
 - other manifest elements for triage
 - whether `<name>_DeploymentConfig.xml` and `<name>_UserConfig.xml` sit beside the package
 - whether those dynamic configuration files contain script elements
+- the sequencer version, where the manifest records it
+- `ConversionEffort` (Low, Medium or High) and `ConversionNotes`, which rate how much work an MSIX conversion is likely to need and say why. High means dynamic configuration scripts, services, shell extensions or a package sequenced before App-V 5.1; Medium means COM, fonts or environment variables. It's a triage aid, not a compatibility test. See [From App-V to App Attach and MSIX](https://marckean.github.io/AVD-Reference_Architecture/app-attach/from-app-v/).
 
 Examples:
 
@@ -50,6 +52,10 @@ Examples:
 
 ```powershell
 .\Get-AppVPackageInventory.ps1 -Path C:\Packages -Recurse -CsvPath C:\Temp\appv-inventory.csv -JsonPath C:\Temp\appv-inventory.json
+```
+
+```powershell
+.\Get-AppVPackageInventory.ps1 -Path C:\Packages -Recurse | Where-Object ConversionEffort -eq 'Low' | Select-Object PackageName, ConversionNotes
 ```
 
 ### Add-AppAttachApplication.ps1

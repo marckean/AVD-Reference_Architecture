@@ -18,8 +18,8 @@ description: Package an application once, store it on a file share, and attach i
 
 An application package is an application wrapped up so it can be delivered to a desktop without running its installer there. App Attach delivers two kinds.
 
-![App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer are still supported, and App-V server support ended in April 2026. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.](../assets/images/app-attach-formats-light.svg#only-light)
-![App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer are still supported, and App-V server support ended in April 2026. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.](../assets/images/app-attach-formats-dark.svg#only-dark)
+![App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer follow the Windows support lifecycle, and App-V server support runs to October 2029. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.](../assets/images/app-attach-formats-light.svg#only-light)
+![App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer follow the Windows support lifecycle, and App-V server support runs to October 2029. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.](../assets/images/app-attach-formats-dark.svg#only-dark)
 
 - **App-V** (Microsoft Application Virtualization) delivers a Win32 application as a virtual application. The App-V Sequencer records the installer into a `.appv` file ([App Attach overview](https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview), [Creating App-V virtualized applications](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-creating-and-managing-virtualized-applications)).
 - **MSIX** is the modern Windows app package format. It installs and uninstalls cleanly, runs in a lightweight container, and must be signed ([What is MSIX?](https://learn.microsoft.com/windows/msix/overview)).
@@ -124,6 +124,32 @@ flowchart TB
 </div>
 
 All the scripts are in [`tools/app-attach`](https://github.com/marckean/AVD-Reference_Architecture/tree/main/tools/app-attach), and the [App Attach fast track](../accelerators/app-attach-fast-track.md) puts them in order.
+
+## Go further
+
+<span class="level l200">Level 200</span>
+
+<div class="grid cards" markdown>
+
+-   :material-swap-horizontal:{ .lg .middle } __[From App-V to MSIX](from-app-v.md)__
+
+    ---
+
+    Keep your App-V packages working while you convert them, easiest first. One script rates every package Low, Medium or High.
+
+-   :material-school-outline:{ .lg .middle } __[Skills transfer: teach the team](skills-transfer.md)__
+
+    ---
+
+    Three phases and five modules, on your own packages, until your team converts, signs, tests and onboards a package with no help.
+
+-   :material-stethoscope:{ .lg .middle } __[Troubleshooting](troubleshooting.md)__
+
+    ---
+
+    Where problems show up, a five-question decision tree, and the fixes for the common errors.
+
+</div>
 
 ## The certificate question
 

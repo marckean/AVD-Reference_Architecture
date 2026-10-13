@@ -7,6 +7,8 @@ Reads one or more .appv files from a folder or file share, opens each package as
 
 The script reports identity metadata, contained applications, manifest integration points, package size, whether standard App-V dynamic configuration files sit beside the package, and whether those configuration files contain script elements.
 
+It also rates how much work each package is likely to need if you convert it to MSIX later. ConversionEffort is High when the package has dynamic configuration scripts, services or shell extensions, Medium when it has COM, fonts or environment variables, and Low otherwise. ConversionNotes says why, and what to check. The rating is a triage aid that helps you plan, not a compatibility test.
+
 Microsoft Learn confirms that App Attach can use App-V packages, and that App-V Dynamic Configuration files named <package>_UserConfig.xml and <package>_DeploymentConfig.xml in the same folder are automatically detected for App-V packages delivered through App Attach.
 
 .PARAMETER Path
@@ -31,10 +33,21 @@ Inventories every .appv package under a file share.
 
 Inventories one package and writes CSV and JSON exports.
 
+.EXAMPLE
+.\Get-AppVPackageInventory.ps1 -Path \\contoso.file.core.windows.net\packages -Recurse | Where-Object ConversionEffort -eq 'Low' | Select-Object PackageName, ConversionEffort, ConversionNotes
+
+Lists the packages likely to convert to MSIX with the least effort, which make a good first conversion wave.
+
 .NOTES
 Sources:
 https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview
 https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy
+https://learn.microsoft.com/windows/msix/packaging-tool/create-app-package
+https://learn.microsoft.com/windows/msix/packaging-tool/tool-known-issues
+https://learn.microsoft.com/windows/msix/packaging-tool/convert-an-installer-with-services
+https://learn.microsoft.com/windows/msix/psf/run-scripts-with-package-support-framework
+https://learn.microsoft.com/windows/msix/psf/psf-integration-with-mpt
+https://learn.microsoft.com/windows/apps/desktop/modernize/desktop-to-uwp-extensions
 
 .LINK
 https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview
@@ -203,6 +216,73 @@ function Get-IntegrationSummary {
     }
 }
 
+function Get-ConversionAssessment {
+    param(
+        [Parameter(Mandatory)]
+        [pscustomobject] $Integration,
+
+        [Parameter()]
+        [bool] $DynamicConfigContainsScripts,
+
+        [Parameter()]
+        [string] $SequencerVersion
+    )
+
+    # Each rule is grounded in the Microsoft Learn sources listed in the help. High means
+    # the conversion usually needs a person to rebuild or redesign something, Medium means
+    # it usually needs a manifest change or a Package Support Framework fixup, and Check
+    # means it usually converts but must be tested.
+    $known = $Integration.Known
+    $findings = [System.Collections.Generic.List[pscustomobject]]::new()
+
+    if ($DynamicConfigContainsScripts) {
+        $findings.Add([pscustomobject]@{ Level = 'High'; Note = 'Dynamic configuration scripts: MSIX has no dynamic configuration file, so rebuild them as Package Support Framework start or end scripts, which need the PowerShell execution policy set to RemoteSigned, or remove the need for them.' })
+    }
+    if ($known.Services.Present) {
+        $findings.Add([pscustomobject]@{ Level = 'High'; Note = 'Services: check the services report in the MSIX Packaging Tool, which lists included and excluded services. MSIX packages with services need Windows 10 version 2004 or later.' })
+    }
+    if ($known.ShellExtensions.Present) {
+        $findings.Add([pscustomobject]@{ Level = 'High'; Note = 'Shell extensions: context menus are not added automatically during conversion, so add them to the manifest by hand and test them. Windows 11 supports MSIX shell extensions in the classic context menu.' })
+    }
+    if (-not [string]::IsNullOrWhiteSpace($SequencerVersion)) {
+        $parsedVersion = $null
+        if ([version]::TryParse($SequencerVersion, [ref] $parsedVersion) -and $parsedVersion -lt [version]'5.1') {
+            $findings.Add([pscustomobject]@{ Level = 'High'; Note = "Sequencer version $($SequencerVersion): the MSIX Packaging Tool supports App-V 5.1 packages, so if conversion fails, convert from the source installer instead." })
+        }
+    }
+    if ($known.Com.Present) {
+        $findings.Add([pscustomobject]@{ Level = 'Medium'; Note = 'COM: the MSIX manifest declares COM servers as extensions. Check the converted manifest and test whatever uses the COM components.' })
+    }
+    if ($known.Fonts.Present) {
+        $findings.Add([pscustomobject]@{ Level = 'Medium'; Note = 'Fonts: MSIX shares fonts through a shared fonts extension in the manifest. Check the fonts are available to users after conversion.' })
+    }
+    if ($known.EnvironmentVariables.Present) {
+        $findings.Add([pscustomobject]@{ Level = 'Medium'; Note = 'Environment variables: if the application needs them, add the Package Support Framework environment variable fixup in the Package Editor.' })
+    }
+    if ($known.FileTypeAssociations.Present) {
+        $findings.Add([pscustomobject]@{ Level = 'Check'; Note = 'File type associations: results vary from package to package, so check each one opens the application after conversion.' })
+    }
+    if ($known.UrlProtocols.Present) {
+        $findings.Add([pscustomobject]@{ Level = 'Check'; Note = 'URL protocols: MSIX declares them as a protocol extension in the manifest. Check each one still opens the application.' })
+    }
+
+    $levels = @($findings | ForEach-Object { $_.Level })
+    $effort = if ($levels -contains 'High') {
+        'High'
+    }
+    elseif ($levels -contains 'Medium') {
+        'Medium'
+    }
+    else {
+        'Low'
+    }
+
+    return [pscustomobject]@{
+        Effort = $effort
+        Notes = @($findings | ForEach-Object { $_.Note })
+    }
+}
+
 function Get-AppVInventoryItem {
     param(
         [Parameter(Mandatory)]
@@ -249,10 +329,15 @@ function Get-AppVInventoryItem {
         }
 
         $integration = Get-IntegrationSummary -Manifest $document
+        $sequencerVersionNode = Get-LocalNameNode -Node $document -LocalName 'SequencerVersion' | Select-Object -First 1
+        $sequencerVersion = if ($null -eq $sequencerVersionNode) { $null } else { (Get-NodeText -Node $sequencerVersionNode).Trim() }
+        $deploymentConfigContainsScripts = Test-XmlContainsScript -FilePath $deploymentConfigPath
+        $userConfigContainsScripts = Test-XmlContainsScript -FilePath $userConfigPath
+        $assessment = Get-ConversionAssessment -Integration $integration -DynamicConfigContainsScripts ($deploymentConfigContainsScripts -or $userConfigContainsScripts) -SequencerVersion $sequencerVersion
         $readinessNotes = @(
             'App Attach supports App-V packages, and the App-V support policy says App-V app attach lets you use App-V packages with Azure Virtual Desktop without running your own App-V server.'
-            'The App-V client and sequencer are in fixed extended support; the App-V server components are deprecated and support ends in April 2026.'
-            'This inventory does not certify compatibility. Use manifest features to triage and test first in a representative host pool.'
+            'The App-V client and sequencer follow the lifecycle of their Windows version and are not deprecated. App-V server is in fixed extended support through 9 October 2029, and the support policy recommends migrating away from App-V, with MSIX as the modern package format.'
+            'This inventory does not certify compatibility. Use manifest features to triage, and test each package in a representative host pool. Test converted packages on a clean machine that never had the original installer.'
         )
 
         return [pscustomobject]@{
@@ -269,14 +354,18 @@ function Get-AppVInventoryItem {
             IntegrationPoints = $integration
             DeploymentConfigPath = if (Test-Path -LiteralPath $deploymentConfigPath -PathType Leaf) { $deploymentConfigPath } else { $null }
             HasDeploymentConfig = Test-Path -LiteralPath $deploymentConfigPath -PathType Leaf
-            DeploymentConfigContainsScripts = Test-XmlContainsScript -FilePath $deploymentConfigPath
+            DeploymentConfigContainsScripts = $deploymentConfigContainsScripts
             UserConfigPath = if (Test-Path -LiteralPath $userConfigPath -PathType Leaf) { $userConfigPath } else { $null }
             HasUserConfig = Test-Path -LiteralPath $userConfigPath -PathType Leaf
-            UserConfigContainsScripts = Test-XmlContainsScript -FilePath $userConfigPath
+            UserConfigContainsScripts = $userConfigContainsScripts
+            SequencerVersion = $sequencerVersion
+            ConversionEffort = $assessment.Effort
+            ConversionNotes = $assessment.Notes
             ReadinessHint = ($readinessNotes -join ' ')
             LearnReferences = @(
                 'https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview'
                 'https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy'
+                'https://learn.microsoft.com/windows/msix/packaging-tool/tool-known-issues'
             )
         }
     }
@@ -321,6 +410,9 @@ function ConvertTo-CsvInventoryRow {
         DeploymentConfigContainsScripts = $Item.DeploymentConfigContainsScripts
         HasUserConfig = $Item.HasUserConfig
         UserConfigContainsScripts = $Item.UserConfigContainsScripts
+        SequencerVersion = $Item.SequencerVersion
+        ConversionEffort = $Item.ConversionEffort
+        ConversionNotes = (@($Item.ConversionNotes) -join ' | ')
         ReadinessHint = $Item.ReadinessHint
     }
 }

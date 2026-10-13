@@ -48,7 +48,7 @@ That's a common starting point, and it's workable. App Attach lets you keep appl
 
 ### Why App-V packages go first
 
-App Attach accepts App-V packages directly. The App-V support policy says *"App-V app attach allows you to use your App-V packages with AVD without needing to run your own server"* ([App-V support policy](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy)). So the first wave proves the file share, the permissions, the assignments and the user experience without waiting for any repackaging. App-V is a bridge, not the destination; the [From App-V to App Attach](../app-attach/from-app-v.md) page explains why.
+App Attach accepts App-V packages directly. The App-V support policy says *"App-V app attach allows you to use your App-V packages with AVD without needing to run your own server"* ([App-V support policy](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy)). So the first wave proves the file share, the permissions, the assignments and the user experience without waiting for any repackaging. App-V is a bridge, not the destination; [From App-V to App Attach and MSIX](../app-attach/from-app-v.md) explains why, rates each package's conversion effort, and shows how to convert in bulk.
 
 ### Converting from source
 
@@ -109,6 +109,8 @@ The repository includes instructions and skills that teach GitHub Copilot this w
 - **Testing:** time from application owners, which is usually the real bottleneck.
 
 The Microsoft Learn training path [Manage user environments and apps for Azure Virtual Desktop](https://learn.microsoft.com/training/paths/manage-user-environments-apps/) covers App Attach and FSLogix, and the [AZ-140 study guide](https://learn.microsoft.com/credentials/certifications/resources/study-guides/az-140) lists the wider skills.
+
+For a hands-on plan that builds these skills on your own packages, in three phases and five modules, see [Skills transfer: teach the team](../app-attach/skills-transfer.md). When something goes wrong, start with [Troubleshooting](../app-attach/troubleshooting.md).
 
 
 ## Under the hood

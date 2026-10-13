@@ -116,6 +116,99 @@ Describe 'Get-AppVPackageInventory.ps1' {
         $result.DeploymentConfigContainsScripts | Should -BeTrue
         $result.HasUserConfig | Should -BeTrue
         $result.UserConfigContainsScripts | Should -BeFalse
+        $result.ConversionEffort | Should -Be 'High'
+        ($result.ConversionNotes -join ' ') | Should -Match 'Package Support Framework start or end scripts'
+    }
+
+    It 'rates a package with only shortcuts as low conversion effort' {
+        $packagePath = Join-Path -Path $script:FixtureRoot -ChildPath 'Simple.appv'
+        $manifest = @'
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="urn:test">
+  <Identity Name="Contoso.Simple" Publisher="CN=Contoso" Version="1.0.0.0" />
+  <Applications>
+    <Application Id="Simple" Executable="Simple.exe" />
+  </Applications>
+  <Extensions>
+    <Extension Category="AppV.Shortcut">
+      <Shortcut Name="Simple" />
+    </Extension>
+  </Extensions>
+</Package>
+'@
+        Write-TestAppVPackage -Path $packagePath -Manifest $manifest
+
+        $result = & $script:InventoryScript -Path $packagePath
+
+        $result.ConversionEffort | Should -Be 'Low'
+        @($result.ConversionNotes).Count | Should -Be 0
+        $result.SequencerVersion | Should -BeNullOrEmpty
+    }
+
+    It 'rates services as high and COM as medium conversion effort, with reasons' {
+        $servicePath = Join-Path -Path $script:FixtureRoot -ChildPath 'WithService.appv'
+        $comPath = Join-Path -Path $script:FixtureRoot -ChildPath 'WithCom.appv'
+        $serviceManifest = @'
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="urn:test">
+  <Identity Name="Contoso.WithService" Publisher="CN=Contoso" Version="1.0.0.0" />
+  <Applications />
+  <Extensions>
+    <Extension Category="AppV.Services">
+      <Service Name="ContosoSvc" />
+    </Extension>
+    <Extension Category="AppV.FileTypeAssociation">
+      <FileTypeAssociation Name=".cto" />
+    </Extension>
+  </Extensions>
+</Package>
+'@
+        $comManifest = @'
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="urn:test">
+  <Identity Name="Contoso.WithCom" Publisher="CN=Contoso" Version="1.0.0.0" />
+  <Applications />
+  <Extensions>
+    <Extension Category="AppV.COM">
+      <COM Name="Contoso.Component" />
+    </Extension>
+  </Extensions>
+</Package>
+'@
+        Write-TestAppVPackage -Path $servicePath -Manifest $serviceManifest
+        Write-TestAppVPackage -Path $comPath -Manifest $comManifest
+
+        $service = & $script:InventoryScript -Path $servicePath
+        $com = & $script:InventoryScript -Path $comPath
+
+        $service.ConversionEffort | Should -Be 'High'
+        ($service.ConversionNotes -join ' ') | Should -Match 'services report'
+        ($service.ConversionNotes -join ' ') | Should -Match 'File type associations'
+        $com.ConversionEffort | Should -Be 'Medium'
+        ($com.ConversionNotes -join ' ') | Should -Match 'COM'
+    }
+
+    It 'flags packages sequenced before App-V 5.1' {
+        $packagePath = Join-Path -Path $script:FixtureRoot -ChildPath 'OldSequencer.appv'
+        $manifest = @'
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="urn:test">
+  <Identity Name="Contoso.OldSequencer" Publisher="CN=Contoso" Version="1.0.0.0" />
+  <Properties>
+    <SequencingStationDetails>
+      <SequencerVersion>5.0.1104.0</SequencerVersion>
+    </SequencingStationDetails>
+  </Properties>
+  <Applications />
+</Package>
+'@
+        Write-TestAppVPackage -Path $packagePath -Manifest $manifest
+
+        $result = & $script:InventoryScript -Path $packagePath
+
+        $result.SequencerVersion | Should -Be '5.0.1104.0'
+        $result.ConversionEffort | Should -Be 'High'
+        ($result.ConversionNotes -join ' ') | Should -Match 'source installer'
     }
 
     It 'writes CSV and JSON exports' {
@@ -136,6 +229,7 @@ Describe 'Get-AppVPackageInventory.ps1' {
         Test-Path -LiteralPath $csvPath | Should -BeTrue
         Test-Path -LiteralPath $jsonPath | Should -BeTrue
         (Import-Csv -LiteralPath $csvPath)[0].PackageName | Should -Be 'Contoso.Exported'
+        (Import-Csv -LiteralPath $csvPath)[0].ConversionEffort | Should -Be 'Low'
         (Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json)[0].PackageName | Should -Be 'Contoso.Exported'
     }
 }

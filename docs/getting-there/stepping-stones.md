@@ -87,9 +87,9 @@ flowchart TB
 
 **When to use it.** You have an App-V estate, and converting every package to MSIX before go-live isn't realistic.
 
-**How.** App Attach can deliver App-V packages to Azure Virtual Desktop without an App-V server ([App-V support policy](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy)). The App-V client and sequencer are in fixed extended support, while support for the App-V server components ended in April 2026 (same source).
+**How.** App Attach can deliver App-V packages to Azure Virtual Desktop without an App-V server ([App-V support policy](https://learn.microsoft.com/microsoft-desktop-optimization-pack/app-v/appv-support-policy)). The App-V client and sequencer follow the lifecycle of their Windows version and aren't deprecated, and App-V server is in fixed extended support through 9 October 2029 (same source).
 
-**Watch for.** MSIX is the long-term format. Use App-V packages to bridge, not to build new. See [Moving an App-V estate to App Attach](../app-attach/index.md).
+**Watch for.** MSIX is the long-term format, and the same policy recommends migrating away from App-V. Use App-V packages to bridge, not to build new. See [From App-V to App Attach and MSIX](../app-attach/from-app-v.md).
 
 **Exit when** each package is converted to MSIX or the application is retired.
 

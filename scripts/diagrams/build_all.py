@@ -37,6 +37,14 @@ LEARN = {
     "msix_intune": "https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune",
     "w365_apps": "https://learn.microsoft.com/windows-365/enterprise/app-overview",
     "w365_images": "https://learn.microsoft.com/windows-365/enterprise/device-images",
+    "msix_bulk": "https://learn.microsoft.com/windows/msix/toolkit/msix-toolkit-msixbatchconversion",
+    "psf_mpt": "https://learn.microsoft.com/windows/msix/psf/psf-integration-with-mpt",
+    "msix_known_issues": "https://learn.microsoft.com/windows/msix/packaging-tool/tool-known-issues",
+    "msix_troubleshooting": "https://learn.microsoft.com/windows/msix/msix-troubleshooting-guide",
+    "app_attach_test": "https://learn.microsoft.com/azure/virtual-desktop/app-attach-test-msix-packages",
+    "app_attach_troubleshoot": "https://learn.microsoft.com/troubleshoot/azure/virtual-desktop/troubleshoot-app-attach",
+    "training_path": "https://learn.microsoft.com/training/paths/manage-user-environments-apps/",
+    "training_msix": "https://learn.microsoft.com/training/modules/m365-wvd-application-management/",
     "service_principal": "https://learn.microsoft.com/azure/virtual-desktop/service-principal-assign-roles",
     "image_builder": "https://learn.microsoft.com/azure/virtual-machines/image-builder-overview",
     "compute_gallery": "https://learn.microsoft.com/azure/virtual-machines/azure-compute-gallery",
@@ -435,7 +443,7 @@ def app_attach_flow(mode: str) -> Svg:
 
 
 def app_attach_formats(mode: str) -> Svg:
-    s = Svg(760, 700, mode, "App-V and MSIX in one minute", "Two package formats side by side. App-V delivers a Win32 application as a virtual application, packaged in a .appv file by the App-V Sequencer; the client and sequencer are still supported and App-V server support ended in April 2026. MSIX is the modern Windows app package format, made with the MSIX Packaging Tool or shipped by the vendor; it runs in a lightweight container with a clean install and uninstall, and must be signed. App Attach delivers both.")
+    s = Svg(760, 700, mode, "App-V and MSIX in one minute", "Two package formats side by side. App-V delivers a Win32 application as a virtual application, packaged in a .appv file by the App-V Sequencer; the client follows the Windows support lifecycle and App-V server support runs to October 2029. MSIX is the modern Windows app package format, made with the MSIX Packaging Tool or shipped by the vendor; it runs in a lightweight container with a clean install and uninstall, and must be signed. App Attach delivers both.")
     rows = [
         ("images", "What it is", "A Win32 application delivered as a virtual application", "Microsoft's modern Windows app package format"),
         ("vm", "How it's made", "The App-V Sequencer records the installer into a .appv file", "The MSIX Packaging Tool captures any installer, or the vendor ships one"),
@@ -447,7 +455,7 @@ def app_attach_formats(mode: str) -> Svg:
         y = 100 + i * 110
         s.card(36, y, 313, 100, icon, title, appv)
         s.card(401, y, 313, 100, icon, title, msix)
-    s.card(36, 430, 313, 100, "policy", "Good to know", "The client and sequencer are still supported. App-V server support ended in April 2026", kind="card_alt")
+    s.card(36, 430, 313, 100, "policy", "Good to know", "The client follows Windows support. App-V server support runs to October 2029", kind="card_alt")
     s.card(401, 430, 313, 100, "key-vault", "Good to know", "Every MSIX package must be signed before it can be installed", kind="card_alt")
     s.card(20, 580, 710, 92, "avd", "App Attach delivers both", "App-V: the .appv file goes on the share as it is. MSIX: expanded into a CimFS disk image first.")
     s.arrow([(192, 550), (192, 580)])
@@ -490,6 +498,73 @@ def app_attach_two_platforms(mode: str) -> Svg:
     s.arrow([(522, 160), (542, 160)])
     s.arrow([(738, 160), (758, 160)])
     s.arrow([(522, 360), (542, 360)])
+    return s
+
+
+def appv_conversion_line(mode: str) -> Svg:
+    s = Svg(W, 560, mode, "From App-V to MSIX, one package at a time", "Six steps for every package. Inventory and rate the App-V packages, make a conversion template for each, convert with the MSIX Packaging Tool on a clean machine, fix up in the Package Editor, sign and make the CimFS image, then test and hand over. Meanwhile, App Attach keeps delivering the original App-V package.")
+    s.panel(30, 60, 940, 344, "The conversion line: the same six steps for every package")
+    xs = (48, 357, 666)
+    w, h = 288, 124
+    s.card(xs[0], 100, w, h, "dashboard", "Inventory and rate", "One script reads every .appv file and rates its effort: Low, Medium or High", number=1)
+    s.card(xs[1], 100, w, h, "policy", "Make templates", "One conversion template per package, generated from the inventory", number=2)
+    s.card(xs[2], 100, w, h, "vm", "Convert", "The MSIX Packaging Tool reads App-V 5.1 packages directly, on a clean machine", number=3)
+    s.card(xs[0], 264, w, h, "application-group", "Fix up", "Package Editor: PSF fixups, context menus and the services report", number=4)
+    s.card(xs[1], 264, w, h, "key-vault", "Sign and image", "Sign with a timestamp, then MSIXMGR makes the CimFS image", number=5)
+    s.card(xs[2], 264, w, h, "users-official", "Test and hand over", "A clean machine first, then a test group. The owner signs off", number=6)
+    s.arrow([(336, 162), (357, 162)])
+    s.arrow([(645, 162), (666, 162)])
+    s.arrow([(810, 224), (810, 244), (192, 244), (192, 264)])
+    s.arrow([(336, 326), (357, 326)])
+    s.arrow([(645, 326), (666, 326)])
+    s.card(30, 434, 940, 90, "images", "Meanwhile, the .appv keeps working", "App Attach delivers the original App-V package until its MSIX version is signed off, so users never wait for a conversion", kind="card_alt")
+    return s
+
+
+def app_attach_skills_path(mode: str) -> Svg:
+    s = Svg(W, 640, mode, "Skills transfer in three phases", "Five modules in three phases. I do, watch us: foundations, then one of your App-V packages through App Attach. We do, pair on your packages: convert to MSIX, then fix and troubleshoot. You do, lead while we review: run it as a service, until your team converts, signs, tests and onboards a package with no help. Three roles share the work: platform engineer, packager, and tester and app owner.")
+    s.panel(30, 60, 300, 372, "1. I do: watch us")
+    s.panel(350, 60, 300, 372, "2. We do: pair on your packages")
+    s.panel(670, 60, 300, 372, "3. You do: lead, we review")
+    cw, ch = 276, 150
+    s.card(42, 100, cw, ch, "avd", "Foundations", "How App Attach works: formats, the share, registration and assignment", number=1)
+    s.card(42, 270, cw, ch, "images", "The fast lane", "One of your App-V packages through App Attach, end to end, in a test host pool", number=2)
+    s.card(362, 100, cw, ch, "vm", "Convert", "App-V 5.1 to MSIX with the MSIX Packaging Tool, then sign it and make the image", number=3)
+    s.card(362, 270, cw, ch, "application-group", "Fix and troubleshoot", "PSF fixups, the common errors, and testing a package outside Azure Virtual Desktop", number=4)
+    s.card(682, 100, cw, ch, "dashboard", "Run it as a service", "Bulk conversion, updates, rollback and retirement, as a repeatable pipeline", number=5)
+    s.card(682, 270, cw, ch, "users-official", "You're ready when", "Your team converts, signs, tests and onboards a package with no help", kind="card_alt")
+    s.arrow([(180, 250), (180, 270)])
+    s.arrow([(318, 345), (340, 345), (340, 175), (362, 175)])
+    s.arrow([(500, 250), (500, 270)])
+    s.arrow([(638, 345), (660, 345), (660, 175), (682, 175)])
+    s.arrow([(820, 250), (820, 270)])
+    s.panel(30, 456, 940, 150, "Three roles. In a small team, one person can hold two")
+    s.card(42, 496, 292, 96, "host-pools", "Platform engineer", "The share, permissions, App Attach and host pools")
+    s.card(352, 496, 292, 96, "key-vault", "Packager", "MSIX Packaging Tool, PSF fixups and signing")
+    s.card(662, 496, 292, 96, "users-official", "Tester and app owner", "Test scripts, real users and the sign-off")
+    return s
+
+
+def app_attach_trouble_map(mode: str) -> Svg:
+    s = Svg(W, 560, mode, "Where App Attach problems show up", "Four stages, with the two most common problems at each and the usual fix. Convert: exit code 259, and drivers or services. Sign: a publisher mismatch, 0x8007000B with Event ID 150, and an untrusted certificate, 0x800B0109. Store and mount: an image that won't mount, and Microsoft Entra joined hosts that need Azure Files and two service principal roles. Register and run: an app that can't write to its folder, and an update refused because the version number didn't change. Test outside App Attach first to narrow it down.")
+    columns = [(30, "1. Convert"), (270, "2. Sign"), (510, "3. Store and mount"), (750, "4. Register and run")]
+    for x, title in columns:
+        s.panel(x, 60, 220, 348, title)
+    cards = [
+        (30, 100, "Exit code 259", "The installer started another process and quit. Use its silent or wait option"),
+        (30, 252, "Drivers and services", "Drivers can't go in MSIX. Check the services report for services"),
+        (270, 100, "Publisher mismatch", "0x8007000B, Event ID 150: the manifest Publisher must match the certificate subject exactly"),
+        (270, 252, "Not trusted", "0x800B0109: trust the root and intermediate certificates on every host"),
+        (510, 100, "Image won't mount", "Mount it as SYSTEM with PsExec to test the share permissions"),
+        (510, 252, "Share access denied", "Microsoft Entra joined hosts need Azure Files, plus Reader and Data Access for both AVD service principals"),
+        (750, 100, "Can't save settings", "It's writing to its install folder. Add the PSF file redirection fixup in the Package Editor"),
+        (750, 252, "Update refused", "Each new image needs a different version number"),
+    ]
+    for x, y, title, body in cards:
+        s.card(x + 12, y, 196, 140, None, title, body)
+    for x in (250, 490, 730):
+        s.arrow([(x, 234), (x + 20, 234)])
+    s.card(30, 432, 940, 90, "vm", "Test outside App Attach first", "Stage and register the package on a clean test machine. If it works there, look at the share or the assignment, not the package", kind="card_alt")
     return s
 
 
@@ -681,10 +756,13 @@ DIAGRAMS = [
     ("dependency-map", dependency_map, "docs/overview/dependency-map.md", "Master dependency map", "A numbered dependency map showing what must exist first, what is fixed at host pool creation and which relationships are requirements or recommendations.", None, [LEARN["licensing"], LEARN["quotas"], LEARN["host_pool_management"], LEARN["autoscale"], LEARN["session_host_update"], LEARN["ephemeral"], LEARN["entra_hosts"], LEARN["device_join"], LEARN["sso"], LEARN["kerberos_files"], LEARN["intune"], LEARN["managed_identity"], LEARN["app_attach"], LEARN["service_principal"]], DEPENDENCY_NODES),
     ("identity-flow", identity_flow, "docs/identity/index.md", "How it fits", "Identity flow for sign-in, Conditional Access, single sign-on and Microsoft Entra Kerberos access to Azure Files.", ["Authenticate", "Evaluate Conditional Access", "Get feed and broker session", "Sign in with SSO", "Retrieve Kerberos ticket", "Open profile share"], [LEARN["sso"], LEARN["mfa"], LEARN["kerberos_files"], LEARN["entra_hosts"]]),
     ("profiles-fslogix", profiles_flow, "docs/profiles/index.md", "How it fits", "FSLogix profile flow from user sign-in through Microsoft Entra Kerberos to Azure Files, with sharding across storage accounts and shares.", ["User signs in", "Host retrieves Kerberos ticket", "Kerberos authenticates SMB", "Open Azure Files", "Attach profile container", "Shard by IOPS and throughput"], [LEARN["fslogix_store"], LEARN["files_identity"], LEARN["kerberos_files"], LEARN["files_scale"]]),
-    ("app-attach-formats", app_attach_formats, "docs/app-attach/index.md", "App-V and MSIX in one minute", "App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer are still supported, and App-V server support ended in April 2026. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.", ["App-V: a Win32 application delivered as a virtual application", "MSIX: the modern Windows app package format", "App Attach delivers both"], [LEARN["appv_getting_started"], LEARN["appv_support"], LEARN["msix_overview"], LEARN["app_attach"]]),
+    ("app-attach-formats", app_attach_formats, "docs/app-attach/index.md", "App-V and MSIX in one minute", "App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer follow the Windows support lifecycle, and App-V server support runs to October 2029. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.", ["App-V: a Win32 application delivered as a virtual application", "MSIX: the modern Windows app package format", "App Attach delivers both"], [LEARN["appv_getting_started"], LEARN["appv_support"], LEARN["msix_overview"], LEARN["app_attach"]]),
     ("app-attach-flow", app_attach_flow, "docs/app-attach/index.md", "The whole process on one page", "App Attach end to end. Step 1, package once per application: an existing App-V package takes the fast lane as it is, and everything else is converted to MSIX with the MSIX Packaging Tool, signed with one code signing certificate, and turned into a CimFS disk image with MSIXMGR. Step 2, store it on an Azure Files share in the same region as the session hosts. Step 3, deliver: add it and assign it to a host pool and a user group, and it's attached when the user signs in.", ["Fast lane: use an existing App-V package as it is", "Convert the installer to MSIX with the MSIX Packaging Tool", "Sign it with your code signing certificate", "Create a CimFS disk image with MSIXMGR", "Store it on an Azure Files share", "Add it and assign it to a host pool and a user group", "The user signs in and the app is attached"], [LEARN["app_attach"], LEARN["app_attach_image"], LEARN["msix_tool"], LEARN["app_attach_setup"]]),
     ("app-attach-signing", app_attach_signing, "docs/app-attach/certificates.md", "Sign once, trust everywhere", "Sign once, trust everywhere. Get one code signing certificate from your internal CA or a public CA and sign every MSIX package with it, adding a timestamp. One Intune trusted certificate profile pushes the root and intermediate certificates to AVD session hosts and Windows 365 Cloud PCs; a public CA certificate is already trusted, so it needs no profile. App-V packages need no certificate.", ["Get one code signing certificate", "Sign and timestamp every MSIX package", "Push trust once with an Intune trusted certificate profile", "Every AVD session host and Cloud PC trusts every package"], [LEARN["app_attach"], LEARN["msix_sign"], LEARN["msix_intune"]]),
     ("app-attach-two-platforms", app_attach_two_platforms, "docs/app-attach/avd-and-windows-365.md", "One package, two platforms", "One package, two platforms. A signed MSIX package is built once. Azure Virtual Desktop turns it into a CimFS image on an Azure Files share, and App Attach attaches it to pooled Windows 11 Enterprise multi-session hosts. Windows 365 installs the same MSIX through Intune as a line-of-business app on single-session Cloud PCs. Windows 365 has no App Attach, so App-V packages need the built-in App-V client and a tool such as Configuration Manager, or a move to MSIX.", ["Build and sign the MSIX once", "AVD: CimFS image on Azure Files, attached by App Attach", "Windows 365: the same MSIX installed through Intune"], [LEARN["app_attach"], LEARN["msix_intune"], LEARN["w365_apps"], LEARN["w365_images"]]),
+    ("appv-conversion-line", appv_conversion_line, "docs/app-attach/from-app-v.md", "Two lanes, one destination", "From App-V to MSIX, one package at a time. Six numbered steps run the same way for every package: 1, inventory and rate, where one script reads every .appv file and rates its effort as Low, Medium or High; 2, make templates, one conversion template per package generated from the inventory; 3, convert, where the MSIX Packaging Tool reads App-V 5.1 packages directly on a clean machine; 4, fix up in the Package Editor with PSF fixups, context menus and the services report; 5, sign with a timestamp, then MSIXMGR makes the CimFS image; 6, test on a clean machine, then with a test group, and the owner signs off. Meanwhile, App Attach keeps delivering the original App-V package until its MSIX version is signed off, so users never wait for a conversion.", ["Inventory and rate every App-V package", "Make a conversion template per package", "Convert with the MSIX Packaging Tool on a clean machine", "Fix up in the Package Editor", "Sign, then make the CimFS image", "Test on a clean machine and a test group, then hand over"], [LEARN["msix_tool"], LEARN["msix_bulk"], LEARN["psf_mpt"], LEARN["msix_sign"], LEARN["app_attach_image"], LEARN["app_attach_test"]]),
+    ("app-attach-skills-path", app_attach_skills_path, "docs/app-attach/skills-transfer.md", "How it works", "Skills transfer in three phases. Phase 1, I do, watch us: module 1, foundations, covers how App Attach works, its formats, the share, registration and assignment; module 2, the fast lane, takes one of your App-V packages through App Attach end to end in a test host pool. Phase 2, we do, pair on your packages: module 3 converts App-V 5.1 to MSIX with the MSIX Packaging Tool, then signs it and makes the image; module 4 covers PSF fixups, the common errors, and testing a package outside Azure Virtual Desktop. Phase 3, you do, lead while we review: module 5 runs it as a service with bulk conversion, updates, rollback and retirement. You're ready when your team converts, signs, tests and onboards a package with no help. Three roles share the work: the platform engineer owns the share, permissions, App Attach and host pools; the packager owns the MSIX Packaging Tool, PSF fixups and signing; the tester and app owner own test scripts, real users and the sign-off. In a small team, one person can hold two roles.", ["Foundations", "The fast lane", "Convert", "Fix and troubleshoot", "Run it as a service"], [LEARN["training_path"], LEARN["training_msix"], LEARN["app_attach"], LEARN["msix_tool"], LEARN["msix_bulk"]]),
+    ("app-attach-trouble-map", app_attach_trouble_map, "docs/app-attach/troubleshooting.md", "Where problems show up", "Where App Attach problems show up, in four stages. 1, Convert: exit code 259 means the installer started another process and quit, so use its silent or wait option; drivers can't go in MSIX, and the services report shows which services converted. 2, Sign: error 0x8007000B with Event ID 150 means the manifest Publisher doesn't exactly match the certificate subject; error 0x800B0109 means the certificate isn't trusted, so trust the root and intermediate certificates on every host. 3, Store and mount: if an image won't mount, mount it as SYSTEM with PsExec to test the share permissions; Microsoft Entra joined hosts need Azure Files plus Reader and Data Access for both Azure Virtual Desktop service principals. 4, Register and run: if an app can't write to its folder, add the PSF file redirection fixup in the Package Editor; if an update is refused, give the new image a different version number. Test outside App Attach first: stage and register the package on a clean test machine, and if it works there, look at the share or the assignment rather than the package.", ["Convert", "Sign", "Store and mount", "Register and run"], [LEARN["msix_known_issues"], LEARN["msix_troubleshooting"], LEARN["app_attach_troubleshoot"], LEARN["app_attach"], LEARN["psf_mpt"], LEARN["app_attach_test"]]),
     ("images-pipeline", images_pipeline, "docs/images/index.md", "How it fits", "Image pipeline from Marketplace source through Azure Image Builder and Azure Compute Gallery to session host configuration and session host update rings.", ["Marketplace source", "Build image", "Publish version", "Reference in session host configuration", "Update in rings"], [LEARN["image_builder"], LEARN["compute_gallery"], LEARN["session_host_update"], LEARN["host_pool_management"]]),
     ("scaling-lifecycle", scaling_lifecycle, "docs/scaling/index.md", "How it fits", "Dynamic autoscaling lifecycle for ephemeral OS disk pooled hosts, showing create, use, drain and delete.", ["Scaling plan", "Read session host configuration", "Create hosts", "Serve users", "Drain and delete", "Observe diagnostics"], [LEARN["autoscale"], LEARN["ephemeral"], LEARN["host_pool_management"]]),
     ("monitoring-flow", monitoring_flow, "docs/monitoring/index.md", "How it fits", "Monitoring data flow from AVD diagnostic settings and Azure Monitor Agent to Log Analytics, AVD Insights and alerts.", ["AVD diagnostics source", "Diagnostic settings", "Session hosts", "Azure Monitor Agent and DCR", "Log Analytics", "AVD Insights", "Alerts"], [LEARN["diagnostics"], LEARN["insights"], LEARN["ama"]]),

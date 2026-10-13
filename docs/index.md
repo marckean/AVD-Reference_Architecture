@@ -138,7 +138,7 @@ The site is organised into twelve areas in three groups. Each area has an overvi
 
     Package once, store it on a share, attach it at sign-in. App-V packages take a fast lane, and the same MSIX serves Windows 365.
 
-    [Packaging, step by step](app-attach/packages.md), [Signing certificates](app-attach/certificates.md), [AVD and Windows 365](app-attach/avd-and-windows-365.md), [From App-V to App Attach](app-attach/from-app-v.md), [Requirements and file shares](app-attach/requirements.md)
+    [Packaging, step by step](app-attach/packages.md), [Signing certificates](app-attach/certificates.md), [AVD and Windows 365](app-attach/avd-and-windows-365.md), [From App-V to MSIX](app-attach/from-app-v.md), [Skills transfer](app-attach/skills-transfer.md), [Troubleshooting](app-attach/troubleshooting.md), [Requirements and file shares](app-attach/requirements.md)
     { .covers }
 
 -   :material-account-box-multiple:{ .lg .middle } __[User profiles with FSLogix](profiles/index.md)__

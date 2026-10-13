@@ -185,7 +185,7 @@ All diagrams are generic and use Contoso only where an organisation name would o
 - Files: `docs/assets/images/app-attach-formats-light.svg`, `docs/assets/images/app-attach-formats-dark.svg`
 - Intended page: docs/app-attach/index.md
 - Intended section: App-V and MSIX in one minute
-- Alt text: App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer are still supported, and App-V server support ended in April 2026. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.
+- Alt text: App-V and MSIX side by side. App-V delivers a Win32 application as a virtual application: the App-V Sequencer records the installer into a .appv file, and it runs in a virtual environment as if it were installed locally. The client and sequencer follow the Windows support lifecycle, and App-V server support runs to October 2029. MSIX is Microsoft's modern Windows app package format: the MSIX Packaging Tool captures any installer, or the vendor ships one, and it runs in a lightweight container with a clean install and uninstall. Every MSIX package must be signed. App Attach delivers both: the .appv file as it is, and MSIX expanded into a CimFS disk image.
 - Numbered-step text:
   1. App-V: a Win32 application delivered as a virtual application
   2. MSIX: the modern Windows app package format
@@ -247,6 +247,65 @@ All diagrams are generic and use Contoso only where an organisation name would o
   - https://learn.microsoft.com/windows/msix/desktop/managing-your-msix-deployment-intune
   - https://learn.microsoft.com/windows-365/enterprise/app-overview
   - https://learn.microsoft.com/windows-365/enterprise/device-images
+
+## appv-conversion-line
+
+- Files: `docs/assets/images/appv-conversion-line-light.svg`, `docs/assets/images/appv-conversion-line-dark.svg`
+- Intended page: docs/app-attach/from-app-v.md
+- Intended section: Two lanes, one destination
+- Alt text: From App-V to MSIX, one package at a time. Six numbered steps run the same way for every package: 1, inventory and rate, where one script reads every .appv file and rates its effort as Low, Medium or High; 2, make templates, one conversion template per package generated from the inventory; 3, convert, where the MSIX Packaging Tool reads App-V 5.1 packages directly on a clean machine; 4, fix up in the Package Editor with PSF fixups, context menus and the services report; 5, sign with a timestamp, then MSIXMGR makes the CimFS image; 6, test on a clean machine, then with a test group, and the owner signs off. Meanwhile, App Attach keeps delivering the original App-V package until its MSIX version is signed off, so users never wait for a conversion.
+- Numbered-step text:
+  1. Inventory and rate every App-V package
+  2. Make a conversion template per package
+  3. Convert with the MSIX Packaging Tool on a clean machine
+  4. Fix up in the Package Editor
+  5. Sign, then make the CimFS image
+  6. Test on a clean machine and a test group, then hand over
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/windows/msix/packaging-tool/create-app-package
+  - https://learn.microsoft.com/windows/msix/toolkit/msix-toolkit-msixbatchconversion
+  - https://learn.microsoft.com/windows/msix/psf/psf-integration-with-mpt
+  - https://learn.microsoft.com/windows/msix/package/signing-package-overview
+  - https://learn.microsoft.com/azure/virtual-desktop/app-attach-create-msix-image
+  - https://learn.microsoft.com/azure/virtual-desktop/app-attach-test-msix-packages
+
+## app-attach-skills-path
+
+- Files: `docs/assets/images/app-attach-skills-path-light.svg`, `docs/assets/images/app-attach-skills-path-dark.svg`
+- Intended page: docs/app-attach/skills-transfer.md
+- Intended section: How it works
+- Alt text: Skills transfer in three phases. Phase 1, I do, watch us: module 1, foundations, covers how App Attach works, its formats, the share, registration and assignment; module 2, the fast lane, takes one of your App-V packages through App Attach end to end in a test host pool. Phase 2, we do, pair on your packages: module 3 converts App-V 5.1 to MSIX with the MSIX Packaging Tool, then signs it and makes the image; module 4 covers PSF fixups, the common errors, and testing a package outside Azure Virtual Desktop. Phase 3, you do, lead while we review: module 5 runs it as a service with bulk conversion, updates, rollback and retirement. You're ready when your team converts, signs, tests and onboards a package with no help. Three roles share the work: the platform engineer owns the share, permissions, App Attach and host pools; the packager owns the MSIX Packaging Tool, PSF fixups and signing; the tester and app owner own test scripts, real users and the sign-off. In a small team, one person can hold two roles.
+- Numbered-step text:
+  1. Foundations
+  2. The fast lane
+  3. Convert
+  4. Fix and troubleshoot
+  5. Run it as a service
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/training/paths/manage-user-environments-apps/
+  - https://learn.microsoft.com/training/modules/m365-wvd-application-management/
+  - https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview
+  - https://learn.microsoft.com/windows/msix/packaging-tool/create-app-package
+  - https://learn.microsoft.com/windows/msix/toolkit/msix-toolkit-msixbatchconversion
+
+## app-attach-trouble-map
+
+- Files: `docs/assets/images/app-attach-trouble-map-light.svg`, `docs/assets/images/app-attach-trouble-map-dark.svg`
+- Intended page: docs/app-attach/troubleshooting.md
+- Intended section: Where problems show up
+- Alt text: Where App Attach problems show up, in four stages. 1, Convert: exit code 259 means the installer started another process and quit, so use its silent or wait option; drivers can't go in MSIX, and the services report shows which services converted. 2, Sign: error 0x8007000B with Event ID 150 means the manifest Publisher doesn't exactly match the certificate subject; error 0x800B0109 means the certificate isn't trusted, so trust the root and intermediate certificates on every host. 3, Store and mount: if an image won't mount, mount it as SYSTEM with PsExec to test the share permissions; Microsoft Entra joined hosts need Azure Files plus Reader and Data Access for both Azure Virtual Desktop service principals. 4, Register and run: if an app can't write to its folder, add the PSF file redirection fixup in the Package Editor; if an update is refused, give the new image a different version number. Test outside App Attach first: stage and register the package on a clean test machine, and if it works there, look at the share or the assignment rather than the package.
+- Numbered-step text:
+  1. Convert
+  2. Sign
+  3. Store and mount
+  4. Register and run
+- Microsoft Learn URLs:
+  - https://learn.microsoft.com/windows/msix/packaging-tool/tool-known-issues
+  - https://learn.microsoft.com/windows/msix/msix-troubleshooting-guide
+  - https://learn.microsoft.com/troubleshoot/azure/virtual-desktop/troubleshoot-app-attach
+  - https://learn.microsoft.com/azure/virtual-desktop/app-attach-overview
+  - https://learn.microsoft.com/windows/msix/psf/psf-integration-with-mpt
+  - https://learn.microsoft.com/azure/virtual-desktop/app-attach-test-msix-packages
 
 ## images-pipeline
 
