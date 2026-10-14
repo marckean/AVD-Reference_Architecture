@@ -17,7 +17,7 @@ The scripts are generic and use Contoso examples only. They do not contain tenan
 
 ## Prerequisites
 
-- PowerShell 7.2 or later.
+- PowerShell 7.2 or later. The scripts used on a packaging machine also run in Windows PowerShell 5.1: everything in [demo](./demo/), plus `New-MsixConversionTemplate.ps1` and `New-AppAttachImage.ps1`.
 - For Azure onboarding, Az.DesktopVirtualization version 4.2.1 or later, because Microsoft Learn says that version contains the App Attach cmdlets.
 - Az.Resources for `New-AzRoleAssignment` and `Get-AzRoleAssignment`.
 - Az.Storage for the read-only share checker.
@@ -30,6 +30,14 @@ The scripts are generic and use Contoso examples only. They do not contain tenan
 - The Microsoft Learn App Attach example passes `-Location` to `Update-AzWvdAppAttachPackage`, but Az.DesktopVirtualization 6.0.0 does not accept that parameter on update, so [Add-AppAttachApplication.ps1](./Add-AppAttachApplication.ps1) only adds it when the installed cmdlet supports it.
 
 ## Scripts
+
+### Demo kit
+
+Three scripts in [demo](./demo/) set up a packaging machine for a demo with three real, free apps: VLC media player, PuTTY and Microsoft XML Notepad. The walkthrough is [Demo: three real apps, end to end](https://marckean.github.io/AVD-Reference_Architecture/app-attach/demo/).
+
+- [Get-AppAttachDemoKit.ps1](./demo/Get-AppAttachDemoKit.ps1) downloads the apps, the MSIX Packaging Tool offline bundle and licence, its driver, and MSIXMGR. It checks each file's SHA256 against the publisher's published hash where there is one, reads each signature, and writes `kit-manifest.csv` and `conversion-input.csv`. A hash mismatch deletes the file and stops. It installs nothing.
+- [Install-PackagingTools.ps1](./demo/Install-PackagingTools.ps1) installs the MSIX Packaging Tool and its driver from the kit, using the offline steps in Microsoft Learn. Run it elevated.
+- [New-TestSigningCertificate.ps1](./demo/New-TestSigningCertificate.ps1) creates a self-signed code signing certificate with Learn's command, for testing only.
 
 ### Get-AppVPackageInventory.ps1
 

@@ -143,6 +143,12 @@ All the scripts are in [`tools/app-attach`](https://github.com/marckean/AVD-Refe
 
     Three phases and five modules, on your own packages, until your team converts, signs, tests and onboards a package with no help.
 
+-   :material-play-circle-outline:{ .lg .middle } __[Demo: three real apps, end to end](demo.md)__
+
+    ---
+
+    VLC, PuTTY and XML Notepad, from download to Azure Virtual Desktop and Windows 365. One script gets and checks everything.
+
 -   :material-stethoscope:{ .lg .middle } __[Troubleshooting](troubleshooting.md)__
 
     ---

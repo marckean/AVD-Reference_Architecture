@@ -149,6 +149,7 @@ nav:
           - AVD and Windows 365: app-attach/avd-and-windows-365.md
           - From App-V to MSIX: app-attach/from-app-v.md
           - Skills transfer: app-attach/skills-transfer.md
+          - Demo with three real apps: app-attach/demo.md
           - Troubleshooting: app-attach/troubleshooting.md
           - Requirements and file shares: app-attach/requirements.md
       - User profiles with FSLogix:
