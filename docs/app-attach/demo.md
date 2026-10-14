@@ -23,7 +23,7 @@ description: A step-by-step App Attach demo with three free apps people already 
 | **PuTTY** | Converting from the command line, which is how you'd do sixty | MSI, signed by Simon Tatham | Command line template | You sign it |
 
 ```mermaid
-flowchart LR
+flowchart TB
     K["Get-AppAttachDemoKit.ps1<br/>downloads and checks"] --> X["XML Notepad<br/>already MSIX"]
     K --> V["VLC<br/>MSI"]
     K --> P["PuTTY<br/>MSI"]
