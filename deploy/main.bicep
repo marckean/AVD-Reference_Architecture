@@ -36,7 +36,7 @@ param networkMode string = 'new'
 @description('Resource ID of an existing subnet for session hosts. Required when networkMode is existing.')
 param existingSubnetResourceId string = ''
 
-@description('Give the host pool managed identity permission to join an existing subnet in another resource group, by assigning Desktop Virtualization Virtual Machine Contributor on that subnet only. Use it when subscription-wide autoscale roles are off.')
+@description('Let the host pool managed identity use an existing subnet in another resource group: Desktop Virtualization Virtual Machine Contributor on that subnet only (for subnets/join/action), plus Reader on the network resource group (the network check reads the virtual network itself). Use it when subscription-wide autoscale roles are off.')
 param assignSubnetJoinToHostPoolIdentity bool = false
 
 @description('Address prefix for the new virtual network.')

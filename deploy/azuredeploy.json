@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "16851060288898656361"
+      "templateHash": "10200691897517831766"
     }
   },
   "parameters": {
@@ -76,7 +76,7 @@
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Give the host pool managed identity permission to join an existing subnet in another resource group, by assigning Desktop Virtualization Virtual Machine Contributor on that subnet only. Use it when subscription-wide autoscale roles are off."
+        "description": "Let the host pool managed identity use an existing subnet in another resource group: Desktop Virtualization Virtual Machine Contributor on that subnet only (for subnets/join/action), plus Reader on the network resource group (the network check reads the virtual network itself). Use it when subscription-wide autoscale roles are off."
       }
     },
     "vnetAddressPrefix": {
@@ -549,7 +549,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "12327759117342925500"
+              "templateHash": "15241240930342400633"
             }
           },
           "parameters": {
@@ -578,6 +578,9 @@
               }
             }
           },
+          "variables": {
+            "readerRoleId": "acdd72a7-3385-48ef-bd42-f606fba81ae7"
+          },
           "resources": [
             {
               "type": "Microsoft.Authorization/roleAssignments",
@@ -588,6 +591,16 @@
                 "principalId": "[parameters('principalId')]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(resourceGroup().id, parameters('principalId'), variables('readerRoleId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('readerRoleId'))]"
               }
             }
           ]

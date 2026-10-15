@@ -21,7 +21,7 @@ Set $LandingZoneMode = $true for a policy-governed enterprise landing zone. It s
 - no Microsoft Entra Kerberos yet (FSLogix comes later; App Attach doesn't need it)
 - credential sign-in to the Microsoft Entra joined hosts (no single sign-on, which needs a tenant admin)
 - Virtual Machine User Login for the pilot users
-- subnet join permission for the host pool identity on that one subnet, instead of subscription-wide roles
+- subnet join permission for the host pool identity on that one subnet, plus Reader on the network resource group, instead of subscription-wide roles
 - no scaling plan
 - no Intune enrolment
 
@@ -154,18 +154,36 @@ $params = @{
 Step 'Deploying (about 5-10 minutes for this part)'
 $deploymentName = "northstar-pilot-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 Note "Deployment $deploymentName from $templateUri"
-try {
-    $deployment = New-AzResourceGroupDeployment -Name $deploymentName -ResourceGroupName $ResourceGroupName -TemplateUri $templateUri -TemplateParameterObject $params
-}
-catch {
-    Warn 'The deployment failed. The message below names the resource and, for a policy block, the policy.'
-    Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "  Details: portal > Resource groups > $ResourceGroupName > Deployments > $deploymentName" -ForegroundColor Red
-    throw
+# New role assignments can take up to 10 minutes to apply (https://learn.microsoft.com/azure/role-based-access-control/troubleshooting#azure-role-assignments).
+# The deployment creates them, then the session host configuration checks the network straight away, so retry
+# for up to 10 minutes if Azure hasn't applied them yet.
+$propagation = 'AuthorizationFailed|UnableToAccessAzureResource|PrincipalNotFound|refresh your credentials'
+$maxAttempts = 5
+$deployment = $null
+for ($attempt = 1; $attempt -le $maxAttempts -and -not $deployment; $attempt++) {
+    try {
+        $deployment = New-AzResourceGroupDeployment -Name "$deploymentName-$attempt" -ResourceGroupName $ResourceGroupName -TemplateUri $templateUri -TemplateParameterObject $params
+    }
+    catch {
+        if ($attempt -lt $maxAttempts -and $_.Exception.Message -match $propagation) {
+            Note "Attempt $attempt of $maxAttempts hit a permission Azure hasn't applied yet (new role assignments take up to 10 minutes). Retrying in 2.5 minutes; re-running only fills in what's missing."
+            Start-Sleep -Seconds 150
+            continue
+        }
+        Warn 'The deployment failed. The message below names the resource and, for a policy block, the policy.'
+        Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  Details: portal > Resource groups > $ResourceGroupName > Deployments > $deploymentName-$attempt" -ForegroundColor Red
+        throw 'Deployment failed. See the message above.'
+    }
 }
 $o = $deployment.Outputs
 Ok "Host pool $($o.hostPoolName.Value), workspace $($o.workspaceName.Value), desktop app group $($o.desktopApplicationGroupName.Value)"
 Ok "App Attach share $($o.appAttachSharePath.Value)"
+
+Step 'Save this now (shown once)'
+Write-Host "  Session host local admin:  $adminUser" -ForegroundColor White
+Write-Host "  Password:                  $adminPassword" -ForegroundColor White
+Write-Host '  Also in the Key Vault as sessionHostLocalAdminPassword (reading it there needs Key Vault Secrets User on the vault).'
 
 Step "Watching the session hosts register (up to $(Value 'WatchMinutes' 15) minutes)"
 $deadline = (Get-Date).AddMinutes([int](Value 'WatchMinutes' 15))
@@ -185,10 +203,6 @@ else {
     Warn 'If hosts are created but never register, the subnet usually cannot reach the Azure Virtual Desktop required URLs through the firewall.'
 }
 
-Step 'Done - save this'
-Write-Host "  Session host local admin:  $adminUser" -ForegroundColor White
-Write-Host "  Password (shown once):     $adminPassword" -ForegroundColor White
-Write-Host '  Also stored in the Key Vault as sessionHostLocalAdminPassword.'
-Write-Host ''
+Step 'Done'
 Write-Host '  Connect as the pilot user: https://windows.cloud.microsoft/' -ForegroundColor Green
 if (-not $params.entraSingleSignOn) { Write-Host '  Sign-in mode is credentials (targetisaadjoined): enter the pilot user name and password when the desktop starts.' }
