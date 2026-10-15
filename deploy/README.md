@@ -70,9 +70,9 @@ The resource group must exist first; its tags are reused unless you set `$Tags`.
 
 A host pool that shows 0 session hosts while the VMs exist usually means the hosts can't reach the service. [Test-SessionHostConnectivity.ps1](scripts/Test-SessionHostConnectivity.ps1) is read-only and runs inside a session host through Run Command, which works even when the VM has no internet access. It reports:
 
-- Microsoft Entra join and agent state, DNS servers and proxy;
-- DNS and TCP for each [required endpoint](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint), the [Entra join endpoints](https://learn.microsoft.com/entra/identity/devices/howto-vm-sign-in-azure-ad-windows#requirements), and the Azure platform addresses `169.254.169.254` and `168.63.129.16`, which Learn says must not be intercepted, proxied or redirected;
-- whether TLS to Microsoft Entra ID is being intercepted;
+- Microsoft Entra join, Azure VM agent and AVD agent state, DNS servers and proxy;
+- each [required endpoint](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint), the [Entra join endpoints](https://learn.microsoft.com/entra/identity/devices/howto-vm-sign-in-azure-ad-windows#requirements), and the Azure platform addresses `169.254.169.254` and `168.63.129.16`, which Learn says must not be intercepted, proxied or redirected. HTTPS endpoints are checked through a full TLS handshake, because a firewall that filters by URL or application can allow the TCP connect and then drop the handshake;
+- whether TLS is intercepted, from each HTTPS endpoint's certificate issuer;
 - with `-StorageAccountName`, whether the Azure Files private endpoint resolves privately;
 - if the agent is installed, the failures from the [Azure Virtual Desktop Agent URL Tool](https://learn.microsoft.com/azure/virtual-desktop/check-access-validate-required-fqdn-endpoint).
 

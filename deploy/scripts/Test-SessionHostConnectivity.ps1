@@ -12,10 +12,11 @@ Read-only. Run it on a session host, for example through Run Command from Azure 
 Run Command reaches the VM through the Azure platform, so it works even when the VM has no internet access.
 
 It reports:
-- Microsoft Entra join and Azure Virtual Desktop agent state
+- Microsoft Entra join, Azure VM agent and Azure Virtual Desktop agent state
 - DNS servers and the WinHTTP proxy
-- each required endpoint: DNS answer and TCP connection
-- whether TLS to Microsoft Entra ID is being intercepted
+- each required endpoint: HTTPS through a full TLS handshake (a firewall that filters by URL or application can
+  allow the TCP connect and then drop the handshake), HTTP to a response, other ports by TCP
+- whether TLS is intercepted, from the certificate issuer of each HTTPS endpoint
 - optionally, an Azure Files private endpoint (-StorageAccountName)
 - the failures reported by the Azure Virtual Desktop Agent URL Tool, if the agent is installed
 
@@ -57,23 +58,50 @@ function Test-TcpPort([string]$Name, [int]$Port, [int]$TimeoutMs = 4000) {
     finally { $client.Close() }
 }
 
-function Get-TlsIssuer([string]$Name) {
+function Test-Tls([string]$Name, [int]$TimeoutMs = 6000) {
+    # A firewall that filters by URL or application can complete the TCP connect and then drop the TLS
+    # handshake, so a TCP test alone can pass when the service is blocked. This completes the handshake.
     $client = New-Object System.Net.Sockets.TcpClient
     try {
         $attempt = $client.BeginConnect($Name, 443, $null, $null)
-        if (-not $attempt.AsyncWaitHandle.WaitOne(5000)) { return 'no TCP connection' }
+        if (-not $attempt.AsyncWaitHandle.WaitOne($TimeoutMs)) { return @{ State = 'TCP timeout' } }
         $client.EndConnect($attempt)
+        $stream = $client.GetStream()
+        $stream.ReadTimeout = $TimeoutMs
+        $stream.WriteTimeout = $TimeoutMs
         $acceptAny = [System.Net.Security.RemoteCertificateValidationCallback] { $true }
-        $ssl = New-Object System.Net.Security.SslStream($client.GetStream(), $false, $acceptAny)
+        $ssl = New-Object System.Net.Security.SslStream($stream, $false, $acceptAny)
         $ssl.AuthenticateAsClient($Name)
-        $certificate = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($ssl.RemoteCertificate)
-        return $certificate.Issuer
+        $issuer = (New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($ssl.RemoteCertificate)).Issuer
+        if ($issuer -match 'Microsoft') { return @{ State = 'ok'; Detail = 'Microsoft CA' } }
+        if ($issuer -match 'DigiCert') { return @{ State = 'ok'; Detail = 'DigiCert CA' } }
+        $commonName = if ($issuer -match 'CN=([^,]+)') { $Matches[1] } else { $issuer }
+        return @{ State = 'intercepted'; Detail = $commonName }
     }
     catch {
-        $inner = $_.Exception.InnerException
-        if ($inner) { return "TLS failed: $($inner.Message)" }
-        return "TLS failed: $($_.Exception.Message)"
+        $message = if ($_.Exception.InnerException) { $_.Exception.InnerException.Message } else { $_.Exception.Message }
+        if ($message -match 'did not properly respond|timed out|period of time') { $message = 'handshake timed out' }
+        elseif ($message -match 'forcibly closed|reset|aborted') { $message = 'connection reset' }
+        return @{ State = 'TLS failed'; Detail = $message }
     }
+    finally { $client.Close() }
+}
+
+function Test-Http([string]$Name, [int]$TimeoutMs = 6000) {
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $attempt = $client.BeginConnect($Name, 80, $null, $null)
+        if (-not $attempt.AsyncWaitHandle.WaitOne($TimeoutMs)) { return 'TCP timeout' }
+        $client.EndConnect($attempt)
+        $stream = $client.GetStream()
+        $stream.ReadTimeout = $TimeoutMs
+        $request = [System.Text.Encoding]::ASCII.GetBytes("HEAD / HTTP/1.1`r`nHost: $Name`r`nConnection: close`r`n`r`n")
+        $stream.Write($request, 0, $request.Length)
+        $status = (New-Object System.IO.StreamReader($stream)).ReadLine()
+        if ($status -match '^HTTP/\S+\s+(\d{3})') { return "HTTP $($Matches[1])" }
+        return 'no HTTP response'
+    }
+    catch { return 'HTTP timed out or reset' }
     finally { $client.Close() }
 }
 
@@ -84,11 +112,13 @@ $entraJoined = ($dsreg | Select-String 'AzureAdJoined\s*:\s*(\w+)' | Select-Obje
 $domainJoined = ($dsreg | Select-String 'DomainJoined\s*:\s*(\w+)' | Select-Object -First 1)
 Add-Line ("Entra joined: {0} | AD joined: {1}" -f $(if ($entraJoined) { $entraJoined.Matches[0].Groups[1].Value } else { 'unknown' }), $(if ($domainJoined) { $domainJoined.Matches[0].Groups[1].Value } else { 'unknown' }))
 
-$services = foreach ($name in 'RDAgentBootLoader', 'RDAgent') {
+$azureAgent = foreach ($name in 'WindowsAzureGuestAgent', 'RdAgent') {
     $service = Get-Service -Name $name -ErrorAction SilentlyContinue
     if ($service) { "$name=$($service.Status)" } else { "$name=not installed" }
 }
-Add-Line ("AVD agent: {0}" -f ($services -join ', '))
+Add-Line ("Azure VM agent: {0}" -f ($azureAgent -join ', '))
+$bootLoader = Get-Service -Name 'RDAgentBootLoader' -ErrorAction SilentlyContinue
+Add-Line ("AVD agent: RDAgentBootLoader={0}, RDInfra folder={1}" -f $(if ($bootLoader) { $bootLoader.Status } else { 'not installed' }), $(if (Test-Path 'C:\Program Files\Microsoft RDInfra') { 'present' } else { 'absent' }))
 
 $dnsServers = @(Get-DnsClientServerAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | ForEach-Object { $_.ServerAddresses } | Select-Object -Unique)
 Add-Line ("DNS servers: {0}" -f $(if ($dnsServers) { $dnsServers -join ', ' } else { 'none found' }))
@@ -120,30 +150,35 @@ $endpoints = @(
     @('168.63.129.16', 80, 'WireServer, must not be proxied'),
     @('168.63.129.16', 32526, 'WireServer, must not be proxied')
 )
-Add-Line '-- Required endpoints (result, endpoint, DNS answer, purpose) --'
-$failures = 0
+Add-Line '-- Required endpoints: HTTPS checked to a full TLS handshake, HTTP to a response, others TCP --'
+$counts = @{ OK = 0; WARN = 0; FAIL = 0 }
 foreach ($endpoint in $endpoints) {
     $name, $port, $purpose = $endpoint
     $isIp = $name -match '^\d+\.\d+\.\d+\.\d+$'
     $ip = if ($isIp) { $name } else { Resolve-Ipv4 $name }
-    $tcp = if ($ip) { Test-TcpPort $name $port } else { 'no DNS' }
-    if ($tcp -ne 'ok') { $failures++ }
-    $parts = @($(if ($tcp -eq 'ok') { 'OK  ' } else { 'FAIL' }), "${name}:$port")
+    if (-not $ip) { $state = 'FAIL'; $detail = '[no DNS answer]' }
+    elseif ($port -eq 443 -and -not $isIp) {
+        $tls = Test-Tls $name
+        if ($tls.State -eq 'ok') { $state = 'OK'; $detail = "TLS ok, $($tls.Detail)" }
+        elseif ($tls.State -eq 'intercepted') { $state = 'WARN'; $detail = "[TLS INTERCEPTED by $($tls.Detail)]" }
+        else { $state = 'FAIL'; $detail = "[$($tls.State)$(if ($tls.Detail) { ": $($tls.Detail)" })]" }
+    }
+    elseif ($port -eq 80 -and -not $isIp) {
+        $http = Test-Http $name
+        if ($http -like 'HTTP [0-9]*') { $state = 'OK'; $detail = $http } else { $state = 'FAIL'; $detail = "[$http]" }
+    }
+    else {
+        $tcp = Test-TcpPort $name $port
+        if ($tcp -eq 'ok') { $state = 'OK'; $detail = 'TCP ok' } else { $state = 'FAIL'; $detail = "[TCP $tcp]" }
+    }
+    $counts[$state]++
+    $parts = @($state.PadRight(4), "${name}:$port")
     if (-not $isIp -and $ip) { $parts += "-> $ip" }
-    if ($tcp -ne 'ok') { $parts += "[$tcp]" }
+    $parts += $detail
     $parts += "($purpose)"
     Add-Line ($parts -join ' ')
 }
-Add-Line ("{0} of {1} endpoints reachable" -f ($endpoints.Count - $failures), $endpoints.Count)
-
-Add-Line '-- TLS inspection (Learn: keep Entra endpoints out of break-and-inspect) --'
-foreach ($name in 'login.microsoftonline.com', 'enterpriseregistration.windows.net') {
-    $issuer = Get-TlsIssuer $name
-    if ($issuer -match 'Microsoft|DigiCert') { $verdict = 'not intercepted' }
-    elseif ($issuer -match '^TLS failed|^no TCP') { $verdict = 'no TLS session' }
-    else { $verdict = 'LOOKS INTERCEPTED' }
-    Add-Line ("{0}: {1} (issuer: {2})" -f $name, $verdict, $issuer)
-}
+Add-Line ("{0} OK, {1} intercepted, {2} failed, of {3}" -f $counts.OK, $counts.WARN, $counts.FAIL, $endpoints.Count)
 
 if ($StorageAccountName) {
     Add-Line '-- Azure Files --'
