@@ -66,6 +66,22 @@ irm https://raw.githubusercontent.com/marckean/AVD-Reference_Architecture/main/d
 
 The resource group must exist first; its tags are reused unless you set `$Tags`. The session hosts also need the [Azure Virtual Desktop required FQDNs and endpoints](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint) through the landing zone's firewall, without TLS inspection, or they're created but never register.
 
+### If session hosts are created but never register
+
+A host pool that shows 0 session hosts while the VMs exist usually means the hosts can't reach the service. [Test-SessionHostConnectivity.ps1](scripts/Test-SessionHostConnectivity.ps1) is read-only and runs inside a session host through Run Command, which works even when the VM has no internet access. It reports:
+
+- Microsoft Entra join and agent state, DNS servers and proxy;
+- DNS and TCP for each [required endpoint](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint), the [Entra join endpoints](https://learn.microsoft.com/entra/identity/devices/howto-vm-sign-in-azure-ad-windows#requirements), and the Azure platform addresses `169.254.169.254` and `168.63.129.16`, which Learn says must not be intercepted, proxied or redirected;
+- whether TLS to Microsoft Entra ID is being intercepted;
+- with `-StorageAccountName`, whether the Azure Files private endpoint resolves privately;
+- if the agent is installed, the failures from the [Azure Virtual Desktop Agent URL Tool](https://learn.microsoft.com/azure/virtual-desktop/check-access-validate-required-fqdn-endpoint).
+
+```powershell
+irm https://raw.githubusercontent.com/marckean/AVD-Reference_Architecture/main/deploy/scripts/Test-SessionHostConnectivity.ps1 -OutFile ./Test-SessionHostConnectivity.ps1
+$r = Invoke-AzVMRunCommand -ResourceGroupName 'rg-avd-pilot' -VMName 'avdpilot-0' -CommandId RunPowerShellScript -ScriptPath ./Test-SessionHostConnectivity.ps1 -Parameter @{ StorageAccountName = 'stavdpilot' }
+$r.Value | ForEach-Object { $_.Message }
+```
+
 ## Cost drivers
 
 No prices are hard-coded here because costs depend on region, commitment, VM family, storage capacity, profile growth, data retention and network egress. The main cost drivers are:
