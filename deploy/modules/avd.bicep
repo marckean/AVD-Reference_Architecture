@@ -23,13 +23,23 @@ param rampUpMaximumHostPoolSize int
 param rampDownMinimumHostPoolSize int
 param rampDownMaximumHostPoolSize int
 param pilotUsersGroupObjectId string
+param pilotPrincipalType string
+param entraSingleSignOn bool
+param assignVirtualMachineUserLogin bool
+param deployScalingPlan bool
+param scalingMethod string
 param hostPoolIdentityPrincipalId string
 param virtualMachineContributorRoleDefinitionId string
 param logAnalyticsWorkspaceId string
 param tags object
 
 var desktopVirtualizationUserRoleId = '1d18fff3-a72a-46b5-b4a9-0b38a3cd7e63'
+var virtualMachineUserLoginRoleId = 'fb879df8-f326-4884-b1cf-06f3ad86be52'
 var intuneMdmProviderGuid = '0000000a-0000-0000-c000-000000000000'
+// Single sign-on needs Microsoft Entra authentication for RDP enabled in the tenant. Without it, Learn says to add
+// targetisaadjoined:i:1 so users sign in to Microsoft Entra joined hosts with their credentials.
+// https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts#access-microsoft-entra-joined-vms
+var rdpProperties = entraSingleSignOn ? 'enablerdsaadauth:i:1' : 'targetisaadjoined:i:1'
 
 resource hostPool 'Microsoft.DesktopVirtualization/hostPools@2026-04-01-preview' = {
   name: hostPoolName
@@ -52,7 +62,7 @@ resource hostPool 'Microsoft.DesktopVirtualization/hostPools@2026-04-01-preview'
     validationEnvironment: false
     startVMOnConnect: false
     publicNetworkAccess: 'Enabled'
-    customRdpProperty: 'enablerdsaadauth:i:1'
+    customRdpProperty: rdpProperties
     agentUpdate: {
       type: 'Scheduled'
       useSessionHostLocalTime: false
@@ -176,12 +186,12 @@ resource workspace 'Microsoft.DesktopVirtualization/workspaces@2026-04-01-previe
   tags: tags
 }
 
-resource scalingPlan 'Microsoft.DesktopVirtualization/scalingPlans@2026-04-01-preview' = {
+resource scalingPlan 'Microsoft.DesktopVirtualization/scalingPlans@2026-04-01-preview' = if (deployScalingPlan) {
   name: scalingPlanName
   location: location
   properties: {
-    friendlyName: 'Contoso weekday dynamic autoscaling'
-    description: 'Dynamic autoscaling schedule for the North Star pilot.'
+    friendlyName: 'Contoso weekday autoscaling'
+    description: 'Autoscaling schedule for the North Star pilot.'
     timeZone: scalingTimeZone
     exclusionTag: 'excludeFromScaling'
     hostPoolType: 'Pooled'
@@ -192,7 +202,7 @@ resource scalingPlan 'Microsoft.DesktopVirtualization/scalingPlans@2026-04-01-pr
       }
     ]
     schedules: [
-      {
+      union({
         name: 'weekdays'
         daysOfWeek: [
           'Monday'
@@ -218,7 +228,8 @@ resource scalingPlan 'Microsoft.DesktopVirtualization/scalingPlans@2026-04-01-pr
           minute: 0
         }
         rampDownLoadBalancingAlgorithm: 'DepthFirst'
-        rampDownMinimumHostsPct: 100
+        // PowerManage stops idle hosts after hours. Dynamic autoscaling sizes the pool with createDelete instead.
+        rampDownMinimumHostsPct: scalingMethod == 'PowerManage' ? 0 : 100
         rampDownCapacityThresholdPct: 70
         rampDownForceLogoffUsers: false
         rampDownWaitTimeMinutes: 30
@@ -229,14 +240,15 @@ resource scalingPlan 'Microsoft.DesktopVirtualization/scalingPlans@2026-04-01-pr
           minute: 0
         }
         offPeakLoadBalancingAlgorithm: 'DepthFirst'
-        scalingMethod: 'CreateDeletePowerManage'
+        scalingMethod: scalingMethod
+      }, scalingMethod == 'CreateDeletePowerManage' ? {
         createDelete: {
           rampUpMinimumHostPoolSize: rampUpMinimumHostPoolSize
           rampUpMaximumHostPoolSize: rampUpMaximumHostPoolSize
           rampDownMinimumHostPoolSize: rampDownMinimumHostPoolSize
           rampDownMaximumHostPoolSize: rampDownMaximumHostPoolSize
         }
-      }
+      } : {})
     ]
   }
   tags: tags
@@ -250,14 +262,23 @@ resource usersDesktopVirtualizationUser 'Microsoft.Authorization/roleAssignments
   scope: desktopApplicationGroup
   properties: {
     principalId: pilotUsersGroupObjectId
-    principalType: 'Group'
+    principalType: pilotPrincipalType
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', desktopVirtualizationUserRoleId)
   }
 }
 
-// No Virtual Machine User Login assignment. Learn: for Microsoft Entra joined VMs in host pools using a session host
-// configuration, "this additional role assignment isn't required".
+// Learn: for Microsoft Entra joined VMs in host pools using a session host configuration, Virtual Machine User Login
+// "isn't required". It's offered as a safeguard for credential sign-in and stays off by default.
 // https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts#assign-user-access-to-host-pools
+resource usersVirtualMachineUserLogin 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (assignVirtualMachineUserLogin) {
+  name: guid(resourceGroup().id, pilotUsersGroupObjectId, virtualMachineUserLoginRoleId)
+  scope: resourceGroup()
+  properties: {
+    principalId: pilotUsersGroupObjectId
+    principalType: pilotPrincipalType
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', virtualMachineUserLoginRoleId)
+  }
+}
 
 resource hostPoolIdentityVmContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(resourceGroup().id, hostPoolIdentityPrincipalId, virtualMachineContributorRoleDefinitionId)
@@ -314,7 +335,7 @@ resource workspaceDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-
   }
 }
 
-resource scalingDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+resource scalingDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (deployScalingPlan) {
   name: 'send-to-log-analytics'
   scope: scalingPlan
   properties: {
@@ -332,4 +353,4 @@ resource scalingDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
 output hostPoolName string = hostPool.name
 output workspaceName string = workspace.name
 output desktopApplicationGroupName string = desktopApplicationGroup.name
-output scalingPlanName string = scalingPlan.name
+output scalingPlanName string = deployScalingPlan ? scalingPlanName : ''

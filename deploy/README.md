@@ -29,6 +29,43 @@ Microsoft documents the Deploy to Azure button as a portal URL that starts with 
 | Key Vault | Azure RBAC-enabled Key Vault that stores the session host local admin username and password as secrets. | The session host configuration template reference supports `usernameKeyVaultSecretUri` and `passwordKeyVaultSecretUri` for VM admin credentials. See [hostPools/sessionHostConfigurations](https://learn.microsoft.com/azure/templates/microsoft.desktopvirtualization/hostpools/sessionhostconfigurations). |
 | Monitoring | Log Analytics workspace and diagnostic settings for the host pool, application group, workspace and scaling plan. | Azure Virtual Desktop diagnostics and Autoscale diagnostics feed Log Analytics and Azure Virtual Desktop Insights. See [Diagnostics with Log Analytics](https://learn.microsoft.com/azure/virtual-desktop/diagnostics-log-analytics) and [Autoscale diagnostics](https://learn.microsoft.com/azure/virtual-desktop/autoscale-diagnostics). |
 
+## Deploy into a policy-governed landing zone
+
+Enterprise landing zones often deny things this pilot creates by default: a privatelink DNS zone, public network access, subscription-wide role assignments, or VM deletion under a resource group lock. These parameters let the same template deploy cleanly there. Each one defaults to the standard North Star behaviour.
+
+| Parameter | Landing zone value | Why |
+| --- | --- | --- |
+| `filesPrivateDnsZoneMode` | `ManagedByPolicy` | Creates the Azure Files private endpoint without a DNS zone group, so the landing zone's DeployIfNotExists policy adds the record in its central privatelink zone. Use `Existing` with `existingFilesPrivateDnsZoneId` to point at a zone yourself |
+| `filesPublicNetworkAccess` | `Disabled` | Private access only. Session hosts reach the shares through the private endpoint |
+| `enableFilesEntraKerberos` | `false` | Leaves FSLogix for later, since Microsoft Entra Kerberos needs tenant admin consent. App Attach on Microsoft Entra joined hosts doesn't need it |
+| `entraSingleSignOn` | `false` | Single sign-on needs a tenant admin to enable Microsoft Entra authentication for RDP. With `false`, the host pool uses `targetisaadjoined:i:1`, so users sign in with their credentials ([Microsoft Entra joined session hosts](https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts#access-microsoft-entra-joined-vms)) |
+| `assignVirtualMachineUserLogin` | `true` | A safeguard for credential sign-in. Learn says it isn't required with a session host configuration |
+| `assignSubnetJoinToHostPoolIdentity` | `true` | When the subnet is in another resource group, assigns Desktop Virtualization Virtual Machine Contributor on that subnet only, which includes `subnets/join/action` ([built-in roles](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/compute#desktop-virtualization-virtual-machine-contributor)) |
+| `assignAutoscaleRolesToHostPoolIdentity` | `false` | Avoids subscription-wide role assignments |
+| `deployScalingPlan` / `scalingMethod` | `false`, or `PowerManage` | Dynamic autoscaling deletes hosts, which a delete lock blocks because locks are inherited by everything in the group ([lock inheritance](https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources#lock-inheritance)). `PowerManage` only starts and stops hosts |
+| `pilotPrincipalType` | `User` | Lets a single test user stand in until a pilot group exists |
+| `enrollSessionHostsInIntune` | `false` | Until automatic MDM enrolment is confirmed in the tenant; a failed enrolment fails provisioning |
+
+Session hosts are created by the session host management policy's provisioning count, not by the scaling plan, so hosts still appear with the scaling plan off ([Add session hosts](https://learn.microsoft.com/azure/virtual-desktop/add-session-hosts-host-pool#add-session-hosts)).
+
+### One run from Cloud Shell
+
+Two scripts in [scripts](scripts/) run in Azure Cloud Shell. Both are generic: you set the values in the session first, then pipe the script into `iex`.
+
+- [Test-LandingZoneReadiness.ps1](scripts/Test-LandingZoneReadiness.ps1) is read-only. It reports region quota, the session host subnet, private DNS zones, existing resources and the policy assignments most likely to block a deployment.
+- [Deploy-NorthStarPilot.ps1](scripts/Deploy-NorthStarPilot.ps1) deploys the pilot in one run. It registers the resource provider, looks up the newest Marketplace image version, the Azure Virtual Desktop service principals and the pilot user or group, generates the local admin password, deploys `azuredeploy.json`, then watches the session hosts register. Set `$LandingZoneMode = $true` to apply every landing zone value in the table above.
+
+```powershell
+$SubscriptionId = '00000000-0000-0000-0000-000000000000'
+$ResourceGroupName = 'rg-avd-pilot'
+$SubnetId = '/subscriptions/.../resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-spoke/subnets/snet-avd'
+$PilotUserPrincipalName = 'pilot.user@contoso.com'
+$LandingZoneMode = $true
+irm https://raw.githubusercontent.com/marckean/AVD-Reference_Architecture/main/deploy/scripts/Deploy-NorthStarPilot.ps1 | iex
+```
+
+The resource group must exist first; its tags are reused unless you set `$Tags`. The session hosts also need the [Azure Virtual Desktop required FQDNs and endpoints](https://learn.microsoft.com/azure/virtual-desktop/required-fqdn-endpoint) through the landing zone's firewall, without TLS inspection, or they're created but never register.
+
 ## Cost drivers
 
 No prices are hard-coded here because costs depend on region, commitment, VM family, storage capacity, profile growth, data retention and network egress. The main cost drivers are:

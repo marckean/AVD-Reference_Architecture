@@ -8,8 +8,15 @@ param workloadPrefix string = 'contoso-avd'
 @description('Azure region for the pilot environment. The portal Basics step supplies this value.')
 param location string = resourceGroup().location
 
-@description('Microsoft Entra group object ID for pilot users.')
+@description('Microsoft Entra object ID of the pilot users group, or of a single user when pilotPrincipalType is User.')
 param pilotUsersGroupObjectId string
+
+@description('Whether pilotUsersGroupObjectId is a group or a single user. A single user suits a first test before a pilot group exists.')
+@allowed([
+  'Group'
+  'User'
+])
+param pilotPrincipalType string = 'Group'
 
 @description('Local administrator username stored in Key Vault and referenced by the session host configuration.')
 @secure()
@@ -29,14 +36,54 @@ param networkMode string = 'new'
 @description('Resource ID of an existing subnet for session hosts. Required when networkMode is existing.')
 param existingSubnetResourceId string = ''
 
+@description('Give the host pool managed identity permission to join an existing subnet in another resource group, by assigning Desktop Virtualization Virtual Machine Contributor on that subnet only. Use it when subscription-wide autoscale roles are off.')
+param assignSubnetJoinToHostPoolIdentity bool = false
+
 @description('Address prefix for the new virtual network.')
 param vnetAddressPrefix string = '10.60.0.0/16'
 
 @description('Address prefix for the new session host subnet.')
 param sessionHostSubnetPrefix string = '10.60.1.0/24'
 
-@description('Enable an Azure Files private endpoint and privatelink.file.core.windows.net private DNS zone.')
+@description('Enable an Azure Files private endpoint. How it gets its DNS record is set by filesPrivateDnsZoneMode.')
 param enableFilesPrivateEndpoint bool = true
+
+@description('How the Azure Files private endpoint gets its DNS record. Create makes a privatelink.file zone and links it to the VNet. Existing uses a zone you already have (set existingFilesPrivateDnsZoneId). ManagedByPolicy creates the private endpoint only, for landing zones where creating privatelink zones is denied and a central DeployIfNotExists policy adds the record.')
+@allowed([
+  'Create'
+  'Existing'
+  'ManagedByPolicy'
+])
+param filesPrivateDnsZoneMode string = 'Create'
+
+@description('Resource ID of an existing privatelink.file private DNS zone. Required when filesPrivateDnsZoneMode is Existing.')
+param existingFilesPrivateDnsZoneId string = ''
+
+@description('Public network access for the Azure Files storage account. Disabled suits landing zones that require private access only. Session hosts reach the shares through the private endpoint either way.')
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+param filesPublicNetworkAccess string = 'Enabled'
+
+@description('Turn on Microsoft Entra Kerberos for Azure Files, for FSLogix profiles. A tenant admin must grant consent afterwards. Set false to leave FSLogix for later; App Attach on Microsoft Entra joined hosts does not need it.')
+param enableFilesEntraKerberos bool = true
+
+@description('Use Microsoft Entra single sign-on (RDP property enablerdsaadauth:i:1). A tenant admin must first enable Microsoft Entra authentication for RDP. Set false to sign in to the Microsoft Entra joined hosts with credentials instead (targetisaadjoined:i:1).')
+param entraSingleSignOn bool = true
+
+@description('Also assign Virtual Machine User Login on the resource group to the pilot users. Learn says it is not required for host pools using a session host configuration; turn it on as a safeguard when signing in with credentials.')
+param assignVirtualMachineUserLogin bool = false
+
+@description('Deploy the scaling plan. Set false to keep hosts running while you test, or where a resource group lock would block hosts being deleted.')
+param deployScalingPlan bool = true
+
+@description('Scaling method. CreateDeletePowerManage is dynamic autoscaling, which creates and deletes hosts. PowerManage only starts and stops existing hosts, so it still works where a delete lock applies.')
+@allowed([
+  'CreateDeletePowerManage'
+  'PowerManage'
+])
+param scalingMethod string = 'CreateDeletePowerManage'
 
 @description('Assign subscription-scope autoscale roles to the new host pool managed identity. Leave enabled unless a subscription Owner or User Access Administrator will assign them manually before scaling runs.')
 param assignAutoscaleRolesToHostPoolIdentity bool = true
@@ -170,6 +217,19 @@ module network 'modules/network.bicep' = if (networkMode == 'new') {
 }
 
 var sessionHostSubnetId = networkMode == 'new' ? network!.outputs.sessionHostSubnetId : existingSubnetResourceId
+// A placeholder keeps the indexes valid when no existing subnet is supplied.
+var subnetIdParts = split(empty(existingSubnetResourceId) ? '/subscriptions/${subscription().subscriptionId}/resourceGroups/none/providers/Microsoft.Network/virtualNetworks/none/subnets/none' : existingSubnetResourceId, '/')
+
+module subnetJoin 'modules/subnet-join-role.bicep' = if (networkMode == 'existing' && assignSubnetJoinToHostPoolIdentity) {
+  name: 'subnet-join-role'
+  scope: resourceGroup(subnetIdParts[2], subnetIdParts[4])
+  params: {
+    vnetName: subnetIdParts[8]
+    subnetName: subnetIdParts[10]
+    principalId: hostPoolIdentity.properties.principalId
+    roleDefinitionId: desktopVirtualizationVirtualMachineContributorRoleId
+  }
+}
 
 module monitoring 'modules/monitoring.bicep' = {
   name: 'monitoring'
@@ -198,9 +258,14 @@ module storage 'modules/storage.bicep' = {
     location: location
     storageAccountName: storageAccountName
     pilotUsersGroupObjectId: pilotUsersGroupObjectId
+    pilotPrincipalType: pilotPrincipalType
     azureVirtualDesktopServicePrincipalObjectId: azureVirtualDesktopServicePrincipalObjectId
     azureVirtualDesktopArmProviderServicePrincipalObjectId: azureVirtualDesktopArmProviderServicePrincipalObjectId
     enableFilesPrivateEndpoint: enableFilesPrivateEndpoint
+    filesPrivateDnsZoneMode: filesPrivateDnsZoneMode
+    existingFilesPrivateDnsZoneId: existingFilesPrivateDnsZoneId
+    filesPublicNetworkAccess: filesPublicNetworkAccess
+    enableFilesEntraKerberos: enableFilesEntraKerberos
     privateEndpointSubnetId: sessionHostSubnetId
     tags: tags
   }
@@ -234,11 +299,19 @@ module avd 'modules/avd.bicep' = {
     rampDownMinimumHostPoolSize: rampDownMinimumHostPoolSize
     rampDownMaximumHostPoolSize: rampDownMaximumHostPoolSize
     pilotUsersGroupObjectId: pilotUsersGroupObjectId
+    pilotPrincipalType: pilotPrincipalType
+    entraSingleSignOn: entraSingleSignOn
+    assignVirtualMachineUserLogin: assignVirtualMachineUserLogin
+    deployScalingPlan: deployScalingPlan
+    scalingMethod: scalingMethod
     hostPoolIdentityPrincipalId: hostPoolIdentity.properties.principalId
     virtualMachineContributorRoleDefinitionId: desktopVirtualizationVirtualMachineContributorRoleId
     logAnalyticsWorkspaceId: monitoring.outputs.workspaceId
     tags: tags
   }
+  dependsOn: [
+    subnetJoin
+  ]
 }
 
 module subscriptionRoles 'modules/subscription-role-assignments.bicep' = if (assignAutoscaleRolesToHostPoolIdentity || (assignAutoscaleRolesToAvdServicePrincipal && !empty(azureVirtualDesktopServicePrincipalObjectId))) {

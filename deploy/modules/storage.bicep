@@ -1,9 +1,14 @@
 param location string
 param storageAccountName string
 param pilotUsersGroupObjectId string
+param pilotPrincipalType string
 param azureVirtualDesktopServicePrincipalObjectId string
 param azureVirtualDesktopArmProviderServicePrincipalObjectId string
 param enableFilesPrivateEndpoint bool
+param filesPrivateDnsZoneMode string
+param existingFilesPrivateDnsZoneId string
+param filesPublicNetworkAccess string
+param enableFilesEntraKerberos bool
 param privateEndpointSubnetId string
 param tags object
 
@@ -12,6 +17,12 @@ var readerAndDataAccessRoleId = 'c12c1c16-33a1-487b-954d-41c89c60f349'
 var profilesShareName = 'profiles'
 var appAttachShareName = 'appattach'
 var privateEndpointVnetId = split(privateEndpointSubnetId, '/subnets/')[0]
+var privateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
+var createPrivateDnsZone = enableFilesPrivateEndpoint && filesPrivateDnsZoneMode == 'Create'
+// ManagedByPolicy leaves the private endpoint without a DNS zone group, so a landing zone's
+// DeployIfNotExists policy can add the record in its central privatelink zone.
+var attachPrivateDnsZoneGroup = enableFilesPrivateEndpoint && filesPrivateDnsZoneMode != 'ManagedByPolicy'
+var privateDnsZoneIdForGroup = filesPrivateDnsZoneMode == 'Existing' ? existingFilesPrivateDnsZoneId : resourceId('Microsoft.Network/privateDnsZones', privateDnsZoneName)
 
 resource storage 'Microsoft.Storage/storageAccounts@2026-06-01' = {
   name: storageAccountName
@@ -20,19 +31,22 @@ resource storage 'Microsoft.Storage/storageAccounts@2026-06-01' = {
     name: 'Premium_LRS'
   }
   kind: 'FileStorage'
-  properties: {
+  properties: union({
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
+    // App Attach on Microsoft Entra joined hosts relies on the Reader and Data Access role, which reads the account keys.
     allowSharedKeyAccess: true
-    azureFilesIdentityBasedAuthentication: {
-      directoryServiceOptions: 'AADKERB'
-      defaultSharePermission: 'None'
-    }
+    publicNetworkAccess: filesPublicNetworkAccess
     networkAcls: {
       bypass: 'AzureServices'
       defaultAction: enableFilesPrivateEndpoint ? 'Deny' : 'Allow'
     }
-  }
+  }, enableFilesEntraKerberos ? {
+    azureFilesIdentityBasedAuthentication: {
+      directoryServiceOptions: 'AADKERB'
+      defaultSharePermission: 'None'
+    }
+  } : {})
   tags: tags
 }
 
@@ -64,7 +78,7 @@ resource usersProfilesContributor 'Microsoft.Authorization/roleAssignments@2022-
   scope: profilesShare
   properties: {
     principalId: pilotUsersGroupObjectId
-    principalType: 'Group'
+    principalType: pilotPrincipalType
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageFileDataSmbShareContributorRoleId)
   }
 }
@@ -89,13 +103,13 @@ resource avdArmProviderReaderDataAccess 'Microsoft.Authorization/roleAssignments
   }
 }
 
-resource privateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (enableFilesPrivateEndpoint) {
-  name: 'privatelink.file.${environment().suffixes.storage}'
+resource privateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (createPrivateDnsZone) {
+  name: privateDnsZoneName
   location: 'global'
   tags: tags
 }
 
-resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enableFilesPrivateEndpoint) {
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (createPrivateDnsZone) {
   parent: privateDnsZone
   name: '${storageAccountName}-vnet-link'
   location: 'global'
@@ -130,7 +144,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2025-09-01' = if (e
   tags: tags
 }
 
-resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-09-01' = if (enableFilesPrivateEndpoint) {
+resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2025-09-01' = if (attachPrivateDnsZoneGroup) {
   parent: privateEndpoint
   name: 'default'
   properties: {
@@ -138,11 +152,14 @@ resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
       {
         name: 'privatelink-file'
         properties: {
-          privateDnsZoneId: privateDnsZone.id
+          privateDnsZoneId: privateDnsZoneIdForGroup
         }
       }
     ]
   }
+  dependsOn: [
+    privateDnsZone
+  ]
 }
 
 output storageAccountName string = storage.name

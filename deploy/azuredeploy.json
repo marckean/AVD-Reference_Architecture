@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "4217951929397430158"
+      "templateHash": "16851060288898656361"
     }
   },
   "parameters": {
@@ -28,7 +28,18 @@
     "pilotUsersGroupObjectId": {
       "type": "string",
       "metadata": {
-        "description": "Microsoft Entra group object ID for pilot users."
+        "description": "Microsoft Entra object ID of the pilot users group, or of a single user when pilotPrincipalType is User."
+      }
+    },
+    "pilotPrincipalType": {
+      "type": "string",
+      "defaultValue": "Group",
+      "allowedValues": [
+        "Group",
+        "User"
+      ],
+      "metadata": {
+        "description": "Whether pilotUsersGroupObjectId is a group or a single user. A single user suits a first test before a pilot group exists."
       }
     },
     "localAdminUsername": {
@@ -61,6 +72,13 @@
         "description": "Resource ID of an existing subnet for session hosts. Required when networkMode is existing."
       }
     },
+    "assignSubnetJoinToHostPoolIdentity": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Give the host pool managed identity permission to join an existing subnet in another resource group, by assigning Desktop Virtualization Virtual Machine Contributor on that subnet only. Use it when subscription-wide autoscale roles are off."
+      }
+    },
     "vnetAddressPrefix": {
       "type": "string",
       "defaultValue": "10.60.0.0/16",
@@ -79,7 +97,76 @@
       "type": "bool",
       "defaultValue": true,
       "metadata": {
-        "description": "Enable an Azure Files private endpoint and privatelink.file.core.windows.net private DNS zone."
+        "description": "Enable an Azure Files private endpoint. How it gets its DNS record is set by filesPrivateDnsZoneMode."
+      }
+    },
+    "filesPrivateDnsZoneMode": {
+      "type": "string",
+      "defaultValue": "Create",
+      "allowedValues": [
+        "Create",
+        "Existing",
+        "ManagedByPolicy"
+      ],
+      "metadata": {
+        "description": "How the Azure Files private endpoint gets its DNS record. Create makes a privatelink.file zone and links it to the VNet. Existing uses a zone you already have (set existingFilesPrivateDnsZoneId). ManagedByPolicy creates the private endpoint only, for landing zones where creating privatelink zones is denied and a central DeployIfNotExists policy adds the record."
+      }
+    },
+    "existingFilesPrivateDnsZoneId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Resource ID of an existing privatelink.file private DNS zone. Required when filesPrivateDnsZoneMode is Existing."
+      }
+    },
+    "filesPublicNetworkAccess": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Public network access for the Azure Files storage account. Disabled suits landing zones that require private access only. Session hosts reach the shares through the private endpoint either way."
+      }
+    },
+    "enableFilesEntraKerberos": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Turn on Microsoft Entra Kerberos for Azure Files, for FSLogix profiles. A tenant admin must grant consent afterwards. Set false to leave FSLogix for later; App Attach on Microsoft Entra joined hosts does not need it."
+      }
+    },
+    "entraSingleSignOn": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Use Microsoft Entra single sign-on (RDP property enablerdsaadauth:i:1). A tenant admin must first enable Microsoft Entra authentication for RDP. Set false to sign in to the Microsoft Entra joined hosts with credentials instead (targetisaadjoined:i:1)."
+      }
+    },
+    "assignVirtualMachineUserLogin": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Also assign Virtual Machine User Login on the resource group to the pilot users. Learn says it is not required for host pools using a session host configuration; turn it on as a safeguard when signing in with credentials."
+      }
+    },
+    "deployScalingPlan": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Deploy the scaling plan. Set false to keep hosts running while you test, or where a resource group lock would block hosts being deleted."
+      }
+    },
+    "scalingMethod": {
+      "type": "string",
+      "defaultValue": "CreateDeletePowerManage",
+      "allowedValues": [
+        "CreateDeletePowerManage",
+        "PowerManage"
+      ],
+      "metadata": {
+        "description": "Scaling method. CreateDeletePowerManage is dynamic autoscaling, which creates and deletes hosts. PowerManage only starts and stops existing hosts, so it still works where a delete lock applies."
       }
     },
     "assignAutoscaleRolesToHostPoolIdentity": {
@@ -275,7 +362,8 @@
     "keyVaultName": "[take(format('{0}{1}kv', variables('namePrefix'), uniqueString(resourceGroup().id)), 24)]",
     "storageAccountName": "[take(format('{0}{1}st', variables('namePrefix'), uniqueString(resourceGroup().id)), 24)]",
     "desktopVirtualizationPowerOnOffContributorRoleId": "40c5ff49-9181-41f8-ae61-143b0e78555e",
-    "desktopVirtualizationVirtualMachineContributorRoleId": "a959dbd1-f747-45e3-8ba6-dd80f235f97c"
+    "desktopVirtualizationVirtualMachineContributorRoleId": "a959dbd1-f747-45e3-8ba6-dd80f235f97c",
+    "subnetIdParts": "[split(if(empty(parameters('existingSubnetResourceId')), format('/subscriptions/{0}/resourceGroups/none/providers/Microsoft.Network/virtualNetworks/none/subnets/none', subscription().subscriptionId), parameters('existingSubnetResourceId')), '/')]"
   },
   "resources": [
     {
@@ -427,6 +515,87 @@
           }
         }
       }
+    },
+    {
+      "condition": "[and(equals(parameters('networkMode'), 'existing'), parameters('assignSubnetJoinToHostPoolIdentity'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "subnet-join-role",
+      "subscriptionId": "[variables('subnetIdParts')[2]]",
+      "resourceGroup": "[variables('subnetIdParts')[4]]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "vnetName": {
+            "value": "[variables('subnetIdParts')[8]]"
+          },
+          "subnetName": {
+            "value": "[variables('subnetIdParts')[10]]"
+          },
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2024-11-30').principalId]"
+          },
+          "roleDefinitionId": {
+            "value": "[variables('desktopVirtualizationVirtualMachineContributorRoleId')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "12327759117342925500"
+            }
+          },
+          "parameters": {
+            "vnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the virtual network that holds the session host subnet."
+              }
+            },
+            "subnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the session host subnet."
+              }
+            },
+            "principalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the host pool managed identity."
+              }
+            },
+            "roleDefinitionId": {
+              "type": "string",
+              "metadata": {
+                "description": "Role definition ID to assign on the subnet."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName'))]",
+              "name": "[guid(resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetName')), parameters('principalId'), parameters('roleDefinitionId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+      ]
     },
     {
       "type": "Microsoft.Resources/deployments",
@@ -659,6 +828,9 @@
           "pilotUsersGroupObjectId": {
             "value": "[parameters('pilotUsersGroupObjectId')]"
           },
+          "pilotPrincipalType": {
+            "value": "[parameters('pilotPrincipalType')]"
+          },
           "azureVirtualDesktopServicePrincipalObjectId": {
             "value": "[parameters('azureVirtualDesktopServicePrincipalObjectId')]"
           },
@@ -667,6 +839,18 @@
           },
           "enableFilesPrivateEndpoint": {
             "value": "[parameters('enableFilesPrivateEndpoint')]"
+          },
+          "filesPrivateDnsZoneMode": {
+            "value": "[parameters('filesPrivateDnsZoneMode')]"
+          },
+          "existingFilesPrivateDnsZoneId": {
+            "value": "[parameters('existingFilesPrivateDnsZoneId')]"
+          },
+          "filesPublicNetworkAccess": {
+            "value": "[parameters('filesPublicNetworkAccess')]"
+          },
+          "enableFilesEntraKerberos": {
+            "value": "[parameters('enableFilesEntraKerberos')]"
           },
           "privateEndpointSubnetId": "[if(equals(parameters('networkMode'), 'new'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.sessionHostSubnetId.value), createObject('value', parameters('existingSubnetResourceId')))]",
           "tags": {
@@ -680,7 +864,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "7665738347876781495"
+              "templateHash": "7146142778913118114"
             }
           },
           "parameters": {
@@ -693,6 +877,9 @@
             "pilotUsersGroupObjectId": {
               "type": "string"
             },
+            "pilotPrincipalType": {
+              "type": "string"
+            },
             "azureVirtualDesktopServicePrincipalObjectId": {
               "type": "string"
             },
@@ -700,6 +887,18 @@
               "type": "string"
             },
             "enableFilesPrivateEndpoint": {
+              "type": "bool"
+            },
+            "filesPrivateDnsZoneMode": {
+              "type": "string"
+            },
+            "existingFilesPrivateDnsZoneId": {
+              "type": "string"
+            },
+            "filesPublicNetworkAccess": {
+              "type": "string"
+            },
+            "enableFilesEntraKerberos": {
               "type": "bool"
             },
             "privateEndpointSubnetId": {
@@ -714,7 +913,11 @@
             "readerAndDataAccessRoleId": "c12c1c16-33a1-487b-954d-41c89c60f349",
             "profilesShareName": "profiles",
             "appAttachShareName": "appattach",
-            "privateEndpointVnetId": "[split(parameters('privateEndpointSubnetId'), '/subnets/')[0]]"
+            "privateEndpointVnetId": "[split(parameters('privateEndpointSubnetId'), '/subnets/')[0]]",
+            "privateDnsZoneName": "[format('privatelink.file.{0}', environment().suffixes.storage)]",
+            "createPrivateDnsZone": "[and(parameters('enableFilesPrivateEndpoint'), equals(parameters('filesPrivateDnsZoneMode'), 'Create'))]",
+            "attachPrivateDnsZoneGroup": "[and(parameters('enableFilesPrivateEndpoint'), not(equals(parameters('filesPrivateDnsZoneMode'), 'ManagedByPolicy')))]",
+            "privateDnsZoneIdForGroup": "[if(equals(parameters('filesPrivateDnsZoneMode'), 'Existing'), parameters('existingFilesPrivateDnsZoneId'), resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName')))]"
           },
           "resources": [
             {
@@ -726,19 +929,7 @@
                 "name": "Premium_LRS"
               },
               "kind": "FileStorage",
-              "properties": {
-                "minimumTlsVersion": "TLS1_2",
-                "allowBlobPublicAccess": false,
-                "allowSharedKeyAccess": true,
-                "azureFilesIdentityBasedAuthentication": {
-                  "directoryServiceOptions": "AADKERB",
-                  "defaultSharePermission": "None"
-                },
-                "networkAcls": {
-                  "bypass": "AzureServices",
-                  "defaultAction": "[if(parameters('enableFilesPrivateEndpoint'), 'Deny', 'Allow')]"
-                }
-              },
+              "properties": "[union(createObject('minimumTlsVersion', 'TLS1_2', 'allowBlobPublicAccess', false(), 'allowSharedKeyAccess', true(), 'publicNetworkAccess', parameters('filesPublicNetworkAccess'), 'networkAcls', createObject('bypass', 'AzureServices', 'defaultAction', if(parameters('enableFilesPrivateEndpoint'), 'Deny', 'Allow'))), if(parameters('enableFilesEntraKerberos'), createObject('azureFilesIdentityBasedAuthentication', createObject('directoryServiceOptions', 'AADKERB', 'defaultSharePermission', 'None')), createObject()))]",
               "tags": "[parameters('tags')]"
             },
             {
@@ -780,7 +971,7 @@
               "name": "[guid(resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageAccountName'), 'default', variables('profilesShareName')), parameters('pilotUsersGroupObjectId'), variables('storageFileDataSmbShareContributorRoleId'))]",
               "properties": {
                 "principalId": "[parameters('pilotUsersGroupObjectId')]",
-                "principalType": "Group",
+                "principalType": "[parameters('pilotPrincipalType')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('storageFileDataSmbShareContributorRoleId'))]"
               },
               "dependsOn": [
@@ -818,18 +1009,18 @@
               ]
             },
             {
-              "condition": "[parameters('enableFilesPrivateEndpoint')]",
+              "condition": "[variables('createPrivateDnsZone')]",
               "type": "Microsoft.Network/privateDnsZones",
               "apiVersion": "2024-06-01",
-              "name": "[format('privatelink.file.{0}', environment().suffixes.storage)]",
+              "name": "[variables('privateDnsZoneName')]",
               "location": "global",
               "tags": "[parameters('tags')]"
             },
             {
-              "condition": "[parameters('enableFilesPrivateEndpoint')]",
+              "condition": "[variables('createPrivateDnsZone')]",
               "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
               "apiVersion": "2024-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.file.{0}', environment().suffixes.storage), format('{0}-vnet-link', parameters('storageAccountName')))]",
+              "name": "[format('{0}/{1}', variables('privateDnsZoneName'), format('{0}-vnet-link', parameters('storageAccountName')))]",
               "location": "global",
               "properties": {
                 "registrationEnabled": false,
@@ -839,7 +1030,7 @@
               },
               "tags": "[parameters('tags')]",
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]"
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
               ]
             },
             {
@@ -870,7 +1061,7 @@
               ]
             },
             {
-              "condition": "[parameters('enableFilesPrivateEndpoint')]",
+              "condition": "[variables('attachPrivateDnsZoneGroup')]",
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2025-09-01",
               "name": "[format('{0}/{1}', format('{0}-file-pe', parameters('storageAccountName')), 'default')]",
@@ -879,13 +1070,13 @@
                   {
                     "name": "privatelink-file",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]"
+                      "privateDnsZoneId": "[variables('privateDnsZoneIdForGroup')]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.file.{0}', environment().suffixes.storage))]",
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
                 "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-file-pe', parameters('storageAccountName')))]"
               ]
             }
@@ -997,6 +1188,21 @@
           "pilotUsersGroupObjectId": {
             "value": "[parameters('pilotUsersGroupObjectId')]"
           },
+          "pilotPrincipalType": {
+            "value": "[parameters('pilotPrincipalType')]"
+          },
+          "entraSingleSignOn": {
+            "value": "[parameters('entraSingleSignOn')]"
+          },
+          "assignVirtualMachineUserLogin": {
+            "value": "[parameters('assignVirtualMachineUserLogin')]"
+          },
+          "deployScalingPlan": {
+            "value": "[parameters('deployScalingPlan')]"
+          },
+          "scalingMethod": {
+            "value": "[parameters('scalingMethod')]"
+          },
           "hostPoolIdentityPrincipalId": {
             "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2024-11-30').principalId]"
           },
@@ -1017,7 +1223,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "18175873827779046219"
+              "templateHash": "196348589320796856"
             }
           },
           "parameters": {
@@ -1096,6 +1302,21 @@
             "pilotUsersGroupObjectId": {
               "type": "string"
             },
+            "pilotPrincipalType": {
+              "type": "string"
+            },
+            "entraSingleSignOn": {
+              "type": "bool"
+            },
+            "assignVirtualMachineUserLogin": {
+              "type": "bool"
+            },
+            "deployScalingPlan": {
+              "type": "bool"
+            },
+            "scalingMethod": {
+              "type": "string"
+            },
             "hostPoolIdentityPrincipalId": {
               "type": "string"
             },
@@ -1111,7 +1332,9 @@
           },
           "variables": {
             "desktopVirtualizationUserRoleId": "1d18fff3-a72a-46b5-b4a9-0b38a3cd7e63",
-            "intuneMdmProviderGuid": "0000000a-0000-0000-c000-000000000000"
+            "virtualMachineUserLoginRoleId": "fb879df8-f326-4884-b1cf-06f3ad86be52",
+            "intuneMdmProviderGuid": "0000000a-0000-0000-c000-000000000000",
+            "rdpProperties": "[if(parameters('entraSingleSignOn'), 'enablerdsaadauth:i:1', 'targetisaadjoined:i:1')]"
           },
           "resources": [
             {
@@ -1137,7 +1360,7 @@
                 "validationEnvironment": false,
                 "startVMOnConnect": false,
                 "publicNetworkAccess": "Enabled",
-                "customRdpProperty": "enablerdsaadauth:i:1",
+                "customRdpProperty": "[variables('rdpProperties')]",
                 "agentUpdate": {
                   "type": "Scheduled",
                   "useSessionHostLocalTime": false,
@@ -1258,13 +1481,14 @@
               ]
             },
             {
+              "condition": "[parameters('deployScalingPlan')]",
               "type": "Microsoft.DesktopVirtualization/scalingPlans",
               "apiVersion": "2026-04-01-preview",
               "name": "[parameters('scalingPlanName')]",
               "location": "[parameters('location')]",
               "properties": {
-                "friendlyName": "Contoso weekday dynamic autoscaling",
-                "description": "Dynamic autoscaling schedule for the North Star pilot.",
+                "friendlyName": "Contoso weekday autoscaling",
+                "description": "Autoscaling schedule for the North Star pilot.",
                 "timeZone": "[parameters('scalingTimeZone')]",
                 "exclusionTag": "excludeFromScaling",
                 "hostPoolType": "Pooled",
@@ -1275,51 +1499,7 @@
                   }
                 ],
                 "schedules": [
-                  {
-                    "name": "weekdays",
-                    "daysOfWeek": [
-                      "Monday",
-                      "Tuesday",
-                      "Wednesday",
-                      "Thursday",
-                      "Friday"
-                    ],
-                    "rampUpStartTime": {
-                      "hour": 7,
-                      "minute": 0
-                    },
-                    "rampUpLoadBalancingAlgorithm": "BreadthFirst",
-                    "rampUpMinimumHostsPct": 100,
-                    "rampUpCapacityThresholdPct": 80,
-                    "peakStartTime": {
-                      "hour": 9,
-                      "minute": 0
-                    },
-                    "peakLoadBalancingAlgorithm": "BreadthFirst",
-                    "rampDownStartTime": {
-                      "hour": 17,
-                      "minute": 0
-                    },
-                    "rampDownLoadBalancingAlgorithm": "DepthFirst",
-                    "rampDownMinimumHostsPct": 100,
-                    "rampDownCapacityThresholdPct": 70,
-                    "rampDownForceLogoffUsers": false,
-                    "rampDownWaitTimeMinutes": 30,
-                    "rampDownNotificationMessage": "This host is scheduled for maintenance. Save your work and sign out when ready.",
-                    "rampDownStopHostsWhen": "ZeroSessions",
-                    "offPeakStartTime": {
-                      "hour": 20,
-                      "minute": 0
-                    },
-                    "offPeakLoadBalancingAlgorithm": "DepthFirst",
-                    "scalingMethod": "CreateDeletePowerManage",
-                    "createDelete": {
-                      "rampUpMinimumHostPoolSize": "[parameters('rampUpMinimumHostPoolSize')]",
-                      "rampUpMaximumHostPoolSize": "[parameters('rampUpMaximumHostPoolSize')]",
-                      "rampDownMinimumHostPoolSize": "[parameters('rampDownMinimumHostPoolSize')]",
-                      "rampDownMaximumHostPoolSize": "[parameters('rampDownMaximumHostPoolSize')]"
-                    }
-                  }
+                  "[union(createObject('name', 'weekdays', 'daysOfWeek', createArray('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'), 'rampUpStartTime', createObject('hour', 7, 'minute', 0), 'rampUpLoadBalancingAlgorithm', 'BreadthFirst', 'rampUpMinimumHostsPct', 100, 'rampUpCapacityThresholdPct', 80, 'peakStartTime', createObject('hour', 9, 'minute', 0), 'peakLoadBalancingAlgorithm', 'BreadthFirst', 'rampDownStartTime', createObject('hour', 17, 'minute', 0), 'rampDownLoadBalancingAlgorithm', 'DepthFirst', 'rampDownMinimumHostsPct', if(equals(parameters('scalingMethod'), 'PowerManage'), 0, 100), 'rampDownCapacityThresholdPct', 70, 'rampDownForceLogoffUsers', false(), 'rampDownWaitTimeMinutes', 30, 'rampDownNotificationMessage', 'This host is scheduled for maintenance. Save your work and sign out when ready.', 'rampDownStopHostsWhen', 'ZeroSessions', 'offPeakStartTime', createObject('hour', 20, 'minute', 0), 'offPeakLoadBalancingAlgorithm', 'DepthFirst', 'scalingMethod', parameters('scalingMethod')), if(equals(parameters('scalingMethod'), 'CreateDeletePowerManage'), createObject('createDelete', createObject('rampUpMinimumHostPoolSize', parameters('rampUpMinimumHostPoolSize'), 'rampUpMaximumHostPoolSize', parameters('rampUpMaximumHostPoolSize'), 'rampDownMinimumHostPoolSize', parameters('rampDownMinimumHostPoolSize'), 'rampDownMaximumHostPoolSize', parameters('rampDownMaximumHostPoolSize'))), createObject()))]"
                 ]
               },
               "tags": "[parameters('tags')]",
@@ -1335,12 +1515,23 @@
               "name": "[guid(resourceId('Microsoft.DesktopVirtualization/applicationGroups', parameters('appGroupName')), parameters('pilotUsersGroupObjectId'), variables('desktopVirtualizationUserRoleId'))]",
               "properties": {
                 "principalId": "[parameters('pilotUsersGroupObjectId')]",
-                "principalType": "Group",
+                "principalType": "[parameters('pilotPrincipalType')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('desktopVirtualizationUserRoleId'))]"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', parameters('appGroupName'))]"
               ]
+            },
+            {
+              "condition": "[parameters('assignVirtualMachineUserLogin')]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(resourceGroup().id, parameters('pilotUsersGroupObjectId'), variables('virtualMachineUserLoginRoleId'))]",
+              "properties": {
+                "principalId": "[parameters('pilotUsersGroupObjectId')]",
+                "principalType": "[parameters('pilotPrincipalType')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('virtualMachineUserLoginRoleId'))]"
+              }
             },
             {
               "type": "Microsoft.Authorization/roleAssignments",
@@ -1410,6 +1601,7 @@
               ]
             },
             {
+              "condition": "[parameters('deployScalingPlan')]",
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[resourceId('Microsoft.DesktopVirtualization/scalingPlans', parameters('scalingPlanName'))]",
@@ -1444,7 +1636,7 @@
             },
             "scalingPlanName": {
               "type": "string",
-              "value": "[parameters('scalingPlanName')]"
+              "value": "[if(parameters('deployScalingPlan'), parameters('scalingPlanName'), '')]"
             }
           }
         }
@@ -1453,7 +1645,8 @@
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]",
         "[resourceId('Microsoft.Resources/deployments', 'keyvault')]",
         "[resourceId('Microsoft.Resources/deployments', 'monitoring')]",
-        "[resourceId('Microsoft.Resources/deployments', 'network')]"
+        "[resourceId('Microsoft.Resources/deployments', 'network')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('subnetIdParts')[2], variables('subnetIdParts')[4]), 'Microsoft.Resources/deployments', 'subnet-join-role')]"
       ]
     },
     {
