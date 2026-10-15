@@ -98,7 +98,7 @@ Head 'Resource groups (naming convention)'
 try {
     $rgs = Get-AzResourceGroup
     Line 'Count' @($rgs).Count
-    Line 'Examples' ((@($rgs) | Select-Object -First 6 | ForEach-Object { $_.Name }) -join ', ')
+    Line 'Examples' ((@($rgs) | Select-Object -First 6 | ForEach-Object { $_.ResourceGroupName }) -join ', ')
     $tagged = @($rgs) | Where-Object { $_.Tags -and $_.Tags.Count -gt 0 } | Select-Object -First 1
     if ($tagged) { Line 'Tags seen on an RG' (($tagged.Tags.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join '; ') }
 } catch { Line 'Resource groups' 'could not read' }
