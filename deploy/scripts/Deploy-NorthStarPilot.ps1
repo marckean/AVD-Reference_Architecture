@@ -70,8 +70,16 @@ $location = $rg.Location
 Ok "Resource group $($rg.ResourceGroupName) in $location"
 $subnetParts = $SubnetId -split '/'
 $vnet = Get-AzVirtualNetwork -ResourceGroupName $subnetParts[4] -Name $subnetParts[8]
-if (-not ($vnet.Subnets | Where-Object Name -eq $subnetParts[10])) { throw "Subnet $($subnetParts[10]) not found in $($subnetParts[8])." }
+$subnet = $vnet.Subnets | Where-Object Name -eq $subnetParts[10]
+if (-not $subnet) { throw "Subnet $($subnetParts[10]) not found in $($subnetParts[8])." }
 Ok "Subnet $($subnetParts[10]) in $($subnetParts[8]) ($($subnetParts[4]))"
+$subnetRgId = $subnetParts[0..4] -join '/'
+foreach ($linked in @($subnet.NetworkSecurityGroup, $subnet.RouteTable) | Where-Object { $_ -and $_.Id }) {
+    $linkedParts = $linked.Id -split '/'
+    if (($linkedParts[0..4] -join '/') -ne $subnetRgId) {
+        Warn "The subnet's $($linkedParts[8]) is in resource group $($linkedParts[4]), not the network's. If the deployment says it can't read it, the host pool identity needs Reader there too."
+    }
+}
 $tags = Value 'Tags' $null
 if (-not $tags) { $tags = if ($rg.Tags) { $rg.Tags } else { @{} } }
 Ok "Tags: $(($tags.Keys | Sort-Object) -join ', ')"
@@ -156,8 +164,10 @@ $deploymentName = "northstar-pilot-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 Note "Deployment $deploymentName from $templateUri"
 # New role assignments can take up to 10 minutes to apply (https://learn.microsoft.com/azure/role-based-access-control/troubleshooting#azure-role-assignments).
 # The deployment creates them, then the session host configuration checks the network straight away, so retry
-# for up to 10 minutes if Azure hasn't applied them yet.
+# for up to 10 minutes if Azure hasn't applied them yet. A permission missing somewhere this deployment doesn't
+# grant access won't fix itself, so that stops straight away with what to do.
 $propagation = 'AuthorizationFailed|UnableToAccessAzureResource|PrincipalNotFound|refresh your credentials'
+$grantedScopes = @("/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName", $subnetRgId)
 $maxAttempts = 5
 $deployment = $null
 for ($attempt = 1; $attempt -le $maxAttempts -and -not $deployment; $attempt++) {
@@ -165,14 +175,24 @@ for ($attempt = 1; $attempt -le $maxAttempts -and -not $deployment; $attempt++) 
         $deployment = New-AzResourceGroupDeployment -Name "$deploymentName-$attempt" -ResourceGroupName $ResourceGroupName -TemplateUri $templateUri -TemplateParameterObject $params
     }
     catch {
-        if ($attempt -lt $maxAttempts -and $_.Exception.Message -match $propagation) {
+        $message = $_.Exception.Message
+        $scope = [regex]::Match($message, "over scope '([^']+)'").Groups[1].Value
+        $granted = -not $scope -or @($grantedScopes | Where-Object { $scope -eq $_ -or $scope -like "$_/*" }).Count -gt 0
+        if ($attempt -lt $maxAttempts -and $message -match $propagation -and $granted) {
             Note "Attempt $attempt of $maxAttempts hit a permission Azure hasn't applied yet (new role assignments take up to 10 minutes). Retrying in 2.5 minutes; re-running only fills in what's missing."
             Start-Sleep -Seconds 150
             continue
         }
         Warn 'The deployment failed. The message below names the resource and, for a policy block, the policy.'
-        Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  $message" -ForegroundColor Red
         Write-Host "  Details: portal > Resource groups > $ResourceGroupName > Deployments > $deploymentName-$attempt" -ForegroundColor Red
+        if ($message -match $propagation -and -not $granted) {
+            $identity = [regex]::Match($message, "object id '([0-9a-fA-F-]{36})'").Groups[1].Value
+            $scopeRg = ($scope -split '/')[0..4] -join '/'
+            Warn "This permission is missing outside the resource groups this deployment grants access to: $scope"
+            Warn 'Give the identity Reader on that resource group (or ask its owner to), then run this again:'
+            Write-Host "  New-AzRoleAssignment -ObjectId $identity -RoleDefinitionName Reader -Scope $scopeRg" -ForegroundColor Yellow
+        }
         throw 'Deployment failed. See the message above.'
     }
 }
