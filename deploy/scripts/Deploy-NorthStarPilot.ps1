@@ -123,7 +123,12 @@ Ok "$pilotType $pilotId"
 Step 'Session host local admin'
 $adminUser = Value 'LocalAdminUsername' 'avdlocaladmin'
 $adminPassword = New-StrongPassword
-Ok "Username $adminUser, password generated (shown once at the end, and stored in the Key Vault)"
+Ok "Username $adminUser, password generated and stored in the Key Vault by the deployment"
+Write-Host ''
+Write-Host '  SAVE THIS NOW (shown once). The deployment below can outlast a Cloud Shell session.' -ForegroundColor Yellow
+Write-Host "  Session host local admin:  $adminUser" -ForegroundColor White
+Write-Host "  Password:                  $adminPassword" -ForegroundColor White
+Write-Host '  Also in the Key Vault as sessionHostLocalAdminPassword. Running this again replaces it with a new one.'
 
 $params = @{
     workloadPrefix                                         = Value 'WorkloadPrefix' 'avdpilot'
@@ -159,7 +164,7 @@ $params = @{
     tags                                                   = $tags
 }
 
-Step 'Deploying (about 5-10 minutes for this part)'
+Step 'Deploying (10-30 minutes; if Cloud Shell times out, it carries on in Azure - watch it in the portal)'
 $deploymentName = "northstar-pilot-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 Note "Deployment $deploymentName from $templateUri"
 # New role assignments can take up to 10 minutes to apply (https://learn.microsoft.com/azure/role-based-access-control/troubleshooting#azure-role-assignments).
@@ -199,11 +204,6 @@ for ($attempt = 1; $attempt -le $maxAttempts -and -not $deployment; $attempt++) 
 $o = $deployment.Outputs
 Ok "Host pool $($o.hostPoolName.Value), workspace $($o.workspaceName.Value), desktop app group $($o.desktopApplicationGroupName.Value)"
 Ok "App Attach share $($o.appAttachSharePath.Value)"
-
-Step 'Save this now (shown once)'
-Write-Host "  Session host local admin:  $adminUser" -ForegroundColor White
-Write-Host "  Password:                  $adminPassword" -ForegroundColor White
-Write-Host '  Also in the Key Vault as sessionHostLocalAdminPassword (reading it there needs Key Vault Secrets User on the vault).'
 
 Step "Watching the session hosts register (up to $(Value 'WatchMinutes' 15) minutes)"
 $deadline = (Get-Date).AddMinutes([int](Value 'WatchMinutes' 15))
