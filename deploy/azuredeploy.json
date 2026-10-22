@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "10200691897517831766"
+      "templateHash": "10229155823069963203"
     }
   },
   "parameters": {
@@ -284,6 +284,73 @@
         "description": "Enrol session hosts in Microsoft Intune as they are created. Keep true for the North Star. The tenant needs Intune licences and automatic MDM enrolment configured, or session host provisioning fails with MdmJoinFailed. Set false only for a lab without Intune."
       }
     },
+    "sessionHostJoinType": {
+      "type": "string",
+      "defaultValue": "EntraID",
+      "allowedValues": [
+        "EntraID",
+        "ActiveDirectory"
+      ],
+      "metadata": {
+        "description": "How session hosts join a directory. EntraID is the North Star. ActiveDirectory joins an AD DS domain, for apps that still need it; with Microsoft Entra hybrid join configured in the tenant, the hosts become Microsoft Entra hybrid joined. AD DS join needs line of sight to a domain controller and DNS that resolves the domain."
+      }
+    },
+    "domainName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "AD DS domain to join, for example corp.contoso.com. Used when sessionHostJoinType is ActiveDirectory."
+      }
+    },
+    "domainJoinOuPath": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Distinguished name of the OU for the session host computer objects, for example OU=AVD,OU=Computers,DC=corp,DC=contoso,DC=com. Leave empty for the domain default container. Used when sessionHostJoinType is ActiveDirectory."
+      }
+    },
+    "domainJoinUsername": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Domain join account, stored in Key Vault, for example avdjoin@corp.contoso.com. It needs extra rights on the OU because new hosts reuse computer objects. Used when sessionHostJoinType is ActiveDirectory."
+      }
+    },
+    "domainJoinPassword": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Domain join account password, stored in Key Vault. Used when sessionHostJoinType is ActiveDirectory."
+      }
+    },
+    "customImageResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Resource ID of an Azure Compute Gallery image version for a custom image. Leave empty to use the Marketplace image. The image must be Generation 2 with security type TrustedLaunchSupported or TrustedLaunch, and not have the Azure Virtual Desktop agent installed. Managed images are not supported with Trusted launch."
+      }
+    },
+    "assignImageReaderToHostPoolIdentity": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Give the host pool managed identity Reader on the custom image gallery resource group, so it can read the image when it creates hosts. Not needed when the gallery is in this resource group."
+      }
+    },
+    "filesKerberosDomainName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "AD DS domain name for Microsoft Entra Kerberos on Azure Files, for example corp.contoso.com. Optional: with filesKerberosDomainGuid, it lets you set directory and file permissions from File Explorer."
+      }
+    },
+    "filesKerberosDomainGuid": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "AD DS domain GUID for Microsoft Entra Kerberos on Azure Files. Set it together with filesKerberosDomainName."
+      }
+    },
     "availabilityZones": {
       "type": "array",
       "defaultValue": [
@@ -363,7 +430,9 @@
     "storageAccountName": "[take(format('{0}{1}st', variables('namePrefix'), uniqueString(resourceGroup().id)), 24)]",
     "desktopVirtualizationPowerOnOffContributorRoleId": "40c5ff49-9181-41f8-ae61-143b0e78555e",
     "desktopVirtualizationVirtualMachineContributorRoleId": "a959dbd1-f747-45e3-8ba6-dd80f235f97c",
-    "subnetIdParts": "[split(if(empty(parameters('existingSubnetResourceId')), format('/subscriptions/{0}/resourceGroups/none/providers/Microsoft.Network/virtualNetworks/none/subnets/none', subscription().subscriptionId), parameters('existingSubnetResourceId')), '/')]"
+    "subnetIdParts": "[split(if(empty(parameters('existingSubnetResourceId')), format('/subscriptions/{0}/resourceGroups/none/providers/Microsoft.Network/virtualNetworks/none/subnets/none', subscription().subscriptionId), parameters('existingSubnetResourceId')), '/')]",
+    "imageIdParts": "[split(if(empty(parameters('customImageResourceId')), format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Compute/images/none', subscription().subscriptionId, resourceGroup().name), parameters('customImageResourceId')), '/')]",
+    "imageInThisResourceGroup": "[equals(toLower(format('{0}/{1}', variables('imageIdParts')[2], variables('imageIdParts')[4])), toLower(format('{0}/{1}', subscription().subscriptionId, resourceGroup().name)))]"
   },
   "resources": [
     {
@@ -611,6 +680,62 @@
       ]
     },
     {
+      "condition": "[and(and(not(empty(parameters('customImageResourceId'))), parameters('assignImageReaderToHostPoolIdentity')), not(variables('imageInThisResourceGroup')))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "image-reader-role",
+      "subscriptionId": "[variables('imageIdParts')[2]]",
+      "resourceGroup": "[variables('imageIdParts')[4]]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2024-11-30').principalId]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "5564198813633957869"
+            }
+          },
+          "parameters": {
+            "principalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the host pool managed identity."
+              }
+            }
+          },
+          "variables": {
+            "readerRoleId": "acdd72a7-3385-48ef-bd42-f606fba81ae7"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(resourceGroup().id, parameters('principalId'), variables('readerRoleId'))]",
+              "properties": {
+                "principalId": "[parameters('principalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('readerRoleId'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+      ]
+    },
+    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "monitoring",
@@ -707,6 +832,15 @@
           "hostPoolIdentityPrincipalId": {
             "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2024-11-30').principalId]"
           },
+          "createDomainJoinSecrets": {
+            "value": "[equals(parameters('sessionHostJoinType'), 'ActiveDirectory')]"
+          },
+          "domainJoinUsername": {
+            "value": "[parameters('domainJoinUsername')]"
+          },
+          "domainJoinPassword": {
+            "value": "[parameters('domainJoinPassword')]"
+          },
           "tags": {
             "value": "[parameters('tags')]"
           }
@@ -718,7 +852,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "7835609303945435331"
+              "templateHash": "18343208702625524062"
             }
           },
           "parameters": {
@@ -739,6 +873,21 @@
             },
             "tags": {
               "type": "object"
+            },
+            "createDomainJoinSecrets": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Store the AD DS domain join account in Key Vault, for session hosts that join an Active Directory domain."
+              }
+            },
+            "domainJoinUsername": {
+              "type": "securestring",
+              "defaultValue": ""
+            },
+            "domainJoinPassword": {
+              "type": "securestring",
+              "defaultValue": ""
             }
           },
           "variables": {
@@ -788,6 +937,30 @@
               ]
             },
             {
+              "condition": "[parameters('createDomainJoinSecrets')]",
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2026-02-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'sessionHostDomainJoinUsername')]",
+              "properties": {
+                "value": "[parameters('domainJoinUsername')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('createDomainJoinSecrets')]",
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2026-02-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'sessionHostDomainJoinPassword')]",
+              "properties": {
+                "value": "[parameters('domainJoinPassword')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            },
+            {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
@@ -814,6 +987,14 @@
             "keyVaultName": {
               "type": "string",
               "value": "[parameters('keyVaultName')]"
+            },
+            "domainJoinUserSecretUri": {
+              "type": "string",
+              "value": "[if(parameters('createDomainJoinSecrets'), reference(resourceId('Microsoft.KeyVault/vaults/secrets', parameters('keyVaultName'), 'sessionHostDomainJoinUsername'), '2026-02-01').secretUri, '')]"
+            },
+            "domainJoinPwdSecretUri": {
+              "type": "string",
+              "value": "[if(parameters('createDomainJoinSecrets'), reference(resourceId('Microsoft.KeyVault/vaults/secrets', parameters('keyVaultName'), 'sessionHostDomainJoinPassword'), '2026-02-01').secretUri, '')]"
             }
           }
         }
@@ -865,6 +1046,12 @@
           "enableFilesEntraKerberos": {
             "value": "[parameters('enableFilesEntraKerberos')]"
           },
+          "filesKerberosDomainName": {
+            "value": "[parameters('filesKerberosDomainName')]"
+          },
+          "filesKerberosDomainGuid": {
+            "value": "[parameters('filesKerberosDomainGuid')]"
+          },
           "privateEndpointSubnetId": "[if(equals(parameters('networkMode'), 'new'), createObject('value', reference(resourceId('Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.sessionHostSubnetId.value), createObject('value', parameters('existingSubnetResourceId')))]",
           "tags": {
             "value": "[parameters('tags')]"
@@ -877,7 +1064,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "7146142778913118114"
+              "templateHash": "7590175601994215281"
             }
           },
           "parameters": {
@@ -914,6 +1101,14 @@
             "enableFilesEntraKerberos": {
               "type": "bool"
             },
+            "filesKerberosDomainName": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "filesKerberosDomainGuid": {
+              "type": "string",
+              "defaultValue": ""
+            },
             "privateEndpointSubnetId": {
               "type": "string"
             },
@@ -942,7 +1137,7 @@
                 "name": "Premium_LRS"
               },
               "kind": "FileStorage",
-              "properties": "[union(createObject('minimumTlsVersion', 'TLS1_2', 'allowBlobPublicAccess', false(), 'allowSharedKeyAccess', true(), 'publicNetworkAccess', parameters('filesPublicNetworkAccess'), 'networkAcls', createObject('bypass', 'AzureServices', 'defaultAction', if(parameters('enableFilesPrivateEndpoint'), 'Deny', 'Allow'))), if(parameters('enableFilesEntraKerberos'), createObject('azureFilesIdentityBasedAuthentication', createObject('directoryServiceOptions', 'AADKERB', 'defaultSharePermission', 'None')), createObject()))]",
+              "properties": "[union(createObject('minimumTlsVersion', 'TLS1_2', 'allowBlobPublicAccess', false(), 'allowSharedKeyAccess', true(), 'publicNetworkAccess', parameters('filesPublicNetworkAccess'), 'networkAcls', createObject('bypass', 'AzureServices', 'defaultAction', if(parameters('enableFilesPrivateEndpoint'), 'Deny', 'Allow'))), if(parameters('enableFilesEntraKerberos'), createObject('azureFilesIdentityBasedAuthentication', union(createObject('directoryServiceOptions', 'AADKERB', 'defaultSharePermission', 'None'), if(or(empty(parameters('filesKerberosDomainName')), empty(parameters('filesKerberosDomainGuid'))), createObject(), createObject('activeDirectoryProperties', createObject('domainName', parameters('filesKerberosDomainName'), 'domainGuid', parameters('filesKerberosDomainGuid')))))), createObject()))]",
               "tags": "[parameters('tags')]"
             },
             {
@@ -1177,6 +1372,24 @@
           "marketplaceImageVersion": {
             "value": "[parameters('marketplaceImageVersion')]"
           },
+          "customImageResourceId": {
+            "value": "[parameters('customImageResourceId')]"
+          },
+          "sessionHostJoinType": {
+            "value": "[parameters('sessionHostJoinType')]"
+          },
+          "domainName": {
+            "value": "[parameters('domainName')]"
+          },
+          "domainJoinOuPath": {
+            "value": "[parameters('domainJoinOuPath')]"
+          },
+          "domainJoinUsernameSecretUri": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault'), '2025-04-01').outputs.domainJoinUserSecretUri.value]"
+          },
+          "domainJoinPasswordSecretUri": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault'), '2025-04-01').outputs.domainJoinPwdSecretUri.value]"
+          },
           "enrollSessionHostsInIntune": {
             "value": "[parameters('enrollSessionHostsInIntune')]"
           },
@@ -1236,7 +1449,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "196348589320796856"
+              "templateHash": "12840119060591930481"
             }
           },
           "parameters": {
@@ -1289,6 +1502,24 @@
               "type": "string"
             },
             "marketplaceImageVersion": {
+              "type": "string"
+            },
+            "customImageResourceId": {
+              "type": "string"
+            },
+            "sessionHostJoinType": {
+              "type": "string"
+            },
+            "domainName": {
+              "type": "string"
+            },
+            "domainJoinOuPath": {
+              "type": "string"
+            },
+            "domainJoinUsernameSecretUri": {
+              "type": "string"
+            },
+            "domainJoinPasswordSecretUri": {
               "type": "string"
             },
             "enrollSessionHostsInIntune": {
@@ -1347,7 +1578,14 @@
             "desktopVirtualizationUserRoleId": "1d18fff3-a72a-46b5-b4a9-0b38a3cd7e63",
             "virtualMachineUserLoginRoleId": "fb879df8-f326-4884-b1cf-06f3ad86be52",
             "intuneMdmProviderGuid": "0000000a-0000-0000-c000-000000000000",
-            "rdpProperties": "[if(parameters('entraSingleSignOn'), 'enablerdsaadauth:i:1', 'targetisaadjoined:i:1')]"
+            "joinsActiveDirectory": "[equals(parameters('sessionHostJoinType'), 'ActiveDirectory')]",
+            "rdpProperties": "[if(parameters('entraSingleSignOn'), 'enablerdsaadauth:i:1', if(variables('joinsActiveDirectory'), '', 'targetisaadjoined:i:1'))]",
+            "entraDomainInfo": "[union(createObject('joinType', 'AzureActiveDirectory'), if(parameters('enrollSessionHostsInIntune'), createObject('azureActiveDirectoryInfo', createObject('mdmProviderGuid', variables('intuneMdmProviderGuid'))), createObject()))]",
+            "activeDirectoryDomainInfo": {
+              "joinType": "ActiveDirectory",
+              "activeDirectoryInfo": "[union(createObject('domainCredentials', createObject('usernameKeyVaultSecretUri', parameters('domainJoinUsernameSecretUri'), 'passwordKeyVaultSecretUri', parameters('domainJoinPasswordSecretUri')), 'ouPath', parameters('domainJoinOuPath')), if(empty(parameters('domainName')), createObject(), createObject('domainName', parameters('domainName'))))]"
+            },
+            "imageInfo": "[if(empty(parameters('customImageResourceId')), createObject('type', 'Marketplace', 'marketplaceInfo', createObject('publisher', parameters('marketplaceImagePublisher'), 'offer', parameters('marketplaceImageOffer'), 'sku', parameters('marketplaceImageSku'), 'exactVersion', parameters('marketplaceImageVersion'))), createObject('type', 'Custom', 'customInfo', createObject('resourceId', parameters('customImageResourceId'))))]"
           },
           "resources": [
             {
@@ -1405,16 +1643,8 @@
                     "placement": "TempDisk"
                   }
                 },
-                "imageInfo": {
-                  "type": "Marketplace",
-                  "marketplaceInfo": {
-                    "publisher": "[parameters('marketplaceImagePublisher')]",
-                    "offer": "[parameters('marketplaceImageOffer')]",
-                    "sku": "[parameters('marketplaceImageSku')]",
-                    "exactVersion": "[parameters('marketplaceImageVersion')]"
-                  }
-                },
-                "domainInfo": "[union(createObject('joinType', 'AzureActiveDirectory'), if(parameters('enrollSessionHostsInIntune'), createObject('azureActiveDirectoryInfo', createObject('mdmProviderGuid', variables('intuneMdmProviderGuid'))), createObject()))]",
+                "imageInfo": "[variables('imageInfo')]",
+                "domainInfo": "[if(variables('joinsActiveDirectory'), variables('activeDirectoryDomainInfo'), variables('entraDomainInfo'))]",
                 "networkInfo": {
                   "subnetId": "[parameters('subnetId')]"
                 },
@@ -1536,7 +1766,7 @@
               ]
             },
             {
-              "condition": "[parameters('assignVirtualMachineUserLogin')]",
+              "condition": "[and(parameters('assignVirtualMachineUserLogin'), not(variables('joinsActiveDirectory')))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "name": "[guid(resourceGroup().id, parameters('pilotUsersGroupObjectId'), variables('virtualMachineUserLoginRoleId'))]",
@@ -1656,6 +1886,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('imageIdParts')[2], variables('imageIdParts')[4]), 'Microsoft.Resources/deployments', 'image-reader-role')]",
         "[resourceId('Microsoft.Resources/deployments', 'keyvault')]",
         "[resourceId('Microsoft.Resources/deployments', 'monitoring')]",
         "[resourceId('Microsoft.Resources/deployments', 'network')]",

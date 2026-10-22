@@ -27,7 +27,16 @@ Set $LandingZoneMode = $true for a policy-governed enterprise landing zone. It s
 
 Optional: $WorkloadPrefix, $SessionHostNamePrefix, $SessionHostCount, $SessionHostVmSize, $MaxSessionLimit,
 $ImageOffer, $ImageSku, $Tags (defaults to the resource group's own tags), $AvailabilityZones,
-$LocalAdminUsername, $TemplateUri, $WatchMinutes.
+$LocalAdminUsername, $TemplateUri, $WatchMinutes, $EntraSingleSignOn, $EnableFilesEntraKerberos,
+$FilesKerberosDomainName and $FilesKerberosDomainGuid.
+
+Custom image: set $CustomImageResourceId to an Azure Compute Gallery image version. It must be Generation 2 with
+security type TrustedLaunchSupported or TrustedLaunch, without the Azure Virtual Desktop agent installed.
+
+AD DS join (for a hybrid joined host pool): set $JoinType = 'ActiveDirectory', $DomainName, $DomainJoinOuPath
+(distinguished name) and $DomainJoinUsername. The script asks for the password unless $DomainJoinPassword is set.
+The join account needs extra rights on the OU, and the subnet needs line of sight to a domain controller. Use a
+different $WorkloadPrefix from any Microsoft Entra joined pool, as a host pool has one join type.
 
 .EXAMPLE
 $SubscriptionId = '00000000-0000-0000-0000-000000000000'
@@ -99,7 +108,50 @@ $offer = Value 'ImageOffer' 'office-365'
 $sku = Value 'ImageSku' 'win11-26h2-avd-m365'
 $image = Get-AzVMImage -Location $location -PublisherName 'MicrosoftWindowsDesktop' -Offer $offer -Skus $sku | Sort-Object { [version]$_.Version } | Select-Object -Last 1
 if (-not $image) { throw "No $offer / $sku image found in $location." }
-Ok "$offer / $sku version $($image.Version)"
+$customImage = Value 'CustomImageResourceId' ''
+if ($customImage) { Ok "Not used: the custom image below replaces $offer / $sku" } else { Ok "$offer / $sku version $($image.Version)" }
+
+if ($customImage) {
+    Step 'Custom image'
+    # Trusted launch, which the session hosts use, doesn't support managed images, and needs a Generation 2 image
+    # whose definition has security type TrustedLaunchSupported or TrustedLaunch.
+    # https://learn.microsoft.com/azure/virtual-machines/trusted-launch#unsupported-features
+    if ($customImage -notmatch '/providers/Microsoft\.Compute/galleries/[^/]+/images/[^/]+/versions/[^/]+$') {
+        throw '$CustomImageResourceId must be an Azure Compute Gallery image version (.../galleries/<gallery>/images/<definition>/versions/<version>). Managed images are not supported with Trusted launch.'
+    }
+    $imageParts = $customImage -split '/'
+    if ($imageParts[2] -ne $SubscriptionId) {
+        Warn "The gallery is in subscription $($imageParts[2]). Checks skipped; make sure the host pool identity can read it."
+    }
+    else {
+        $definition = Get-AzGalleryImageDefinition -ResourceGroupName $imageParts[4] -GalleryName $imageParts[8] -Name $imageParts[10]
+        $version = Get-AzGalleryImageVersion -ResourceGroupName $imageParts[4] -GalleryName $imageParts[8] -GalleryImageDefinitionName $imageParts[10] -Name $imageParts[12]
+        if ($definition.HyperVGeneration -ne 'V2') { throw "Image definition $($imageParts[10]) is $($definition.HyperVGeneration). Trusted launch hosts need Generation 2." }
+        $securityType = (@($definition.Features) + @($definition.Feature) | Where-Object { $_ -and $_.Name -eq 'SecurityType' } | Select-Object -First 1).Value
+        if ($securityType -notmatch '^TrustedLaunch') { throw "Image definition $($imageParts[10]) has security type '$securityType'. Trusted launch hosts need TrustedLaunchSupported or TrustedLaunch." }
+        $regions = @($version.PublishingProfile.TargetRegions | Where-Object { $_ } | ForEach-Object { ($_.Name -replace '\s', '').ToLower() })
+        if ($regions.Count -and $regions -notcontains $location.ToLower()) { Warn "Version $($imageParts[12]) isn't replicated to $location (regions: $($regions -join ', '))." }
+        Ok "$($imageParts[8]) / $($imageParts[10]) version $($imageParts[12]): Generation 2, $securityType, gallery in $($imageParts[4])"
+    }
+}
+
+$joinType = Value 'JoinType' 'EntraID'
+if ($joinType -notin 'EntraID', 'ActiveDirectory') { throw "`$JoinType must be EntraID or ActiveDirectory, not '$joinType'." }
+# PowerShell variable names aren't case-sensitive, so this mustn't be called $DomainJoinPassword.
+$joinPasswordPlain = ''
+if ($joinType -eq 'ActiveDirectory') {
+    Step 'AD DS domain join'
+    foreach ($n in 'DomainName', 'DomainJoinUsername') {
+        if (-not (Value $n $null)) { throw "Set `$$n for an AD DS join, then run this again." }
+    }
+    $secret = Value 'DomainJoinPassword' $null
+    if (-not $secret) { $secret = Read-Host -AsSecureString -Prompt "  Password for $DomainJoinUsername" }
+    $joinPasswordPlain = if ($secret -is [securestring]) { [System.Net.NetworkCredential]::new('', $secret).Password } else { "$secret" }
+    if (-not $joinPasswordPlain) { throw 'No domain join password entered.' }
+    Ok "Domain $DomainName, OU $(Value 'DomainJoinOuPath' '(domain default)'), account $DomainJoinUsername (stored in the Key Vault by the deployment)"
+    Note 'The join account needs Reset password, Validated write to DNS host name and to service principal name, and Read and Write account restrictions on descendant computer objects in the OU, as new hosts reuse computer objects.'
+    Note 'Learn: https://learn.microsoft.com/azure/virtual-desktop/deploy-azure-virtual-desktop#prerequisites'
+}
 
 Step 'Azure Virtual Desktop service principals'
 $avdSpId = ''; $armSpId = ''
@@ -143,7 +195,9 @@ $params = @{
     enableFilesPrivateEndpoint                             = $true
     filesPrivateDnsZoneMode                                = $(if ($lz) { 'ManagedByPolicy' } else { 'Create' })
     filesPublicNetworkAccess                               = $(if ($lz) { 'Disabled' } else { 'Enabled' })
-    enableFilesEntraKerberos                               = -not $lz
+    enableFilesEntraKerberos                               = [bool](Value 'EnableFilesEntraKerberos' (-not $lz))
+    filesKerberosDomainName                                = Value 'FilesKerberosDomainName' ''
+    filesKerberosDomainGuid                                = Value 'FilesKerberosDomainGuid' ''
     entraSingleSignOn                                      = [bool](Value 'EntraSingleSignOn' (-not $lz))
     assignVirtualMachineUserLogin                          = $lz
     deployScalingPlan                                      = [bool](Value 'DeployScalingPlan' (-not $lz))
@@ -162,6 +216,15 @@ $params = @{
     rampUpMinimumHostPoolSize                              = $hostCount
     rampUpMaximumHostPoolSize                              = [math]::Max($hostCount, 2)
     tags                                                   = $tags
+}
+if ($customImage) { $params.customImageResourceId = $customImage }
+if ($joinType -eq 'ActiveDirectory') {
+    $params.sessionHostJoinType = 'ActiveDirectory'
+    $params.domainName = $DomainName
+    $params.domainJoinOuPath = Value 'DomainJoinOuPath' ''
+    $params.domainJoinUsername = $DomainJoinUsername
+    $params.domainJoinPassword = $joinPasswordPlain
+    if ($params.entraSingleSignOn) { Warn 'Single sign-on on hybrid joined hosts needs a Kerberos server object in AD, or sign-in falls back or fails: https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on#create-a-kerberos-server-object' }
 }
 
 Step 'Deploying (10-30 minutes; if Cloud Shell times out, it carries on in Azure - watch it in the portal)'
@@ -225,4 +288,5 @@ else {
 
 Step 'Done'
 Write-Host '  Connect as the pilot user: https://windows.cloud.microsoft/' -ForegroundColor Green
-if (-not $params.entraSingleSignOn) { Write-Host '  Sign-in mode is credentials (targetisaadjoined): enter the pilot user name and password when the desktop starts.' }
+if ($joinType -eq 'ActiveDirectory' -and -not $params.entraSingleSignOn) { Write-Host '  The hosts are joined to AD DS: sign in with the pilot user''s domain credentials when the desktop starts.' }
+elseif (-not $params.entraSingleSignOn) { Write-Host '  Sign-in mode is credentials (targetisaadjoined): enter the pilot user name and password when the desktop starts.' }

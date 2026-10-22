@@ -82,6 +82,52 @@ $r = Invoke-AzVMRunCommand -ResourceGroupName 'rg-avd-pilot' -VMName 'avdpilot-0
 $r.Value | ForEach-Object { $_.Message }
 ```
 
+## Hybrid join and custom images
+
+The North Star joins session hosts to Microsoft Entra ID. Where apps still need Active Directory Domain Services (AD DS), a second host pool can join the domain instead. With Microsoft Entra hybrid join configured in the tenant, its hosts become Microsoft Entra hybrid joined. A host pool has one join type, so deploy the second pool with its own `workloadPrefix` and `sessionHostNamePrefix`.
+
+| Parameter | Value | Notes |
+| --- | --- | --- |
+| `sessionHostJoinType` | `ActiveDirectory` | Sets `domainInfo.joinType` in the session host configuration. The default, `EntraID`, is the North Star |
+| `domainName` | the AD DS domain | Optional in the [template reference](https://learn.microsoft.com/azure/templates/microsoft.desktopvirtualization/hostpools/sessionhostconfigurations) |
+| `domainJoinOuPath` | the OU's distinguished name | Required by the template reference. Empty uses the domain's default container |
+| `domainJoinUsername`, `domainJoinPassword` | the domain join account | Stored as two Key Vault secrets. The host pool's managed identity reads them with **Key Vault Secrets User** |
+| `customImageResourceId` | an Azure Compute Gallery image version | Leave empty for the Marketplace image |
+| `assignImageReaderToHostPoolIdentity` | `true` | Reader on the gallery's resource group, when it isn't this one. The identity creates the hosts, and the [Desktop Virtualization Virtual Machine Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/compute#desktop-virtualization-virtual-machine-contributor) role it holds here includes the gallery reads |
+
+Before you deploy an AD DS joined pool:
+
+- The join account needs more than the usual join rights, because new hosts reuse computer objects. Learn lists these on the OU, all **Allow** on **Descendant Computer objects**: **Reset password**, **Validated write to DNS host name**, **Validated write to service principal name**, **Read account restrictions** and **Write account restrictions**. Since KB5020276, reusing a computer object also needs the join account to be its creator, a Domain Admins member to have created it, or the Group Policy setting **Domain controller: Allow computer account re-use during domain join** ([prerequisites](https://learn.microsoft.com/azure/virtual-desktop/deploy-azure-virtual-desktop#prerequisites)).
+- The subnet needs line of sight to a domain controller, and DNS servers that resolve the domain.
+- Without single sign-on, users sign in with their domain credentials, so the pool doesn't need `targetisaadjoined:i:1`. Single sign-on works on Microsoft Entra hybrid joined hosts, but needs a [Kerberos server object](https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on#create-a-kerberos-server-object) in AD first. Hosts joined to AD DS only aren't supported for single sign-on.
+
+A custom image must be:
+
+- an Azure Compute Gallery image version. The session hosts are Trusted launch VMs, which [don't support managed images](https://learn.microsoft.com/azure/virtual-machines/trusted-launch#unsupported-features);
+- Generation 2, with security type `TrustedLaunchSupported` or `TrustedLaunch` on the image definition ([Trusted launch from a gallery image](https://learn.microsoft.com/azure/virtual-machines/trusted-launch-portal#deploy-a-trusted-launch-vm-from-an-azure-compute-gallery-image));
+- replicated to the host pool's region;
+- without the Azure Virtual Desktop agent installed, which can block registration ([prepare an image](https://learn.microsoft.com/azure/virtual-desktop/set-up-customize-master-image)).
+
+The Cloud Shell script takes the same values. It checks the image definition before deploying, and asks for the join account's password unless `$DomainJoinPassword` is set:
+
+```powershell
+$SubscriptionId = '00000000-0000-0000-0000-000000000000'
+$ResourceGroupName = 'rg-avd-pilot'
+$SubnetId = '/subscriptions/.../resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-spoke/subnets/snet-avd'
+$PilotUserPrincipalName = 'pilot.user@contoso.com'
+$LandingZoneMode = $true
+$WorkloadPrefix = 'avdhybrid'
+$SessionHostNamePrefix = 'avdhyb'
+$JoinType = 'ActiveDirectory'
+$DomainName = 'corp.contoso.com'
+$DomainJoinOuPath = 'OU=AVD,OU=Computers,DC=corp,DC=contoso,DC=com'
+$DomainJoinUsername = 'avdjoin@corp.contoso.com'
+$CustomImageResourceId = '/subscriptions/.../resourceGroups/rg-images/providers/Microsoft.Compute/galleries/gal_avd/images/win11-multisession/versions/1.0.0'
+irm https://raw.githubusercontent.com/marckean/AVD-Reference_Architecture/main/deploy/scripts/Deploy-NorthStarPilot.ps1 | iex
+```
+
+For FSLogix on Azure Files, `enableFilesEntraKerberos` with `filesKerberosDomainName` and `filesKerberosDomainGuid` turns on Microsoft Entra Kerberos with the AD DS domain details. They're optional, and let you set directory and file permissions from File Explorer ([Enable Microsoft Entra Kerberos](https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable#enable-microsoft-entra-kerberos-authentication)). In the script, set `$EnableFilesEntraKerberos = $true`, `$FilesKerberosDomainName` and `$FilesKerberosDomainGuid`. A tenant admin still grants the storage app's consent afterwards.
+
 ## Cost drivers
 
 No prices are hard-coded here because costs depend on region, commitment, VM family, storage capacity, profile growth, data retention and network egress. The main cost drivers are:

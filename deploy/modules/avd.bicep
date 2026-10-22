@@ -15,6 +15,12 @@ param marketplaceImagePublisher string
 param marketplaceImageOffer string
 param marketplaceImageSku string
 param marketplaceImageVersion string
+param customImageResourceId string
+param sessionHostJoinType string
+param domainName string
+param domainJoinOuPath string
+param domainJoinUsernameSecretUri string
+param domainJoinPasswordSecretUri string
 param enrollSessionHostsInIntune bool
 param availabilityZones array
 param scalingTimeZone string
@@ -36,10 +42,58 @@ param tags object
 var desktopVirtualizationUserRoleId = '1d18fff3-a72a-46b5-b4a9-0b38a3cd7e63'
 var virtualMachineUserLoginRoleId = 'fb879df8-f326-4884-b1cf-06f3ad86be52'
 var intuneMdmProviderGuid = '0000000a-0000-0000-c000-000000000000'
-// Single sign-on needs Microsoft Entra authentication for RDP enabled in the tenant. Without it, Learn says to add
-// targetisaadjoined:i:1 so users sign in to Microsoft Entra joined hosts with their credentials.
+var joinsActiveDirectory = sessionHostJoinType == 'ActiveDirectory'
+// Single sign-on needs Microsoft Entra authentication for RDP enabled in the tenant, and works on Microsoft Entra
+// joined and Microsoft Entra hybrid joined hosts. Without it, Learn says to add targetisaadjoined:i:1 so users sign
+// in to Microsoft Entra joined hosts with their credentials. Hosts joined to AD DS need neither: users sign in with
+// their domain credentials.
 // https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts#access-microsoft-entra-joined-vms
-var rdpProperties = entraSingleSignOn ? 'enablerdsaadauth:i:1' : 'targetisaadjoined:i:1'
+// https://learn.microsoft.com/azure/virtual-desktop/configure-single-sign-on#prerequisites
+var rdpProperties = entraSingleSignOn ? 'enablerdsaadauth:i:1' : (joinsActiveDirectory ? '' : 'targetisaadjoined:i:1')
+
+// azureActiveDirectoryInfo is optional. When present, the AVD agent enrols each new host in Intune, and a failed
+// enrolment fails provisioning with MdmJoinFailed (found in live testing). Omitting it gives Entra join only.
+// An AD DS join takes activeDirectoryInfo instead: the join account's Key Vault secrets and the OU path, which the
+// template reference marks required (empty means the domain's default container). The domain name is optional.
+// https://learn.microsoft.com/azure/templates/microsoft.desktopvirtualization/hostpools/sessionhostconfigurations
+var entraDomainInfo = union({
+  joinType: 'AzureActiveDirectory'
+}, enrollSessionHostsInIntune ? {
+  azureActiveDirectoryInfo: {
+    mdmProviderGuid: intuneMdmProviderGuid
+  }
+} : {})
+var activeDirectoryDomainInfo = {
+  joinType: 'ActiveDirectory'
+  activeDirectoryInfo: union({
+    domainCredentials: {
+      usernameKeyVaultSecretUri: domainJoinUsernameSecretUri
+      passwordKeyVaultSecretUri: domainJoinPasswordSecretUri
+    }
+    ouPath: domainJoinOuPath
+  }, empty(domainName) ? {} : {
+    domainName: domainName
+  })
+}
+
+// A custom image is an Azure Compute Gallery image version. It must be Generation 2 and support Trusted launch,
+// because the hosts below are Trusted launch VMs, which don't support managed images.
+// https://learn.microsoft.com/azure/virtual-machines/trusted-launch-portal#deploy-a-trusted-launch-vm-from-an-azure-compute-gallery-image
+// https://learn.microsoft.com/azure/virtual-machines/trusted-launch#unsupported-features
+var imageInfo = empty(customImageResourceId) ? {
+  type: 'Marketplace'
+  marketplaceInfo: {
+    publisher: marketplaceImagePublisher
+    offer: marketplaceImageOffer
+    sku: marketplaceImageSku
+    exactVersion: marketplaceImageVersion
+  }
+} : {
+  type: 'Custom'
+  customInfo: {
+    resourceId: customImageResourceId
+  }
+}
 
 resource hostPool 'Microsoft.DesktopVirtualization/hostPools@2026-04-01-preview' = {
   name: hostPoolName
@@ -97,25 +151,8 @@ resource sessionHostConfiguration 'Microsoft.DesktopVirtualization/hostPools/ses
         placement: 'TempDisk'
       }
     }
-    imageInfo: {
-      type: 'Marketplace'
-      marketplaceInfo: {
-        publisher: marketplaceImagePublisher
-        offer: marketplaceImageOffer
-        sku: marketplaceImageSku
-        exactVersion: marketplaceImageVersion
-      }
-    }
-    // azureActiveDirectoryInfo is optional. When present, the AVD agent enrols each new host in Intune, and a failed
-    // enrolment fails provisioning with MdmJoinFailed (found in live testing). Omitting it gives Entra join only.
-    // https://learn.microsoft.com/azure/templates/microsoft.desktopvirtualization/hostpools/sessionhostconfigurations
-    domainInfo: union({
-      joinType: 'AzureActiveDirectory'
-    }, enrollSessionHostsInIntune ? {
-      azureActiveDirectoryInfo: {
-        mdmProviderGuid: intuneMdmProviderGuid
-      }
-    } : {})
+    imageInfo: imageInfo
+    domainInfo: joinsActiveDirectory ? activeDirectoryDomainInfo : entraDomainInfo
     networkInfo: {
       subnetId: subnetId
     }
@@ -268,9 +305,10 @@ resource usersDesktopVirtualizationUser 'Microsoft.Authorization/roleAssignments
 }
 
 // Learn: for Microsoft Entra joined VMs in host pools using a session host configuration, Virtual Machine User Login
-// "isn't required". It's offered as a safeguard for credential sign-in and stays off by default.
+// "isn't required". It's offered as a safeguard for credential sign-in and stays off by default. It doesn't apply to
+// hosts joined to AD DS, where users sign in with their domain credentials.
 // https://learn.microsoft.com/azure/virtual-desktop/azure-ad-joined-session-hosts#assign-user-access-to-host-pools
-resource usersVirtualMachineUserLogin 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (assignVirtualMachineUserLogin) {
+resource usersVirtualMachineUserLogin 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (assignVirtualMachineUserLogin && !joinsActiveDirectory) {
   name: guid(resourceGroup().id, pilotUsersGroupObjectId, virtualMachineUserLoginRoleId)
   scope: resourceGroup()
   properties: {

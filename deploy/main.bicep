@@ -149,6 +149,39 @@ param marketplaceImageVersion string
 @description('Enrol session hosts in Microsoft Intune as they are created. Keep true for the North Star. The tenant needs Intune licences and automatic MDM enrolment configured, or session host provisioning fails with MdmJoinFailed. Set false only for a lab without Intune.')
 param enrollSessionHostsInIntune bool = true
 
+@description('How session hosts join a directory. EntraID is the North Star. ActiveDirectory joins an AD DS domain, for apps that still need it; with Microsoft Entra hybrid join configured in the tenant, the hosts become Microsoft Entra hybrid joined. AD DS join needs line of sight to a domain controller and DNS that resolves the domain.')
+@allowed([
+  'EntraID'
+  'ActiveDirectory'
+])
+param sessionHostJoinType string = 'EntraID'
+
+@description('AD DS domain to join, for example corp.contoso.com. Used when sessionHostJoinType is ActiveDirectory.')
+param domainName string = ''
+
+@description('Distinguished name of the OU for the session host computer objects, for example OU=AVD,OU=Computers,DC=corp,DC=contoso,DC=com. Leave empty for the domain default container. Used when sessionHostJoinType is ActiveDirectory.')
+param domainJoinOuPath string = ''
+
+@description('Domain join account, stored in Key Vault, for example avdjoin@corp.contoso.com. It needs extra rights on the OU because new hosts reuse computer objects. Used when sessionHostJoinType is ActiveDirectory.')
+@secure()
+param domainJoinUsername string = ''
+
+@description('Domain join account password, stored in Key Vault. Used when sessionHostJoinType is ActiveDirectory.')
+@secure()
+param domainJoinPassword string = ''
+
+@description('Resource ID of an Azure Compute Gallery image version for a custom image. Leave empty to use the Marketplace image. The image must be Generation 2 with security type TrustedLaunchSupported or TrustedLaunch, and not have the Azure Virtual Desktop agent installed. Managed images are not supported with Trusted launch.')
+param customImageResourceId string = ''
+
+@description('Give the host pool managed identity Reader on the custom image gallery resource group, so it can read the image when it creates hosts. Not needed when the gallery is in this resource group.')
+param assignImageReaderToHostPoolIdentity bool = true
+
+@description('AD DS domain name for Microsoft Entra Kerberos on Azure Files, for example corp.contoso.com. Optional: with filesKerberosDomainGuid, it lets you set directory and file permissions from File Explorer.')
+param filesKerberosDomainName string = ''
+
+@description('AD DS domain GUID for Microsoft Entra Kerberos on Azure Files. Set it together with filesKerberosDomainName.')
+param filesKerberosDomainGuid string = ''
+
 @description('Availability zones for session hosts. Leave empty in regions or subscriptions where the selected VM size does not support zones.')
 param availabilityZones array = [
   1
@@ -231,6 +264,18 @@ module subnetJoin 'modules/subnet-join-role.bicep' = if (networkMode == 'existin
   }
 }
 
+// A placeholder keeps the indexes valid when no custom image is supplied.
+var imageIdParts = split(empty(customImageResourceId) ? '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Compute/images/none' : customImageResourceId, '/')
+var imageInThisResourceGroup = toLower('${imageIdParts[2]}/${imageIdParts[4]}') == toLower('${subscription().subscriptionId}/${resourceGroup().name}')
+
+module imageReader 'modules/image-reader-role.bicep' = if (!empty(customImageResourceId) && assignImageReaderToHostPoolIdentity && !imageInThisResourceGroup) {
+  name: 'image-reader-role'
+  scope: resourceGroup(imageIdParts[2], imageIdParts[4])
+  params: {
+    principalId: hostPoolIdentity.properties.principalId
+  }
+}
+
 module monitoring 'modules/monitoring.bicep' = {
   name: 'monitoring'
   params: {
@@ -248,6 +293,9 @@ module keyVault 'modules/keyvault.bicep' = {
     localAdminUsername: localAdminUsername
     localAdminPassword: localAdminPassword
     hostPoolIdentityPrincipalId: hostPoolIdentity.properties.principalId
+    createDomainJoinSecrets: sessionHostJoinType == 'ActiveDirectory'
+    domainJoinUsername: domainJoinUsername
+    domainJoinPassword: domainJoinPassword
     tags: tags
   }
 }
@@ -266,6 +314,8 @@ module storage 'modules/storage.bicep' = {
     existingFilesPrivateDnsZoneId: existingFilesPrivateDnsZoneId
     filesPublicNetworkAccess: filesPublicNetworkAccess
     enableFilesEntraKerberos: enableFilesEntraKerberos
+    filesKerberosDomainName: filesKerberosDomainName
+    filesKerberosDomainGuid: filesKerberosDomainGuid
     privateEndpointSubnetId: sessionHostSubnetId
     tags: tags
   }
@@ -291,6 +341,12 @@ module avd 'modules/avd.bicep' = {
     marketplaceImageOffer: marketplaceImageOffer
     marketplaceImageSku: marketplaceImageSku
     marketplaceImageVersion: marketplaceImageVersion
+    customImageResourceId: customImageResourceId
+    sessionHostJoinType: sessionHostJoinType
+    domainName: domainName
+    domainJoinOuPath: domainJoinOuPath
+    domainJoinUsernameSecretUri: keyVault.outputs.domainJoinUserSecretUri
+    domainJoinPasswordSecretUri: keyVault.outputs.domainJoinPwdSecretUri
     enrollSessionHostsInIntune: enrollSessionHostsInIntune
     availabilityZones: availabilityZones
     scalingTimeZone: scalingTimeZone
@@ -311,6 +367,7 @@ module avd 'modules/avd.bicep' = {
   }
   dependsOn: [
     subnetJoin
+    imageReader
   ]
 }
 

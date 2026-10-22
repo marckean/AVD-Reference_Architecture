@@ -9,6 +9,8 @@ param filesPrivateDnsZoneMode string
 param existingFilesPrivateDnsZoneId string
 param filesPublicNetworkAccess string
 param enableFilesEntraKerberos bool
+param filesKerberosDomainName string = ''
+param filesKerberosDomainGuid string = ''
 param privateEndpointSubnetId string
 param tags object
 
@@ -41,11 +43,19 @@ resource storage 'Microsoft.Storage/storageAccounts@2026-06-01' = {
       bypass: 'AzureServices'
       defaultAction: enableFilesPrivateEndpoint ? 'Deny' : 'Allow'
     }
+  // The AD DS domain name and GUID are optional for Microsoft Entra Kerberos. With them, directory and file
+  // permissions can be set from File Explorer; without them, icacls works from a client with line of sight to AD.
+  // https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable#enable-microsoft-entra-kerberos-authentication
   }, enableFilesEntraKerberos ? {
-    azureFilesIdentityBasedAuthentication: {
+    azureFilesIdentityBasedAuthentication: union({
       directoryServiceOptions: 'AADKERB'
       defaultSharePermission: 'None'
-    }
+    }, empty(filesKerberosDomainName) || empty(filesKerberosDomainGuid) ? {} : {
+      activeDirectoryProperties: {
+        domainName: filesKerberosDomainName
+        domainGuid: filesKerberosDomainGuid
+      }
+    })
   } : {})
   tags: tags
 }
