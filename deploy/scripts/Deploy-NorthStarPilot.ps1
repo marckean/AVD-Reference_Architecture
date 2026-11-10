@@ -30,6 +30,10 @@ $ImageOffer, $ImageSku, $Tags (defaults to the resource group's own tags), $Avai
 $LocalAdminUsername, $TemplateUri, $WatchMinutes, $EntraSingleSignOn, $EnableFilesEntraKerberos,
 $FilesKerberosDomainName and $FilesKerberosDomainGuid.
 
+Display names: users see $WorkspaceFriendlyName as the heading in Windows App, and $DesktopFriendlyName on the
+desktop tile. $ApplicationGroupFriendlyName and $HostPoolFriendlyName name those resources too. Unset, the
+template's Contoso names apply. A template can't set the desktop's name, so this script sets it after deploying.
+
 Custom image: set $CustomImageResourceId to an Azure Compute Gallery image version. It must be Generation 2 with
 security type TrustedLaunchSupported or TrustedLaunch, without the Azure Virtual Desktop agent installed.
 
@@ -218,6 +222,11 @@ $params = @{
     tags                                                   = $tags
 }
 if ($customImage) { $params.customImageResourceId = $customImage }
+# Display names: only sent when set, so the template's defaults apply otherwise.
+foreach ($name in 'WorkspaceFriendlyName', 'ApplicationGroupFriendlyName', 'HostPoolFriendlyName') {
+    $friendly = Value $name ''
+    if ($friendly) { $params[$name.Substring(0, 1).ToLowerInvariant() + $name.Substring(1)] = "$friendly" }
+}
 if ($joinType -eq 'ActiveDirectory') {
     $params.sessionHostJoinType = 'ActiveDirectory'
     $params.domainName = $DomainName
@@ -267,6 +276,21 @@ for ($attempt = 1; $attempt -le $maxAttempts -and -not $deployment; $attempt++) 
 $o = $deployment.Outputs
 Ok "Host pool $($o.hostPoolName.Value), workspace $($o.workspaceName.Value), desktop app group $($o.desktopApplicationGroupName.Value)"
 Ok "App Attach share $($o.appAttachSharePath.Value)"
+
+# A template can't set the display name on the desktop tile (the applicationGroups/desktops resource has no
+# writable properties), so set it here, as Learn's feed customisation steps do.
+# https://learn.microsoft.com/azure/virtual-desktop/customize-feed-for-virtual-desktop-users#customize-the-display-name-for-a-desktop-or-application
+$desktopFriendlyName = Value 'DesktopFriendlyName' ''
+if ($desktopFriendlyName) {
+    try {
+        $appGroupName = $o.desktopApplicationGroupName.Value
+        $desktop = @(Get-AzWvdDesktop -ResourceGroupName $ResourceGroupName -ApplicationGroupName $appGroupName -ErrorAction Stop) | Select-Object -First 1
+        $desktopName = ("$($desktop.Name)" -split '/')[-1]
+        Update-AzWvdDesktop -ResourceGroupName $ResourceGroupName -ApplicationGroupName $appGroupName -Name $desktopName -FriendlyName "$desktopFriendlyName" -ErrorAction Stop | Out-Null
+        Ok "Desktop display name: $desktopFriendlyName"
+    }
+    catch { Warn "Couldn't set the desktop display name: $($_.Exception.Message) Set it in the portal: the application group > Applications > the desktop > Display name." }
+}
 
 Step "Watching the session hosts register (up to $(Value 'WatchMinutes' 15) minutes)"
 $deadline = (Get-Date).AddMinutes([int](Value 'WatchMinutes' 15))

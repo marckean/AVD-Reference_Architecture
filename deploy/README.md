@@ -128,6 +128,32 @@ irm https://raw.githubusercontent.com/marckean/AVD-Reference_Architecture/main/d
 
 For FSLogix on Azure Files, `enableFilesEntraKerberos` with `filesKerberosDomainName` and `filesKerberosDomainGuid` turns on Microsoft Entra Kerberos with the AD DS domain details. They're optional, and let you set directory and file permissions from File Explorer ([Enable Microsoft Entra Kerberos](https://learn.microsoft.com/azure/storage/files/storage-files-identity-auth-hybrid-identities-enable#enable-microsoft-entra-kerberos-authentication)). In the script, set `$EnableFilesEntraKerberos = $true`, `$FilesKerberosDomainName` and `$FilesKerberosDomainGuid`. A tenant admin still grants the storage app's consent afterwards.
 
+## Display names users see
+
+Windows App shows the workspace's display name as a heading, and the desktop's own display name on its tile. The defaults are this reference's Contoso names, so set your own for a real pilot. With 2 host pools, give each workspace and desktop a different name, or users see 2 identical tiles.
+
+| Template parameter | Script variable | Default | What it names |
+| --- | --- | --- | --- |
+| `workspaceFriendlyName` | `$WorkspaceFriendlyName` | Contoso North Star workspace | The heading in Windows App |
+| none | `$DesktopFriendlyName` | Set by the service (SessionDesktop on deployments from this template) | The desktop tile in Windows App |
+| `applicationGroupFriendlyName` | `$ApplicationGroupFriendlyName` | Contoso pilot desktop | The desktop application group |
+| `hostPoolFriendlyName` | `$HostPoolFriendlyName` | Contoso North Star pooled host pool | The host pool |
+
+A template can't set the desktop's display name, because the `applicationGroups/desktops` resource has no settable properties ([template reference](https://learn.microsoft.com/azure/templates/microsoft.desktopvirtualization/applicationgroups/desktops)). The script sets it after deploying with `Update-AzWvdDesktop`. After a portal deployment, change it in the portal: the application group, then **Applications**, the desktop and **Display name** ([customize the feed](https://learn.microsoft.com/azure/virtual-desktop/customize-feed-for-virtual-desktop-users#customize-the-display-name-for-a-desktop-or-application)).
+
+```powershell
+$WorkspaceFriendlyName = 'Contoso AVD pilot - hybrid'
+$DesktopFriendlyName = 'Hybrid multi-session desktop'
+```
+
+To rename an existing pool by hand in Cloud Shell, set the subscription first, because a new Cloud Shell session starts in the first subscription it finds:
+
+```powershell
+Set-AzContext -Subscription '00000000-0000-0000-0000-000000000000'
+Update-AzWvdWorkspace -ResourceGroupName 'rg-avd-pilot' -Name 'contosoavd-ws' -FriendlyName 'Contoso AVD pilot'
+Update-AzWvdDesktop -ResourceGroupName 'rg-avd-pilot' -ApplicationGroupName 'contosoavd-dag' -Name 'SessionDesktop' -FriendlyName 'Pilot desktop'
+```
+
 ## Cost drivers
 
 No prices are hard-coded here because costs depend on region, commitment, VM family, storage capacity, profile growth, data retention and network egress. The main cost drivers are:

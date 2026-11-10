@@ -126,6 +126,15 @@ param sessionHostNamePrefix string = 'ctavd'
 @maxValue(40)
 param maxSessionLimit int = 12
 
+@description('Display name of the workspace. Users see it as the heading above their desktops in Windows App, so use a name they recognise for a real pilot.')
+param workspaceFriendlyName string = 'Contoso North Star workspace'
+
+@description('Display name of the desktop application group. The desktop tile users see has its own display name, which a template cannot set: Deploy-NorthStarPilot.ps1 sets it from $DesktopFriendlyName.')
+param applicationGroupFriendlyName string = 'Contoso pilot desktop'
+
+@description('Display name of the host pool.')
+param hostPoolFriendlyName string = 'Contoso North Star pooled host pool'
+
 @description('Windows 11 Enterprise multi-session image family.')
 @allowed([
   'win11-26h2-avd'
@@ -329,6 +338,9 @@ module avd 'modules/avd.bicep' = {
     hostPoolDeploymentScope: hostPoolDeploymentScope
     appGroupName: appGroupName
     workspaceName: avdWorkspaceName
+    hostPoolFriendlyName: hostPoolFriendlyName
+    applicationGroupFriendlyName: applicationGroupFriendlyName
+    workspaceFriendlyName: workspaceFriendlyName
     scalingPlanName: scalingPlanName
     hostPoolIdentityResourceId: hostPoolIdentity.id
     sessionHostNamePrefix: sessionHostNamePrefix

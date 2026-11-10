@@ -46,6 +46,17 @@
           ]
         },
         "visible": true
+      },
+      {
+        "name": "workspaceFriendlyName",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Workspace display name",
+        "defaultValue": "Contoso North Star workspace",
+        "toolTip": "Users see this as the heading above their desktops in Windows App. The desktop tile has its own display name, which you can change after deployment: the application group, then Applications, the desktop and Display name.",
+        "constraints": {
+          "required": true
+        },
+        "visible": true
       }
     ],
     "steps": [
@@ -658,6 +669,7 @@
     ],
     "outputs": {
       "workloadPrefix": "[basics('workloadPrefix')]",
+      "workspaceFriendlyName": "[basics('workspaceFriendlyName')]",
       "location": "[location()]",
       "pilotUsersGroupObjectId": "[steps('identityAccess').pilotUsersGroupObjectId]",
       "localAdminUsername": "[steps('identityAccess').localAdminUsername]",

@@ -3,6 +3,9 @@ param hostPoolName string
 param hostPoolDeploymentScope string
 param appGroupName string
 param workspaceName string
+param hostPoolFriendlyName string
+param applicationGroupFriendlyName string
+param workspaceFriendlyName string
 param scalingPlanName string
 param hostPoolIdentityResourceId string
 param sessionHostNamePrefix string
@@ -105,7 +108,7 @@ resource hostPool 'Microsoft.DesktopVirtualization/hostPools@2026-04-01-preview'
     }
   }
   properties: {
-    friendlyName: 'Contoso North Star pooled host pool'
+    friendlyName: hostPoolFriendlyName
     description: 'Pilot pooled host pool using session host configuration and dynamic autoscaling.'
     hostPoolType: 'Pooled'
     preferredAppGroupType: 'Desktop'
@@ -197,13 +200,18 @@ resource sessionHostManagement 'Microsoft.DesktopVirtualization/hostPools/sessio
   ]
 }
 
+// Users see the desktop's own display name on its tile, not the application group's friendly name. A template
+// can't set it, because the applicationGroups/desktops resource has no writable properties, so
+// Deploy-NorthStarPilot.ps1 sets it after the deployment with Update-AzWvdDesktop ($DesktopFriendlyName).
+// https://learn.microsoft.com/azure/templates/microsoft.desktopvirtualization/applicationgroups/desktops
+// https://learn.microsoft.com/azure/virtual-desktop/customize-feed-for-virtual-desktop-users#customize-the-display-name-for-a-desktop-or-application
 resource desktopApplicationGroup 'Microsoft.DesktopVirtualization/applicationGroups@2026-04-01-preview' = {
   name: appGroupName
   location: location
   properties: {
     applicationGroupType: 'Desktop'
     hostPoolArmPath: hostPool.id
-    friendlyName: 'Contoso pilot desktop'
+    friendlyName: applicationGroupFriendlyName
     description: 'Desktop application group for the North Star pilot.'
   }
   tags: tags
@@ -213,7 +221,7 @@ resource workspace 'Microsoft.DesktopVirtualization/workspaces@2026-04-01-previe
   name: workspaceName
   location: location
   properties: {
-    friendlyName: 'Contoso North Star workspace'
+    friendlyName: workspaceFriendlyName
     description: 'Workspace for the North Star pilot desktop.'
     publicNetworkAccess: 'Enabled'
     applicationGroupReferences: [

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "10229155823069963203"
+      "templateHash": "2911426867413406993"
     }
   },
   "parameters": {
@@ -240,6 +240,27 @@
       "maxValue": 40,
       "metadata": {
         "description": "Maximum sessions per session host. Validate this through a pilot before production."
+      }
+    },
+    "workspaceFriendlyName": {
+      "type": "string",
+      "defaultValue": "Contoso North Star workspace",
+      "metadata": {
+        "description": "Display name of the workspace. Users see it as the heading above their desktops in Windows App, so use a name they recognise for a real pilot."
+      }
+    },
+    "applicationGroupFriendlyName": {
+      "type": "string",
+      "defaultValue": "Contoso pilot desktop",
+      "metadata": {
+        "description": "Display name of the desktop application group. The desktop tile users see has its own display name, which a template cannot set: Deploy-NorthStarPilot.ps1 sets it from $DesktopFriendlyName."
+      }
+    },
+    "hostPoolFriendlyName": {
+      "type": "string",
+      "defaultValue": "Contoso North Star pooled host pool",
+      "metadata": {
+        "description": "Display name of the host pool."
       }
     },
     "marketplaceImageSku": {
@@ -1338,6 +1359,15 @@
           "workspaceName": {
             "value": "[variables('avdWorkspaceName')]"
           },
+          "hostPoolFriendlyName": {
+            "value": "[parameters('hostPoolFriendlyName')]"
+          },
+          "applicationGroupFriendlyName": {
+            "value": "[parameters('applicationGroupFriendlyName')]"
+          },
+          "workspaceFriendlyName": {
+            "value": "[parameters('workspaceFriendlyName')]"
+          },
           "scalingPlanName": {
             "value": "[variables('scalingPlanName')]"
           },
@@ -1449,7 +1479,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "12840119060591930481"
+              "templateHash": "15022193115678624201"
             }
           },
           "parameters": {
@@ -1466,6 +1496,15 @@
               "type": "string"
             },
             "workspaceName": {
+              "type": "string"
+            },
+            "hostPoolFriendlyName": {
+              "type": "string"
+            },
+            "applicationGroupFriendlyName": {
+              "type": "string"
+            },
+            "workspaceFriendlyName": {
               "type": "string"
             },
             "scalingPlanName": {
@@ -1600,7 +1639,7 @@
                 }
               },
               "properties": {
-                "friendlyName": "Contoso North Star pooled host pool",
+                "friendlyName": "[parameters('hostPoolFriendlyName')]",
                 "description": "Pilot pooled host pool using session host configuration and dynamic autoscaling.",
                 "hostPoolType": "Pooled",
                 "preferredAppGroupType": "Desktop",
@@ -1697,7 +1736,7 @@
               "properties": {
                 "applicationGroupType": "Desktop",
                 "hostPoolArmPath": "[resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostPoolName'))]",
-                "friendlyName": "Contoso pilot desktop",
+                "friendlyName": "[parameters('applicationGroupFriendlyName')]",
                 "description": "Desktop application group for the North Star pilot."
               },
               "tags": "[parameters('tags')]",
@@ -1711,7 +1750,7 @@
               "name": "[parameters('workspaceName')]",
               "location": "[parameters('location')]",
               "properties": {
-                "friendlyName": "Contoso North Star workspace",
+                "friendlyName": "[parameters('workspaceFriendlyName')]",
                 "description": "Workspace for the North Star pilot desktop.",
                 "publicNetworkAccess": "Enabled",
                 "applicationGroupReferences": [
