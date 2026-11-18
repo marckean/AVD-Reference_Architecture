@@ -1,0 +1,48 @@
+{
+  "schema": "pd-intune-policy/1",
+  "name": "Windows update ring",
+  "kind": "deviceConfiguration",
+  "optional": false,
+  "description": "Quality updates install automatically outside active hours (7 am to 7 pm) with a 3-day deadline and a 2-day grace period. Feature updates are deferred 30 days. Drivers are excluded because the hosts are Azure VMs.",
+  "portalPath": "Intune admin center > Devices > Windows updates > Update rings > Create profile: quality deferral 0, feature deferral 30, automatic update behaviour = Auto install at maintenance time, active hours 7 to 19, quality deadline 3, feature deadline 7, grace period 2, Windows drivers = Block",
+  "learn": [
+    "https://learn.microsoft.com/graph/api/intune-deviceconfig-windowsupdateforbusinessconfiguration-create?view=graph-rest-beta"
+  ],
+  "reviewNotes": [
+    "To keep personal desktops on one Windows version for the whole pilot, add a Windows feature update policy for that version as well.",
+    "Pooled hosts are normally rebuilt from an updated image instead; this ring is for personal desktops."
+  ],
+  "graph": {
+    "collection": "beta/deviceManagement/deviceConfigurations",
+    "nameProperty": "displayName"
+  },
+  "body": {
+    "@odata.type": "#microsoft.graph.windowsUpdateForBusinessConfiguration",
+    "deliveryOptimizationMode": "httpOnly",
+    "prereleaseFeatures": "notAllowed",
+    "automaticUpdateMode": "autoInstallAtMaintenanceTime",
+    "microsoftUpdateServiceAllowed": true,
+    "driversExcluded": true,
+    "installationSchedule": {
+      "@odata.type": "#microsoft.graph.windowsUpdateActiveHoursInstall",
+      "activeHoursStart": "07:00:00.0000000",
+      "activeHoursEnd": "19:00:00.0000000"
+    },
+    "qualityUpdatesDeferralPeriodInDays": 0,
+    "featureUpdatesDeferralPeriodInDays": 30,
+    "qualityUpdatesPaused": false,
+    "featureUpdatesPaused": false,
+    "businessReadyUpdatesOnly": "all",
+    "skipChecksBeforeRestart": false,
+    "featureUpdatesRollbackWindowInDays": 10,
+    "deadlineForFeatureUpdatesInDays": 7,
+    "deadlineForQualityUpdatesInDays": 3,
+    "deadlineGracePeriodInDays": 2,
+    "postponeRebootUntilAfterDeadline": false,
+    "autoRestartNotificationDismissal": "notConfigured",
+    "userPauseAccess": "disabled",
+    "userWindowsUpdateScanAccess": "enabled",
+    "updateNotificationLevel": "defaultNotifications",
+    "allowWindows11Upgrade": false
+  }
+}

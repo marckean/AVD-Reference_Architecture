@@ -1,0 +1,40 @@
+{
+  "schema": "pd-intune-policy/1",
+  "name": "Windows compliance",
+  "kind": "compliancePolicy",
+  "optional": false,
+  "description": "Personal desktop compliance: a supported Windows 11 build and a running antivirus that registers with Windows Security Center (Microsoft Defender or a third-party product). Devices are marked noncompliant straight away when a check fails.",
+  "portalPath": "Intune admin center > Devices > Compliance > Create policy > Windows 10 and later > System Security: Antivirus = Require; Device Properties: Minimum OS version = 10.0.26100; Actions for noncompliance: Mark device noncompliant, 0 days",
+  "learn": [
+    "https://learn.microsoft.com/intune/device-security/compliance/ref-windows-settings",
+    "https://learn.microsoft.com/graph/api/resources/intune-deviceconfig-windows10compliancepolicy"
+  ],
+  "reviewNotes": [
+    "The antivirus check reads Windows Security Center, so a third-party product that registers there counts. Defender-only checks (real-time protection, signatures) are left out on purpose.",
+    "BitLocker, Secure Boot and code integrity checks need Device Health Attestation and are left out. Add them only after testing them on your VM SKU.",
+    "Decide the tenant setting 'Mark devices with no compliance policy assigned as' separately. It affects every device in the tenant.",
+    "If Conditional Access will require compliant devices, start it in Report-only and check the results first."
+  ],
+  "graph": {
+    "collection": "beta/deviceManagement/deviceCompliancePolicies",
+    "nameProperty": "displayName"
+  },
+  "body": {
+    "@odata.type": "#microsoft.graph.windows10CompliancePolicy",
+    "osMinimumVersion": "10.0.26100",
+    "antivirusRequired": true,
+    "scheduledActionsForRule": [
+      {
+        "ruleName": "PasswordRequired",
+        "scheduledActionConfigurations": [
+          {
+            "actionType": "block",
+            "gracePeriodHours": 0,
+            "notificationTemplateId": "",
+            "notificationMessageCCList": []
+          }
+        ]
+      }
+    ]
+  }
+}

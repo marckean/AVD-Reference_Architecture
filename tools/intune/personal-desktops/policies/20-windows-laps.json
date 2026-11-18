@@ -1,0 +1,70 @@
+{
+  "schema": "pd-intune-policy/1",
+  "name": "Windows LAPS",
+  "kind": "settingsCatalog",
+  "optional": false,
+  "description": "Windows LAPS manages the built-in local administrator account and backs its password up to Microsoft Entra ID. The password changes after it's used.",
+  "portalPath": "Intune admin center > Endpoint security > Account protection > Create policy > Windows > Local admin password solution (Windows LAPS): Backup Directory = Microsoft Entra ID only; Password Age Days = 30; Password Complexity = large + small letters + numbers + special characters; Password Length = 16; Post-authentication actions = reset the password and sign out the managed account; Post-authentication reset delay = 8",
+  "learn": [
+    "https://learn.microsoft.com/windows/client-management/mdm/laps-csp",
+    "https://learn.microsoft.com/entra/identity/devices/howto-manage-local-admin-passwords"
+  ],
+  "reviewNotes": [
+    "Turn on 'Enable Microsoft Entra Local Administrator Password Solution (LAPS)' in Microsoft Entra ID > Devices > Device settings first, or the backup fails.",
+    "With no account name set, LAPS manages the built-in administrator account (well-known RID 500). On Azure Marketplace images that's the admin account created when the VM was deployed, so the password stored at deployment stops working after LAPS takes over. Read it from Entra ID (Devices > the device > Local administrator password recovery) instead.",
+    "Reading the password needs an Entra role with microsoft.directory/deviceLocalCredentials/password/read, such as Cloud Device Administrator, or a custom role."
+  ],
+  "graph": {
+    "collection": "beta/deviceManagement/configurationPolicies",
+    "nameProperty": "name"
+  },
+  "settings": [
+    {
+      "displayName": "Backup Directory",
+      "omaUri": "./Device/Vendor/MSFT/LAPS/Policies/BackupDirectory",
+      "id": "device_vendor_msft_laps_policies_backupdirectory",
+      "value": "1",
+      "valueLabel": "Backup the password to Microsoft Entra ID only",
+      "why": "Entra-joined hosts have no AD to back up to.",
+      "children": [
+        {
+          "displayName": "Password Age Days",
+          "omaUri": "./Device/Vendor/MSFT/LAPS/Policies/PasswordAgeDays",
+          "id": "device_vendor_msft_laps_policies_passwordagedays_aad",
+          "value": 30,
+          "why": "Rotate at least monthly; Entra backup allows 7 to 365."
+        }
+      ]
+    },
+    {
+      "displayName": "Password Complexity",
+      "omaUri": "./Device/Vendor/MSFT/LAPS/Policies/PasswordComplexity",
+      "id": "device_vendor_msft_laps_policies_passwordcomplexity",
+      "value": "4",
+      "valueLabel": "Large letters + small letters + numbers + special characters",
+      "why": "Strongest classic option."
+    },
+    {
+      "displayName": "Password Length",
+      "omaUri": "./Device/Vendor/MSFT/LAPS/Policies/PasswordLength",
+      "id": "device_vendor_msft_laps_policies_passwordlength",
+      "value": 16,
+      "why": "Longer than the default 14."
+    },
+    {
+      "displayName": "Post-authentication actions",
+      "omaUri": "./Device/Vendor/MSFT/LAPS/Policies/PostAuthenticationActions",
+      "id": "device_vendor_msft_laps_policies_postauthenticationactions",
+      "value": "3",
+      "valueLabel": "Reset the password and logoff the managed account",
+      "why": "A used password doesn't stay valid."
+    },
+    {
+      "displayName": "Post Authentication Reset Delay",
+      "omaUri": "./Device/Vendor/MSFT/LAPS/Policies/PostAuthenticationResetDelay",
+      "id": "device_vendor_msft_laps_policies_postauthenticationresetdelay",
+      "value": 8,
+      "why": "Rotate within a working day of use (0 to 24 hours)."
+    }
+  ]
+}

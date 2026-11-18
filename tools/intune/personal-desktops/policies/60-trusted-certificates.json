@@ -1,0 +1,19 @@
+{
+  "schema": "pd-intune-policy/1",
+  "name": "Trusted certificate",
+  "kind": "trustedCertificates",
+  "optional": false,
+  "description": "One trusted certificate profile per .cer file: root CAs to the computer's Trusted Root store, issuing CAs to the computer's Intermediate store. Needed so MSIX packages signed by your own CA install. Created only when certificate paths are set.",
+  "portalPath": "Intune admin center > Devices > Configuration > Create > New policy > Windows 10 and later > Templates > Trusted certificate: upload the .cer, Destination store = Computer certificate store - Root (or - Intermediate)",
+  "learn": [
+    "https://learn.microsoft.com/graph/api/intune-deviceconfig-windows81trustedrootcertificate-create?view=graph-rest-beta"
+  ],
+  "reviewNotes": [
+    "Set $TrustedRootCertificatePaths and $TrustedIntermediateCertificatePaths to .cer files (DER or Base64). Only public certificates, never .pfx files.",
+    "The script checks that root certificates are self-signed and intermediates aren't, and prints each subject, thumbprint and expiry."
+  ],
+  "graph": {
+    "collection": "beta/deviceManagement/deviceConfigurations",
+    "nameProperty": "displayName"
+  }
+}

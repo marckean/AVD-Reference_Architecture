@@ -1,0 +1,54 @@
+{
+  "schema": "pd-intune-policy/1",
+  "name": "Microsoft 365 Apps",
+  "kind": "officeSuiteApp",
+  "optional": false,
+  "description": "Microsoft 365 Apps for enterprise, 64-bit, Monthly Enterprise Channel, without Teams (new Teams is deployed separately with the VDI settings) and without Access, Publisher, Skype for Business and the Bing search add-in. Personal desktops are single-user, so shared computer activation is off.",
+  "portalPath": "Intune admin center > Apps > Windows > Add > Microsoft 365 Apps (Windows 10 and later): configure app suite, 64-bit, Monthly Enterprise Channel, remove other versions = Yes, accept licence = Yes, shared computer activation = No; excluded: Access, Publisher, Skype for Business, Teams, Bing",
+  "learn": [
+    "https://learn.microsoft.com/graph/api/intune-apps-officesuiteapp-create?view=graph-rest-beta"
+  ],
+  "reviewNotes": [
+    "Pick the update channel your organisation uses on physical devices.",
+    "Teams is excluded so the VDI-optimised new Teams install (see tools/intune/win32-test-apps) is the only Teams on the host."
+  ],
+  "graph": {
+    "collection": "beta/deviceAppManagement/mobileApps",
+    "nameProperty": "displayName",
+    "odataType": "#microsoft.graph.officeSuiteApp"
+  },
+  "body": {
+    "@odata.type": "#microsoft.graph.officeSuiteApp",
+    "publisher": "Microsoft",
+    "isFeatured": false,
+    "productIds": [
+      "o365ProPlusRetail"
+    ],
+    "excludedApps": {
+      "access": true,
+      "bing": true,
+      "excel": false,
+      "groove": true,
+      "infoPath": true,
+      "lync": true,
+      "oneDrive": false,
+      "oneNote": false,
+      "outlook": false,
+      "powerPoint": false,
+      "publisher": true,
+      "sharePointDesigner": true,
+      "teams": true,
+      "visio": true,
+      "word": false
+    },
+    "useSharedComputerActivation": false,
+    "updateChannel": "monthlyEnterprise",
+    "officePlatformArchitecture": "x64",
+    "localesToInstall": [
+      "en-us"
+    ],
+    "installProgressDisplayLevel": "none",
+    "shouldUninstallOlderVersionsOfOffice": true,
+    "autoAcceptEula": true
+  }
+}

@@ -1,0 +1,803 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Azure Virtual Desktop personal host pool (standard management): host pool, desktop application group, workspace, access, diagnostics, AVD Insights data collection rule, Key Vault and an optional personal scaling plan. Deploy sessionhosts.json afterwards with a registration token."
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for the host pool, application group, workspace and monitoring. Use the session hosts' region."
+      }
+    },
+    "workloadPrefix": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 10,
+      "metadata": {
+        "description": "Short prefix for resource names, for example contosodd. Letters, digits and hyphens; must start with a letter."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags applied to every resource."
+      }
+    },
+    "hostPoolFriendlyName": {
+      "type": "string",
+      "defaultValue": "Contoso personal desktops",
+      "metadata": {
+        "description": "Host pool display name."
+      }
+    },
+    "hostPoolDescription": {
+      "type": "string",
+      "defaultValue": "Personal desktops (standard management)",
+      "metadata": {
+        "description": "Host pool description."
+      }
+    },
+    "applicationGroupFriendlyName": {
+      "type": "string",
+      "defaultValue": "Contoso personal desktop",
+      "metadata": {
+        "description": "Desktop application group display name."
+      }
+    },
+    "workspaceFriendlyName": {
+      "type": "string",
+      "defaultValue": "Contoso personal desktops",
+      "metadata": {
+        "description": "Workspace display name, shown as the heading in Windows App."
+      }
+    },
+    "personalDesktopAssignmentType": {
+      "type": "string",
+      "defaultValue": "Automatic",
+      "allowedValues": [
+        "Automatic",
+        "Direct"
+      ],
+      "metadata": {
+        "description": "Automatic gives the first unassigned desktop to a user at first sign-in; Direct needs an admin to assign each desktop."
+      }
+    },
+    "startVMOnConnect": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Start a deallocated personal desktop when its user connects. Needs Desktop Virtualization Power On Contributor for the Azure Virtual Desktop service principal (assigned here when avdServicePrincipalObjectId is set)."
+      }
+    },
+    "customRdpProperty": {
+      "type": "string",
+      "defaultValue": "drivestoredirect:s:;usbdevicestoredirect:s:;devicestoredirect:s:;redirectcomports:i:0;redirectclipboard:i:1;redirectprinters:i:1;redirectsmartcards:i:1;redirectwebauthn:i:1;audiomode:i:0;audiocapturemode:i:1;camerastoredirect:s:*;use multimon:i:1;enablecredsspsupport:i:1;autoreconnection enabled:i:1;",
+      "metadata": {
+        "description": "RDP properties for the host pool. Add targetisaadjoined:i:1 or enablerdsaadauth:i:1 for Microsoft Entra joined hosts."
+      }
+    },
+    "validationEnvironment": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Validation host pools get AVD service updates first. Keep false for testing that should match production."
+      }
+    },
+    "avdServicePrincipalObjectId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Object ID of the Azure Virtual Desktop service principal (app ID 9cdead84-a844-4324-93f2-b2e6bb768d07) in this tenant. Used for Start VM on Connect. Leave empty to skip."
+      }
+    },
+    "userGroupObjectIds": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Microsoft Entra group object IDs that get Desktop Virtualization User on the desktop application group."
+      }
+    },
+    "userObjectIds": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Microsoft Entra user object IDs that get Desktop Virtualization User on the desktop application group."
+      }
+    },
+    "grantVirtualMachineUserLogin": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Also give the same users and groups Virtual Machine User Login on this resource group. Needed for Microsoft Entra joined session hosts that aren't managed by a session host configuration."
+      }
+    },
+    "supportGroupObjectId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional group for support staff: Desktop Virtualization User Session Operator on the host pool (disconnect, sign out and message sessions). Leave empty to skip."
+      }
+    },
+    "logAnalyticsWorkspaceResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Existing Log Analytics workspace resource ID. Leave empty to create one in this resource group."
+      }
+    },
+    "logAnalyticsRetentionInDays": {
+      "type": "int",
+      "defaultValue": 30,
+      "minValue": 30,
+      "maxValue": 730,
+      "metadata": {
+        "description": "Retention for a new workspace."
+      }
+    },
+    "enableDiagnostics": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Send host pool, application group and workspace logs to Log Analytics (AVD Insights and the connection tables)."
+      }
+    },
+    "createAvdInsightsDataCollectionRule": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Create the AVD Insights data collection rule (performance counters and event logs). Session hosts are associated with it in sessionhosts.json."
+      }
+    },
+    "createKeyVault": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Create a Key Vault (Azure RBAC) that sessionhosts.json uses to keep each session host's local administrator password."
+      }
+    },
+    "keyVaultSecretsOfficerObjectId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "User object ID that gets Key Vault Secrets Officer on the vault, so they can read the stored passwords. Leave empty to skip."
+      }
+    },
+    "keyVaultPublicNetworkAccess": {
+      "type": "string",
+      "defaultValue": "Enabled",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Key Vault public network access. Disabled blocks portal reads unless you have a private endpoint."
+      }
+    },
+    "keyVaultNameSeed": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Extra seed for the Key Vault name. Purge protection keeps a deleted vault's name for 90 days, so change this if you rebuild a deleted resource group with the same name."
+      }
+    },
+    "enableScalingPlan": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Create a personal-desktop power management scaling plan. Learn: the Azure Virtual Desktop service principal needs Desktop Virtualization Power On Off Contributor at subscription scope for autoscale; this template doesn't assign it."
+      }
+    },
+    "scalingPlanTimeZone": {
+      "type": "string",
+      "defaultValue": "AUS Eastern Standard Time",
+      "metadata": {
+        "description": "Windows time zone ID for the scaling plan schedule."
+      }
+    },
+    "scheduleDaysOfWeek": {
+      "type": "array",
+      "defaultValue": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "metadata": {
+        "description": "Days the weekday schedule applies to."
+      }
+    },
+    "rampUpStartHour": {
+      "type": "int",
+      "defaultValue": 7,
+      "minValue": 0,
+      "maxValue": 23,
+      "metadata": {
+        "description": "Ramp-up start hour (0-23)."
+      }
+    },
+    "peakStartHour": {
+      "type": "int",
+      "defaultValue": 9,
+      "minValue": 0,
+      "maxValue": 23,
+      "metadata": {
+        "description": "Peak start hour (0-23)."
+      }
+    },
+    "rampDownStartHour": {
+      "type": "int",
+      "defaultValue": 17,
+      "minValue": 0,
+      "maxValue": 23,
+      "metadata": {
+        "description": "Ramp-down start hour (0-23)."
+      }
+    },
+    "offPeakStartHour": {
+      "type": "int",
+      "defaultValue": 19,
+      "minValue": 0,
+      "maxValue": 23,
+      "metadata": {
+        "description": "Off-peak start hour (0-23)."
+      }
+    },
+    "actionOnDisconnect": {
+      "type": "string",
+      "defaultValue": "Deallocate",
+      "allowedValues": [
+        "Deallocate",
+        "Hibernate",
+        "None"
+      ],
+      "metadata": {
+        "description": "What to do with a personal desktop after its user disconnects (ramp-up, peak and ramp-down)."
+      }
+    },
+    "minutesToWaitOnDisconnect": {
+      "type": "int",
+      "defaultValue": 90,
+      "minValue": 0,
+      "maxValue": 360,
+      "metadata": {
+        "description": "Minutes after a disconnect before actionOnDisconnect (0-360)."
+      }
+    },
+    "actionOnLogoff": {
+      "type": "string",
+      "defaultValue": "Deallocate",
+      "allowedValues": [
+        "Deallocate",
+        "Hibernate",
+        "None"
+      ],
+      "metadata": {
+        "description": "What to do with a personal desktop after its user signs out."
+      }
+    },
+    "minutesToWaitOnLogoff": {
+      "type": "int",
+      "defaultValue": 15,
+      "minValue": 0,
+      "maxValue": 360,
+      "metadata": {
+        "description": "Minutes after a sign-out before actionOnLogoff (0-360)."
+      }
+    },
+    "offPeakMinutesToWaitOnDisconnect": {
+      "type": "int",
+      "defaultValue": 30,
+      "minValue": 0,
+      "maxValue": 360,
+      "metadata": {
+        "description": "Minutes after a disconnect before actionOnDisconnect in off-peak (0-360)."
+      }
+    }
+  },
+  "variables": {
+    "hostPoolName": "[format('{0}-hp', parameters('workloadPrefix'))]",
+    "applicationGroupName": "[format('{0}-dag', parameters('workloadPrefix'))]",
+    "workspaceName": "[format('{0}-ws', parameters('workloadPrefix'))]",
+    "scalingPlanName": "[format('{0}-sp', parameters('workloadPrefix'))]",
+    "newLogAnalyticsWorkspaceName": "[format('{0}-law', parameters('workloadPrefix'))]",
+    "createLogAnalyticsWorkspace": "[and(or(parameters('enableDiagnostics'), parameters('createAvdInsightsDataCollectionRule')), empty(parameters('logAnalyticsWorkspaceResourceId')))]",
+    "logAnalyticsWorkspaceId": "[if(empty(parameters('logAnalyticsWorkspaceResourceId')), resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-law', parameters('workloadPrefix'))), parameters('logAnalyticsWorkspaceResourceId'))]",
+    "dataCollectionRuleName": "[format('microsoft-avdi-{0}-{1}', parameters('workloadPrefix'), parameters('location'))]",
+    "keyVaultName": "[format('{0}-kv-{1}', take(parameters('workloadPrefix'), 8), take(uniqueString(resourceGroup().id, parameters('keyVaultNameSeed')), 8))]",
+    "roleIds": {
+      "desktopVirtualizationUser": "1d18fff3-a72a-46b5-b4a9-0b38a3cd7e63",
+      "virtualMachineUserLogin": "fb879df8-f326-4884-b1cf-06f3ad86be52",
+      "desktopVirtualizationPowerOnContributor": "489581de-a3bd-480d-9518-53dea7416b33",
+      "desktopVirtualizationUserSessionOperator": "ea4bfff8-7fb4-485a-aadd-d4129a0ffaa6",
+      "keyVaultSecretsOfficer": "b86a8fe4-44ce-4948-aee5-eccb2c155cd7"
+    },
+    "perfCounters30s": [
+      "\\LogicalDisk(C:)\\Avg. Disk Queue Length",
+      "\\LogicalDisk(C:)\\Current Disk Queue Length",
+      "\\Memory\\Available Mbytes",
+      "\\Memory\\Page Faults/sec",
+      "\\Memory\\Pages/sec",
+      "\\Memory\\% Committed Bytes In Use",
+      "\\PhysicalDisk(*)\\Avg. Disk Queue Length",
+      "\\PhysicalDisk(*)\\Avg. Disk sec/Read",
+      "\\PhysicalDisk(*)\\Avg. Disk sec/Transfer",
+      "\\PhysicalDisk(*)\\Avg. Disk sec/Write",
+      "\\Processor Information(_Total)\\% Processor Time",
+      "\\User Input Delay per Process(*)\\Max Input Delay",
+      "\\User Input Delay per Session(*)\\Max Input Delay",
+      "\\RemoteFX Network(*)\\Current TCP RTT",
+      "\\RemoteFX Network(*)\\Current UDP Bandwidth"
+    ],
+    "perfCounters60s": [
+      "\\LogicalDisk(C:)\\Avg. Disk sec/Transfer",
+      "\\Terminal Services(*)\\Active Sessions",
+      "\\Terminal Services(*)\\Inactive Sessions",
+      "\\Terminal Services(*)\\Total Sessions"
+    ],
+    "eventLogQueries": [
+      "Application!*[System[(Level=2 or Level=3)]]",
+      "Microsoft-Windows-TerminalServices-RemoteConnectionManager/Admin!*[System[(Level=2 or Level=3 or Level=4 or Level=0)]]",
+      "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational!*[System[(Level=2 or Level=3 or Level=4 or Level=0)]]",
+      "System!*[System[(Level=2 or Level=3)]]",
+      "Microsoft-FSLogix-Apps/Operational!*[System[(Level=2 or Level=3 or Level=4 or Level=0)]]",
+      "Microsoft-FSLogix-Apps/Admin!*[System[(Level=2 or Level=3 or Level=4 or Level=0)]]"
+    ]
+  },
+  "resources": [
+    {
+      "condition": "[variables('createLogAnalyticsWorkspace')]",
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2023-09-01",
+      "name": "[variables('newLogAnalyticsWorkspaceName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": "[parameters('logAnalyticsRetentionInDays')]"
+      }
+    },
+    {
+      "type": "Microsoft.DesktopVirtualization/hostPools",
+      "apiVersion": "2024-04-03",
+      "name": "[variables('hostPoolName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "hostPoolType": "Personal",
+        "personalDesktopAssignmentType": "[parameters('personalDesktopAssignmentType')]",
+        "loadBalancerType": "Persistent",
+        "preferredAppGroupType": "Desktop",
+        "startVMOnConnect": "[parameters('startVMOnConnect')]",
+        "validationEnvironment": "[parameters('validationEnvironment')]",
+        "customRdpProperty": "[parameters('customRdpProperty')]",
+        "friendlyName": "[parameters('hostPoolFriendlyName')]",
+        "description": "[parameters('hostPoolDescription')]"
+      }
+    },
+    {
+      "type": "Microsoft.DesktopVirtualization/applicationGroups",
+      "apiVersion": "2024-04-03",
+      "name": "[variables('applicationGroupName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "Desktop",
+      "properties": {
+        "applicationGroupType": "Desktop",
+        "hostPoolArmPath": "[resourceId('Microsoft.DesktopVirtualization/hostPools', variables('hostPoolName'))]",
+        "friendlyName": "[parameters('applicationGroupFriendlyName')]",
+        "description": "Personal desktop application group"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/hostPools', variables('hostPoolName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DesktopVirtualization/workspaces",
+      "apiVersion": "2024-04-03",
+      "name": "[variables('workspaceName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "friendlyName": "[parameters('workspaceFriendlyName')]",
+        "description": "Personal desktops",
+        "applicationGroupReferences": [
+          "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', variables('applicationGroupName'))]"
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', variables('applicationGroupName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "desktopUserGroups",
+        "count": "[length(parameters('userGroupObjectIds'))]"
+      },
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.DesktopVirtualization/applicationGroups/{0}', variables('applicationGroupName'))]",
+      "name": "[guid(resourceId('Microsoft.DesktopVirtualization/applicationGroups', variables('applicationGroupName')), parameters('userGroupObjectIds')[copyIndex()], variables('roleIds').desktopVirtualizationUser)]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').desktopVirtualizationUser)]",
+        "principalId": "[parameters('userGroupObjectIds')[copyIndex()]]",
+        "principalType": "Group"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', variables('applicationGroupName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "vmUserLoginGroups",
+        "count": "[length(parameters('userGroupObjectIds'))]"
+      },
+      "condition": "[parameters('grantVirtualMachineUserLogin')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceGroup().id, parameters('userGroupObjectIds')[copyIndex()], variables('roleIds').virtualMachineUserLogin)]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').virtualMachineUserLogin)]",
+        "principalId": "[parameters('userGroupObjectIds')[copyIndex()]]",
+        "principalType": "Group"
+      }
+    },
+    {
+      "copy": {
+        "name": "desktopUserUsers",
+        "count": "[length(parameters('userObjectIds'))]"
+      },
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.DesktopVirtualization/applicationGroups/{0}', variables('applicationGroupName'))]",
+      "name": "[guid(resourceId('Microsoft.DesktopVirtualization/applicationGroups', variables('applicationGroupName')), parameters('userObjectIds')[copyIndex()], variables('roleIds').desktopVirtualizationUser)]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').desktopVirtualizationUser)]",
+        "principalId": "[parameters('userObjectIds')[copyIndex()]]",
+        "principalType": "User"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', variables('applicationGroupName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "vmUserLoginUsers",
+        "count": "[length(parameters('userObjectIds'))]"
+      },
+      "condition": "[parameters('grantVirtualMachineUserLogin')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceGroup().id, parameters('userObjectIds')[copyIndex()], variables('roleIds').virtualMachineUserLogin)]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').virtualMachineUserLogin)]",
+        "principalId": "[parameters('userObjectIds')[copyIndex()]]",
+        "principalType": "User"
+      }
+    },
+    {
+      "condition": "[not(empty(parameters('avdServicePrincipalObjectId')))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceGroup().id, parameters('avdServicePrincipalObjectId'), variables('roleIds').desktopVirtualizationPowerOnContributor)]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').desktopVirtualizationPowerOnContributor)]",
+        "principalId": "[parameters('avdServicePrincipalObjectId')]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "condition": "[not(empty(parameters('supportGroupObjectId')))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.DesktopVirtualization/hostPools/{0}', variables('hostPoolName'))]",
+      "name": "[guid(resourceId('Microsoft.DesktopVirtualization/hostPools', variables('hostPoolName')), parameters('supportGroupObjectId'), variables('roleIds').desktopVirtualizationUserSessionOperator)]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').desktopVirtualizationUserSessionOperator)]",
+        "principalId": "[parameters('supportGroupObjectId')]",
+        "principalType": "Group"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/hostPools', variables('hostPoolName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableDiagnostics')]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.DesktopVirtualization/hostPools/{0}', variables('hostPoolName'))]",
+      "name": "avd-diagnostics",
+      "properties": {
+        "workspaceId": "[variables('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "categoryGroup": "allLogs",
+            "enabled": true
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/hostPools', variables('hostPoolName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('newLogAnalyticsWorkspaceName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableDiagnostics')]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.DesktopVirtualization/applicationGroups/{0}', variables('applicationGroupName'))]",
+      "name": "avd-diagnostics",
+      "properties": {
+        "workspaceId": "[variables('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "categoryGroup": "allLogs",
+            "enabled": true
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', variables('applicationGroupName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('newLogAnalyticsWorkspaceName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableDiagnostics')]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.DesktopVirtualization/workspaces/{0}', variables('workspaceName'))]",
+      "name": "avd-diagnostics",
+      "properties": {
+        "workspaceId": "[variables('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "categoryGroup": "allLogs",
+            "enabled": true
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/workspaces', variables('workspaceName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('newLogAnalyticsWorkspaceName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('createAvdInsightsDataCollectionRule')]",
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2022-06-01",
+      "name": "[variables('dataCollectionRuleName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "Windows",
+      "properties": {
+        "description": "AVD Insights session host data: the performance counters and event logs listed in the Azure Virtual Desktop Insights glossary.",
+        "dataSources": {
+          "performanceCounters": [
+            {
+              "name": "avdPerfCounters30s",
+              "streams": [
+                "Microsoft-Perf"
+              ],
+              "samplingFrequencyInSeconds": 30,
+              "counterSpecifiers": "[variables('perfCounters30s')]"
+            },
+            {
+              "name": "avdPerfCounters60s",
+              "streams": [
+                "Microsoft-Perf"
+              ],
+              "samplingFrequencyInSeconds": 60,
+              "counterSpecifiers": "[variables('perfCounters60s')]"
+            }
+          ],
+          "windowsEventLogs": [
+            {
+              "name": "avdEventLogs",
+              "streams": [
+                "Microsoft-Event"
+              ],
+              "xPathQueries": "[variables('eventLogQueries')]"
+            }
+          ]
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "name": "avdInsightsWorkspace",
+              "workspaceResourceId": "[variables('logAnalyticsWorkspaceId')]"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [
+              "Microsoft-Perf",
+              "Microsoft-Event"
+            ],
+            "destinations": [
+              "avdInsightsWorkspace"
+            ]
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('newLogAnalyticsWorkspaceName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('createKeyVault')]",
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "name": "[variables('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "tenantId": "[subscription().tenantId]",
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "enableRbacAuthorization": true,
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": 90,
+        "enablePurgeProtection": true,
+        "enabledForDeployment": false,
+        "enabledForTemplateDeployment": false,
+        "enabledForDiskEncryption": false,
+        "publicNetworkAccess": "[parameters('keyVaultPublicNetworkAccess')]",
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "[if(equals(parameters('keyVaultPublicNetworkAccess'), 'Enabled'), 'Allow', 'Deny')]"
+        }
+      }
+    },
+    {
+      "condition": "[and(parameters('createKeyVault'), not(empty(parameters('keyVaultSecretsOfficerObjectId'))))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.KeyVault/vaults/{0}', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), parameters('keyVaultSecretsOfficerObjectId'), variables('roleIds').keyVaultSecretsOfficer)]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').keyVaultSecretsOfficer)]",
+        "principalId": "[parameters('keyVaultSecretsOfficerObjectId')]",
+        "principalType": "User"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableScalingPlan')]",
+      "type": "Microsoft.DesktopVirtualization/scalingPlans",
+      "apiVersion": "2024-04-03",
+      "name": "[variables('scalingPlanName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "friendlyName": "[format('{0} power management', parameters('hostPoolFriendlyName'))]",
+        "description": "Personal desktop power management: start on connect, deallocate after disconnect or sign-out.",
+        "timeZone": "[parameters('scalingPlanTimeZone')]",
+        "hostPoolType": "Personal",
+        "exclusionTag": "excludeFromScaling",
+        "hostPoolReferences": [
+          {
+            "hostPoolArmPath": "[resourceId('Microsoft.DesktopVirtualization/hostPools', variables('hostPoolName'))]",
+            "scalingPlanEnabled": true
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/hostPools', variables('hostPoolName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableScalingPlan')]",
+      "type": "Microsoft.DesktopVirtualization/scalingPlans/personalSchedules",
+      "apiVersion": "2024-04-03",
+      "name": "[format('{0}/{1}', variables('scalingPlanName'), 'weekdays')]",
+      "properties": {
+        "daysOfWeek": "[parameters('scheduleDaysOfWeek')]",
+        "rampUpStartTime": {
+          "hour": "[parameters('rampUpStartHour')]",
+          "minute": 0
+        },
+        "rampUpAutoStartHosts": "None",
+        "rampUpStartVMOnConnect": "Enable",
+        "rampUpActionOnDisconnect": "[parameters('actionOnDisconnect')]",
+        "rampUpMinutesToWaitOnDisconnect": "[parameters('minutesToWaitOnDisconnect')]",
+        "rampUpActionOnLogoff": "[parameters('actionOnLogoff')]",
+        "rampUpMinutesToWaitOnLogoff": "[parameters('minutesToWaitOnLogoff')]",
+        "peakStartTime": {
+          "hour": "[parameters('peakStartHour')]",
+          "minute": 0
+        },
+        "peakStartVMOnConnect": "Enable",
+        "peakActionOnDisconnect": "[parameters('actionOnDisconnect')]",
+        "peakMinutesToWaitOnDisconnect": "[parameters('minutesToWaitOnDisconnect')]",
+        "peakActionOnLogoff": "[parameters('actionOnLogoff')]",
+        "peakMinutesToWaitOnLogoff": "[parameters('minutesToWaitOnLogoff')]",
+        "rampDownStartTime": {
+          "hour": "[parameters('rampDownStartHour')]",
+          "minute": 0
+        },
+        "rampDownStartVMOnConnect": "Enable",
+        "rampDownActionOnDisconnect": "[parameters('actionOnDisconnect')]",
+        "rampDownMinutesToWaitOnDisconnect": "[parameters('minutesToWaitOnDisconnect')]",
+        "rampDownActionOnLogoff": "[parameters('actionOnLogoff')]",
+        "rampDownMinutesToWaitOnLogoff": "[parameters('minutesToWaitOnLogoff')]",
+        "offPeakStartTime": {
+          "hour": "[parameters('offPeakStartHour')]",
+          "minute": 0
+        },
+        "offPeakStartVMOnConnect": "Enable",
+        "offPeakActionOnDisconnect": "[parameters('actionOnDisconnect')]",
+        "offPeakMinutesToWaitOnDisconnect": "[parameters('offPeakMinutesToWaitOnDisconnect')]",
+        "offPeakActionOnLogoff": "[parameters('actionOnLogoff')]",
+        "offPeakMinutesToWaitOnLogoff": "[parameters('minutesToWaitOnLogoff')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/scalingPlans', variables('scalingPlanName'))]"
+      ]
+    },
+    {
+      "condition": "[and(parameters('enableDiagnostics'), parameters('enableScalingPlan'))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.DesktopVirtualization/scalingPlans/{0}', variables('scalingPlanName'))]",
+      "name": "avd-diagnostics",
+      "properties": {
+        "workspaceId": "[variables('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "categoryGroup": "allLogs",
+            "enabled": true
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DesktopVirtualization/scalingPlans', variables('scalingPlanName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('newLogAnalyticsWorkspaceName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "hostPoolName": {
+      "type": "string",
+      "value": "[variables('hostPoolName')]"
+    },
+    "hostPoolResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.DesktopVirtualization/hostPools', variables('hostPoolName'))]"
+    },
+    "applicationGroupName": {
+      "type": "string",
+      "value": "[variables('applicationGroupName')]"
+    },
+    "applicationGroupResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.DesktopVirtualization/applicationGroups', variables('applicationGroupName'))]"
+    },
+    "workspaceName": {
+      "type": "string",
+      "value": "[variables('workspaceName')]"
+    },
+    "logAnalyticsWorkspaceResourceId": {
+      "type": "string",
+      "value": "[if(or(parameters('enableDiagnostics'), parameters('createAvdInsightsDataCollectionRule')), variables('logAnalyticsWorkspaceId'), '')]"
+    },
+    "dataCollectionRuleResourceId": {
+      "type": "string",
+      "value": "[if(parameters('createAvdInsightsDataCollectionRule'), resourceId('Microsoft.Insights/dataCollectionRules', variables('dataCollectionRuleName')), '')]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[if(parameters('createKeyVault'), variables('keyVaultName'), '')]"
+    }
+  }
+}

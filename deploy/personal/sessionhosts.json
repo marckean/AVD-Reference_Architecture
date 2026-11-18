@@ -1,0 +1,558 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Personal desktop session hosts for a standard-management Azure Virtual Desktop host pool: NIC, Trusted Launch VM, AD DS or Microsoft Entra join (with optional Intune enrolment), AVD agent registration through the portal's configuration package, and the Azure Monitor Agent for AVD Insights."
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for the session hosts."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags applied to every resource."
+      }
+    },
+    "vmNamePrefix": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 11,
+      "metadata": {
+        "description": "Session host name prefix. VMs are named <prefix>-<n>, so keep the prefix to 11 characters or fewer (15-character computer name limit)."
+      }
+    },
+    "vmStartIndex": {
+      "type": "int",
+      "defaultValue": 0,
+      "minValue": 0,
+      "maxValue": 899,
+      "metadata": {
+        "description": "Number of the first session host to create in this run."
+      }
+    },
+    "vmCount": {
+      "type": "int",
+      "defaultValue": 2,
+      "minValue": 1,
+      "maxValue": 100,
+      "metadata": {
+        "description": "How many session hosts to create in this run."
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D4as_v5",
+      "metadata": {
+        "description": "VM size. Check regional quota for the size family first."
+      }
+    },
+    "subnetResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the existing subnet for the session host NICs. No public IPs are created."
+      }
+    },
+    "enableAcceleratedNetworking": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Accelerated networking on the NICs (the size must support it)."
+      }
+    },
+    "imageSource": {
+      "type": "string",
+      "defaultValue": "Marketplace",
+      "allowedValues": [
+        "Marketplace",
+        "Gallery"
+      ],
+      "metadata": {
+        "description": "Marketplace or an Azure Compute Gallery image version."
+      }
+    },
+    "marketplaceImage": {
+      "type": "object",
+      "defaultValue": {
+        "publisher": "MicrosoftWindowsDesktop",
+        "offer": "windows-11",
+        "sku": "win11-24h2-ent",
+        "version": "latest"
+      },
+      "metadata": {
+        "description": "Marketplace image reference (used when imageSource is Marketplace)."
+      }
+    },
+    "galleryImageVersionResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure Compute Gallery image version resource ID (used when imageSource is Gallery)."
+      }
+    },
+    "securityType": {
+      "type": "string",
+      "defaultValue": "TrustedLaunch",
+      "allowedValues": [
+        "TrustedLaunch",
+        "Standard"
+      ],
+      "metadata": {
+        "description": "TrustedLaunch (Secure Boot and vTPM) or Standard. Must match what the image supports."
+      }
+    },
+    "osDiskType": {
+      "type": "string",
+      "defaultValue": "Premium_LRS",
+      "allowedValues": [
+        "Premium_LRS",
+        "StandardSSD_LRS",
+        "Standard_LRS",
+        "Premium_ZRS",
+        "StandardSSD_ZRS"
+      ],
+      "metadata": {
+        "description": "OS disk type. Personal desktops keep a persistent managed OS disk."
+      }
+    },
+    "osDiskSizeGB": {
+      "type": "int",
+      "defaultValue": 0,
+      "minValue": 0,
+      "maxValue": 4095,
+      "metadata": {
+        "description": "OS disk size in GB. 0 keeps the image's size."
+      }
+    },
+    "diskControllerType": {
+      "type": "string",
+      "defaultValue": "",
+      "allowedValues": [
+        "",
+        "SCSI",
+        "NVMe"
+      ],
+      "metadata": {
+        "description": "Leave empty for the platform default, or SCSI or NVMe."
+      }
+    },
+    "availabilityZone": {
+      "type": "string",
+      "defaultValue": "",
+      "allowedValues": [
+        "",
+        "1",
+        "2",
+        "3"
+      ],
+      "metadata": {
+        "description": "Availability zone (1, 2 or 3), or empty for none."
+      }
+    },
+    "encryptionAtHost": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Encryption at host (the subscription feature must be registered)."
+      }
+    },
+    "enableHibernation": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable hibernation on the VMs (size and OS disk must support it; Learn: not with FSLogix or App Attach)."
+      }
+    },
+    "enableBootDiagnostics": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Boot diagnostics with managed storage."
+      }
+    },
+    "timeZone": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Windows time zone ID for the VMs, or empty for the image default."
+      }
+    },
+    "localAdminUsername": {
+      "type": "string",
+      "defaultValue": "avdlocaladmin",
+      "metadata": {
+        "description": "Local administrator user name. Windows renames the built-in administrator to this name."
+      }
+    },
+    "localAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Local administrator password."
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Key Vault (from hostpool.json) to store each VM's local administrator password in. Empty to skip."
+      }
+    },
+    "joinType": {
+      "type": "string",
+      "defaultValue": "EntraID",
+      "allowedValues": [
+        "ActiveDirectory",
+        "EntraID"
+      ],
+      "metadata": {
+        "description": "ActiveDirectory (AD DS domain join) or EntraID (Microsoft Entra join)."
+      }
+    },
+    "domainName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "AD DS domain FQDN (ActiveDirectory only)."
+      }
+    },
+    "domainJoinOuPath": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "OU distinguished name for the computer accounts (ActiveDirectory only). Empty for the default Computers container."
+      }
+    },
+    "domainJoinUsername": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Join account as user@domain or DOMAIN\\\\user (ActiveDirectory only)."
+      }
+    },
+    "domainJoinPassword": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Join account password (ActiveDirectory only)."
+      }
+    },
+    "enrollInIntune": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enrol Microsoft Entra joined VMs in Intune through the AADLoginForWindows extension (EntraID only)."
+      }
+    },
+    "hostPoolName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the personal host pool the VMs register with."
+      }
+    },
+    "hostPoolRegistrationToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Host pool registration token (New-AzWvdRegistrationInfo)."
+      }
+    },
+    "avdAgentDscPackageUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL of the Azure Virtual Desktop configuration package the portal uses (wvdportalstorageblob.blob.core.windows.net/galleryartifacts/...). The deployment script picks it and checks it."
+      }
+    },
+    "avdAgentDscTokenMode": {
+      "type": "string",
+      "defaultValue": "String",
+      "allowedValues": [
+        "String",
+        "Credential"
+      ],
+      "metadata": {
+        "description": "How the package's AddSessionHost configuration takes the token: String (RegistrationInfoToken) or Credential (RegistrationInfoTokenCredential)."
+      }
+    },
+    "avdAgentDscPassAadJoin": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Pass AadJoin to the configuration (true for every known package version)."
+      }
+    },
+    "avdAgentDscExtraArguments": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Extra non-secret arguments for the AddSessionHost configuration."
+      }
+    },
+    "installAzureMonitorAgent": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Install the Azure Monitor Agent for AVD Insights."
+      }
+    },
+    "dataCollectionRuleResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "AVD Insights data collection rule to associate the VMs with (from hostpool.json). Empty to skip."
+      }
+    }
+  },
+  "variables": {
+    "intuneMdmId": "0000000a-0000-0000-c000-000000000000",
+    "isEntraJoin": "[equals(parameters('joinType'), 'EntraID')]",
+    "imageReference": "[if(equals(parameters('imageSource'), 'Gallery'), createObject('id', parameters('galleryImageVersionResourceId')), parameters('marketplaceImage'))]",
+    "securityProfile": "[if(equals(parameters('securityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true()), 'encryptionAtHost', parameters('encryptionAtHost')), createObject('encryptionAtHost', parameters('encryptionAtHost')))]",
+    "dscArguments": "[union(createObject('HostPoolName', parameters('hostPoolName')), if(parameters('avdAgentDscPassAadJoin'), createObject('AadJoin', equals(parameters('joinType'), 'EntraID')), createObject()), parameters('avdAgentDscExtraArguments'))]"
+  },
+  "resources": [
+    {
+      "copy": {
+        "name": "nicLoop",
+        "count": "[parameters('vmCount')]"
+      },
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2024-05-01",
+      "name": "[format('{0}-nic', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "enableAcceleratedNetworking": "[parameters('enableAcceleratedNetworking')]",
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('subnetResourceId')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "copy": {
+        "name": "vmLoop",
+        "count": "[parameters('vmCount')]"
+      },
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2024-07-01",
+      "name": "[format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex')))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "zones": "[if(empty(parameters('availabilityZone')), json('null'), createArray(parameters('availabilityZone')))]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "licenseType": "Windows_Client",
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "additionalCapabilities": "[if(parameters('enableHibernation'), createObject('hibernationEnabled', true()), json('null'))]",
+        "securityProfile": "[variables('securityProfile')]",
+        "osProfile": {
+          "computerName": "[format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex')))]",
+          "adminUsername": "[parameters('localAdminUsername')]",
+          "adminPassword": "[parameters('localAdminPassword')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true,
+            "timeZone": "[if(empty(parameters('timeZone')), json('null'), parameters('timeZone'))]"
+          }
+        },
+        "storageProfile": {
+          "imageReference": "[variables('imageReference')]",
+          "osDisk": {
+            "name": "[format('{0}-osdisk', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+            "createOption": "FromImage",
+            "caching": "ReadWrite",
+            "deleteOption": "Delete",
+            "diskSizeGB": "[if(greater(parameters('osDiskSizeGB'), 0), parameters('osDiskSizeGB'), json('null'))]",
+            "managedDisk": {
+              "storageAccountType": "[parameters('osDiskType')]"
+            }
+          },
+          "diskControllerType": "[if(empty(parameters('diskControllerType')), json('null'), parameters('diskControllerType'))]"
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex')))))]",
+              "properties": {
+                "deleteOption": "Delete"
+              }
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "[parameters('enableBootDiagnostics')]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex')))))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "localAdminSecretLoop",
+        "count": "[parameters('vmCount')]"
+      },
+      "condition": "[not(empty(parameters('keyVaultName')))]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}-localadmin', parameters('keyVaultName'), format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+      "properties": {
+        "value": "[parameters('localAdminPassword')]",
+        "contentType": "[format('Local administrator password for {0} (user {1})', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))), parameters('localAdminUsername'))]"
+      }
+    },
+    {
+      "copy": {
+        "name": "domainJoinLoop",
+        "count": "[parameters('vmCount')]"
+      },
+      "condition": "[equals(parameters('joinType'), 'ActiveDirectory')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2024-07-01",
+      "name": "[format('{0}/JoinDomain', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "JsonADDomainExtension",
+        "typeHandlerVersion": "1.3",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "name": "[parameters('domainName')]",
+          "ouPath": "[parameters('domainJoinOuPath')]",
+          "user": "[parameters('domainJoinUsername')]",
+          "restart": "true",
+          "options": "3"
+        },
+        "protectedSettings": {
+          "password": "[parameters('domainJoinPassword')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "entraJoinLoop",
+        "count": "[parameters('vmCount')]"
+      },
+      "condition": "[variables('isEntraJoin')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2024-07-01",
+      "name": "[format('{0}/AADLoginForWindows', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "publisher": "Microsoft.Azure.ActiveDirectory",
+        "type": "AADLoginForWindows",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": "[if(parameters('enrollInIntune'), createObject('mdmId', variables('intuneMdmId')), json('null'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "avdAgentLoop",
+        "count": "[parameters('vmCount')]"
+      },
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2024-07-01",
+      "name": "[format('{0}/Microsoft.PowerShell.DSC', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "publisher": "Microsoft.Powershell",
+        "type": "DSC",
+        "typeHandlerVersion": "2.77",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "wmfVersion": "latest",
+          "configuration": {
+            "url": "[parameters('avdAgentDscPackageUrl')]",
+            "script": "Configuration.ps1",
+            "function": "AddSessionHost"
+          },
+          "configurationArguments": "[variables('dscArguments')]"
+        },
+        "protectedSettings": {
+          "configurationArguments": "[if(equals(parameters('avdAgentDscTokenMode'), 'Credential'), createObject('RegistrationInfoTokenCredential', createObject('userName', 'PLACEHOLDER_DO_NOT_USE', 'password', parameters('hostPoolRegistrationToken'))), createObject('RegistrationInfoToken', parameters('hostPoolRegistrationToken')))]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))), 'JoinDomain')]",
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))), 'AADLoginForWindows')]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "azureMonitorAgentLoop",
+        "count": "[parameters('vmCount')]"
+      },
+      "condition": "[parameters('installAzureMonitorAgent')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2024-07-01",
+      "name": "[format('{0}/AzureMonitorWindowsAgent', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "publisher": "Microsoft.Azure.Monitor",
+        "type": "AzureMonitorWindowsAgent",
+        "typeHandlerVersion": "1.0",
+        "autoUpgradeMinorVersion": true,
+        "enableAutomaticUpgrade": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))), 'Microsoft.PowerShell.DSC')]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "avdInsightsAssociationLoop",
+        "count": "[parameters('vmCount')]"
+      },
+      "condition": "[and(parameters('installAzureMonitorAgent'), not(empty(parameters('dataCollectionRuleResourceId'))))]",
+      "type": "Microsoft.Insights/dataCollectionRuleAssociations",
+      "apiVersion": "2022-06-01",
+      "scope": "[format('Microsoft.Compute/virtualMachines/{0}', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+      "name": "[format('{0}-avdi', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]",
+      "properties": {
+        "description": "AVD Insights",
+        "dataCollectionRuleId": "[parameters('dataCollectionRuleResourceId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', format('{0}-{1}', parameters('vmNamePrefix'), copyIndex(parameters('vmStartIndex'))))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "sessionHostNames": {
+      "type": "array",
+      "copy": {
+        "count": "[parameters('vmCount')]",
+        "input": "[format('{0}-{1}', parameters('vmNamePrefix'), add(copyIndex(), parameters('vmStartIndex')))]"
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schema": "pd-intune-policy/1",
+  "name": "Screen capture protection",
+  "kind": "settingsCatalog",
+  "optional": true,
+  "description": "Optional. Blocks screenshots and screen sharing of the remote session on the user's device. Only clients that support it can connect afterwards, so test it on its own before adding it to the baseline.",
+  "portalPath": "Intune admin center > Devices > Configuration > Create > New policy > Windows 10 and later > Settings catalog > Administrative templates > Windows Components > Remote Desktop Services > Remote Desktop Session Host > Azure Virtual Desktop > 'Enable screen capture protection' = Enabled; 'Screen Capture Protection Options (Device)' off = Block screen capture on client",
+  "learn": [
+    "https://learn.microsoft.com/azure/virtual-desktop/screen-capture-protection"
+  ],
+  "reviewNotes": [
+    "Windows App on Windows needs Windows 11 22H2 or later on the user's device. Unsupported clients get an error and can't connect.",
+    "Teams screen sharing compatibility depends on the client configuration; see the Learn page.",
+    "Excluded by default. Add it with $AddOptionalPolicies = @('32-screen-capture-protection')."
+  ],
+  "graph": {
+    "collection": "beta/deviceManagement/configurationPolicies",
+    "nameProperty": "name"
+  },
+  "settings": [
+    {
+      "displayName": "Enable screen capture protection",
+      "searchCategory": "Azure Virtual Desktop",
+      "value": "1",
+      "valueLabel": "Enabled",
+      "why": "Block capture on the client device.",
+      "children": [
+        {
+          "match": "*",
+          "value": "0",
+          "valueLabel": "Block screen capture on client",
+          "optionalChild": true,
+          "why": "Client only; 'client and server' also blocks capture tools inside the session."
+        }
+      ]
+    }
+  ]
+}

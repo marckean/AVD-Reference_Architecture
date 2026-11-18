@@ -1,0 +1,42 @@
+{
+  "schema": "pd-intune-policy/1",
+  "name": "Session time limits",
+  "kind": "platformScript",
+  "optional": false,
+  "description": "Disconnects an idle session after the idle limit and signs out a disconnected session after the disconnected limit, by writing the computer policy values MaxIdleTime and MaxDisconnectionTime (milliseconds). A platform script is used because the Administrative Template only offers fixed values (for example 1 or 2 hours), not 90 minutes.",
+  "portalPath": "Intune admin center > Devices > Scripts and remediations > Platform scripts > Add > Windows 10 and later: upload Set-SessionTimeLimits.ps1, run as system (Run this script using the logged on credentials = No), 64-bit, no signature check",
+  "learn": [
+    "https://learn.microsoft.com/troubleshoot/windows-server/remote/troubleshoot-unexpected-rds-session-locks-or-disconnections",
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-admx-terminalserver",
+    "https://learn.microsoft.com/graph/api/intune-shared-devicemanagementscript-create?view=graph-rest-beta"
+  ],
+  "reviewNotes": [
+    "Set the minutes with $SessionIdleLimitMinutes and $SessionDisconnectedLimitMinutes before deploying (defaults 90 and 180). The deploy script writes them into the uploaded script.",
+    "Applies from the user's next connection or sign-in.",
+    "If you'd rather use the settings catalog, the same settings are under Administrative templates > Windows Components > Remote Desktop Services > Remote Desktop Session Host > Session Time Limits, with fixed choices only."
+  ],
+  "graph": {
+    "collection": "beta/deviceManagement/deviceManagementScripts",
+    "nameProperty": "displayName"
+  },
+  "script": {
+    "file": "scripts/Set-SessionTimeLimits.ps1",
+    "runAsAccount": "system",
+    "runAs32Bit": false,
+    "enforceSignatureCheck": false,
+    "replace": [
+      {
+        "pattern": "(?m)^\\$IdleLimitMinutes\\s*=\\s*\\d+",
+        "setting": "SessionIdleLimitMinutes",
+        "default": 90,
+        "template": "$IdleLimitMinutes = {0}"
+      },
+      {
+        "pattern": "(?m)^\\$DisconnectedLimitMinutes\\s*=\\s*\\d+",
+        "setting": "SessionDisconnectedLimitMinutes",
+        "default": 180,
+        "template": "$DisconnectedLimitMinutes = {0}"
+      }
+    ]
+  }
+}

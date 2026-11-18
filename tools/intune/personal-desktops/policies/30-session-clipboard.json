@@ -1,0 +1,55 @@
+{
+  "schema": "pd-intune-policy/1",
+  "name": "Session clipboard direction",
+  "kind": "settingsCatalog",
+  "optional": false,
+  "description": "Limits the clipboard in each direction to plain text. The host pool's RDP properties must still allow clipboard redirection (redirectclipboard:i:1), or the clipboard is blocked completely.",
+  "portalPath": "Intune admin center > Devices > Configuration > Create > New policy > Windows 10 and later > Settings catalog > Administrative templates > Windows Components > Remote Desktop Services > Remote Desktop Session Host > Device and Resource Redirection: 'Restrict clipboard transfer from server to client' = Enabled, Allow plain text; 'Restrict clipboard transfer from client to server' = Enabled, Allow plain text (device scope, not the (User) settings)",
+  "learn": [
+    "https://learn.microsoft.com/azure/virtual-desktop/clipboard-transfer-direction-data-types",
+    "https://learn.microsoft.com/windows/client-management/mdm/policy-csp-remotedesktopservices"
+  ],
+  "reviewNotes": [
+    "Values per direction: 0 disables it, 1 plain text, 2 adds images, 3 adds Rich Text Format, 4 adds HTML. Agree each direction with security and the users' representatives.",
+    "Hosts need a restart after the policy first applies.",
+    "Needs Windows 11 22H2 or 23H2 with the 2024-06 update, or 24H2 or later."
+  ],
+  "graph": {
+    "collection": "beta/deviceManagement/configurationPolicies",
+    "nameProperty": "name"
+  },
+  "settings": [
+    {
+      "displayName": "Restrict clipboard transfer from server to client",
+      "omaUri": "./Device/Vendor/MSFT/Policy/Config/RemoteDesktopServices/LimitServerToClientClipboardRedirection",
+      "id": "device_vendor_msft_policy_config_remotedesktopservices_limitservertoclientclipboardredirection",
+      "value": "1",
+      "valueLabel": "Enabled",
+      "why": "Session host to user's device: text only.",
+      "children": [
+        {
+          "match": "*",
+          "value": "1",
+          "valueLabel": "Allow plain text",
+          "why": "SCClipLevel 1"
+        }
+      ]
+    },
+    {
+      "displayName": "Restrict clipboard transfer from client to server",
+      "omaUri": "./Device/Vendor/MSFT/Policy/Config/RemoteDesktopServices/LimitClientToServerClipboardRedirection",
+      "id": "device_vendor_msft_policy_config_remotedesktopservices_limitclienttoserverclipboardredirection",
+      "value": "1",
+      "valueLabel": "Enabled",
+      "why": "User's device to session host: text only.",
+      "children": [
+        {
+          "match": "*",
+          "value": "1",
+          "valueLabel": "Allow plain text",
+          "why": "CSClipLevel 1"
+        }
+      ]
+    }
+  ]
+}

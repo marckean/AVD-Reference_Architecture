@@ -1,0 +1,256 @@
+{
+  "schema": "pd-win32-apps/1",
+  "notes": "Test set to prove Win32 app delivery to personal desktops. Replace or extend with your own developer toolchain. Every download is checked for a valid Authenticode signature before packaging.",
+  "apps": [
+    {
+      "id": "vcredist-x64",
+      "name": "Microsoft Visual C++ v14 Redistributable (x64)",
+      "publisher": "Microsoft",
+      "sources": [
+        {
+          "url": "https://aka.ms/vc14/vc_redist.x64.exe",
+          "fileName": "vc_redist.x64.exe",
+          "signer": "Microsoft Corporation"
+        }
+      ],
+      "install": {
+        "type": "exe",
+        "file": "vc_redist.x64.exe",
+        "args": "/install /quiet /norestart",
+        "successCodes": [
+          0,
+          1638,
+          3010
+        ]
+      },
+      "uninstall": {
+        "type": "exe",
+        "file": "vc_redist.x64.exe",
+        "args": "/uninstall /quiet /norestart"
+      },
+      "detection": {
+        "type": "registry",
+        "key": "HKLM:\\SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\X64",
+        "value": "Installed",
+        "equals": 1
+      },
+      "dependsOn": [],
+      "why": "Teams media optimisation needs the latest Visual C++ runtime on the session host.",
+      "learn": "https://learn.microsoft.com/azure/virtual-desktop/teams-on-avd"
+    },
+    {
+      "id": "webrtc-redirector",
+      "name": "Remote Desktop WebRTC Redirector Service",
+      "publisher": "Microsoft",
+      "sources": [
+        {
+          "url": "https://aka.ms/msrdcwebrtcsvc/msi",
+          "fileName": "MsRdcWebRTCSvc_HostSetup_x64.msi",
+          "signer": "Microsoft Corporation"
+        }
+      ],
+      "install": {
+        "type": "msi",
+        "file": "MsRdcWebRTCSvc_HostSetup_x64.msi",
+        "args": "/qn /norestart",
+        "successCodes": [
+          0,
+          3010
+        ]
+      },
+      "uninstall": {
+        "type": "msiByName",
+        "displayName": "Remote Desktop WebRTC Redirector Service*"
+      },
+      "detection": {
+        "type": "uninstallName",
+        "displayName": "Remote Desktop WebRTC Redirector Service*"
+      },
+      "dependsOn": [
+        "vcredist-x64"
+      ],
+      "why": "Learn recommends it alongside new Teams so a user can fall back to WebRTC optimisation from devices that don't support SlimCore.",
+      "learn": "https://learn.microsoft.com/azure/virtual-desktop/whats-new-webrtc"
+    },
+    {
+      "id": "teams-vdi",
+      "name": "Microsoft Teams (new) for Azure Virtual Desktop",
+      "publisher": "Microsoft",
+      "sources": [
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409",
+          "fileName": "teamsbootstrapper.exe",
+          "signer": "Microsoft Corporation"
+        },
+        {
+          "url": "https://go.microsoft.com/fwlink/?linkid=2196106",
+          "fileName": "MSTeams-x64.msix",
+          "signer": "",
+          "note": "Windows checks the MSIX signature when it's provisioned."
+        }
+      ],
+      "preRegistry": [
+        {
+          "key": "HKLM:\\SOFTWARE\\Microsoft\\Teams",
+          "name": "IsWVDEnvironment",
+          "type": "DWord",
+          "value": 1
+        }
+      ],
+      "install": {
+        "type": "exe",
+        "file": "teamsbootstrapper.exe",
+        "args": "-p -o \"{here}\\MSTeams-x64.msix\" --installTMA",
+        "successCodes": [
+          0
+        ]
+      },
+      "uninstall": {
+        "type": "exe",
+        "file": "teamsbootstrapper.exe",
+        "args": "-x"
+      },
+      "detection": {
+        "type": "teams"
+      },
+      "dependsOn": [
+        "vcredist-x64",
+        "webrtc-redirector"
+      ],
+      "why": "Machine-wide new Teams with the media optimisation key set first, plus the Outlook meeting add-in. Excluded from Microsoft 365 Apps so there's only one Teams.",
+      "learn": "https://learn.microsoft.com/microsoftteams/teams-client-vdi-requirements-deploy"
+    },
+    {
+      "id": "git",
+      "name": "Git for Windows (x64)",
+      "publisher": "The Git Development Community",
+      "sources": [
+        {
+          "github": "git-for-windows/git",
+          "assetPattern": "^Git-[0-9.]+-64-bit\\.exe$",
+          "fileName": "Git-64-bit.exe",
+          "signer": "Johannes Schindelin"
+        }
+      ],
+      "install": {
+        "type": "exe",
+        "file": "Git-64-bit.exe",
+        "args": "/VERYSILENT /NORESTART /NOCANCEL /SP- /SUPPRESSMSGBOXES",
+        "successCodes": [
+          0,
+          3010
+        ]
+      },
+      "uninstall": {
+        "type": "exe",
+        "path": "C:\\Program Files\\Git\\unins000.exe",
+        "args": "/VERYSILENT /NORESTART /SUPPRESSMSGBOXES"
+      },
+      "detection": {
+        "type": "file",
+        "path": "C:\\Program Files\\Git\\cmd\\git.exe"
+      },
+      "dependsOn": [],
+      "why": "Developer toolchain test.",
+      "learn": "https://gitforwindows.org/"
+    },
+    {
+      "id": "vscode",
+      "name": "Visual Studio Code (system install, x64)",
+      "publisher": "Microsoft",
+      "sources": [
+        {
+          "url": "https://update.code.visualstudio.com/latest/win32-x64/stable",
+          "fileName": "VSCodeSetup-x64.exe",
+          "signer": "Microsoft Corporation"
+        }
+      ],
+      "install": {
+        "type": "exe",
+        "file": "VSCodeSetup-x64.exe",
+        "args": "/VERYSILENT /NORESTART /SUPPRESSMSGBOXES /MERGETASKS=!runcode,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath",
+        "successCodes": [
+          0,
+          3010
+        ]
+      },
+      "uninstall": {
+        "type": "exe",
+        "path": "C:\\Program Files\\Microsoft VS Code\\unins000.exe",
+        "args": "/VERYSILENT /NORESTART /SUPPRESSMSGBOXES"
+      },
+      "detection": {
+        "type": "file",
+        "path": "C:\\Program Files\\Microsoft VS Code\\Code.exe"
+      },
+      "dependsOn": [],
+      "why": "Developer toolchain test (system installer, so every user on the host gets it).",
+      "learn": "https://code.visualstudio.com/docs/setup/windows"
+    },
+    {
+      "id": "azure-cli",
+      "name": "Azure CLI (x64)",
+      "publisher": "Microsoft",
+      "sources": [
+        {
+          "url": "https://aka.ms/installazurecliwindowsx64",
+          "fileName": "azure-cli-x64.msi",
+          "signer": "Microsoft Corporation"
+        }
+      ],
+      "install": {
+        "type": "msi",
+        "file": "azure-cli-x64.msi",
+        "args": "/qn /norestart",
+        "successCodes": [
+          0,
+          3010
+        ]
+      },
+      "uninstall": {
+        "type": "msiByName",
+        "displayName": "Microsoft Azure CLI*"
+      },
+      "detection": {
+        "type": "file",
+        "path": "C:\\Program Files\\Microsoft SDKs\\Azure\\CLI2\\wbin\\az.cmd"
+      },
+      "dependsOn": [],
+      "why": "Developer toolchain test.",
+      "learn": "https://learn.microsoft.com/cli/azure/install-azure-cli-windows"
+    },
+    {
+      "id": "powershell-7",
+      "name": "PowerShell 7 (x64)",
+      "publisher": "Microsoft",
+      "sources": [
+        {
+          "github": "PowerShell/PowerShell",
+          "assetPattern": "^PowerShell-[0-9.]+-win-x64\\.msi$",
+          "fileName": "PowerShell-win-x64.msi",
+          "signer": "Microsoft Corporation"
+        }
+      ],
+      "install": {
+        "type": "msi",
+        "file": "PowerShell-win-x64.msi",
+        "args": "/qn /norestart ADD_PATH=1 USE_MU=1 ENABLE_MU=1",
+        "successCodes": [
+          0,
+          3010
+        ]
+      },
+      "uninstall": {
+        "type": "msiByName",
+        "displayName": "PowerShell 7*"
+      },
+      "detection": {
+        "type": "file",
+        "path": "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+      },
+      "dependsOn": [],
+      "why": "Developer toolchain test; updates through Microsoft Update.",
+      "learn": "https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows"
+    }
+  ]
+}
