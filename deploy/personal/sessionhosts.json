@@ -158,7 +158,7 @@
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Encryption at host (the subscription feature must be registered)."
+        "description": "Encryption at host. Only sent to the VM when true: the subscription needs the Microsoft.Compute/EncryptionAtHost feature registered first."
       }
     },
     "enableHibernation": {
@@ -310,7 +310,7 @@
     "intuneMdmId": "0000000a-0000-0000-c000-000000000000",
     "isEntraJoin": "[equals(parameters('joinType'), 'EntraID')]",
     "imageReference": "[if(equals(parameters('imageSource'), 'Gallery'), createObject('id', parameters('galleryImageVersionResourceId')), parameters('marketplaceImage'))]",
-    "securityProfile": "[if(equals(parameters('securityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true()), 'encryptionAtHost', parameters('encryptionAtHost')), createObject('encryptionAtHost', parameters('encryptionAtHost')))]",
+    "securityProfile": "[union(if(equals(parameters('securityType'), 'TrustedLaunch'), createObject('securityType', 'TrustedLaunch', 'uefiSettings', createObject('secureBootEnabled', true(), 'vTpmEnabled', true())), createObject()), if(parameters('encryptionAtHost'), createObject('encryptionAtHost', true()), createObject()))]",
     "dscArguments": "[union(createObject('HostPoolName', parameters('hostPoolName')), if(parameters('avdAgentDscPassAadJoin'), createObject('AadJoin', equals(parameters('joinType'), 'EntraID')), createObject()), parameters('avdAgentDscExtraArguments'))]"
   },
   "resources": [
