@@ -222,7 +222,17 @@ function Invoke-PdDeployment {
         [hashtable]$Parameters,
         [string]$Label
     )
-    $job = New-AzResourceGroupDeployment -Name $DeploymentName -ResourceGroupName $ResourceGroupName @TemplateSource -TemplateParameterObject $Parameters -AsJob
+    # An -AsJob deployment fails before it reaches Azure with "Unable to serialize secure string value" when
+    # -TemplateParameterObject holds a SecureString, so secure values are sent as plain strings. The template
+    # still declares them securestring, so Resource Manager doesn't save or log their values.
+    $sendParams = @{}
+    foreach ($key in $Parameters.Keys) {
+        $value = $Parameters[$key]
+        if ($value -is [System.Security.SecureString]) { $value = [System.Net.NetworkCredential]::new('', $value).Password }
+        $sendParams[$key] = $value
+    }
+    $job = New-AzResourceGroupDeployment -Name $DeploymentName -ResourceGroupName $ResourceGroupName @TemplateSource -TemplateParameterObject $sendParams -AsJob
+    $sendParams = $null
     $started = Get-Date
     while ($job.State -in @('NotStarted', 'Running')) {
         Start-Sleep -Seconds 30
